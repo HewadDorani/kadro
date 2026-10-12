@@ -53,6 +53,20 @@ deletion cannot pass merely because app.json contains the text. Actual isolated
 CNG output is checked separately before another Store build. Build 36 itself
 remains unchanged and is not a testable or reviewed replacement.
 
+## Dictation, 12.10.2026 (after Build 47)
+
+`VoiceInputButton` owns only the button and its messages; the session state lives
+in `src/services/voiceDictation.ts`. Listeners are added with
+`ExpoSpeechRecognitionModule.addListener(...)` as a method call: the package's
+detached `addSpeechRecognitionListener` export made the JSI EventEmitter register
+them on the package exports, so iOS results never reached the describe field.
+Interim words are written live, appended to the existing text; results after
+"stop" are applied until "end", and the 1.5 s abort fallback keeps the last
+transcript. Recognition errors show a short DE/EN message. The speech purpose
+(`NSSpeechRecognitionUsageDescription`) is declared in the base plist and both
+locales. `scripts/validate-voice-input.mjs` drives the controller with a mocked
+module that, like the native EventEmitter, keeps listeners on `this`.
+
 ## Aktueller Folgestand, 04.10.2026
 
 Die datierten Abschnitte darunter sind historische Zwischenstände. Insbesondere

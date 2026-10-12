@@ -5,6 +5,7 @@ import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { selectionHaptic } from '@/services/haptics';
+import { createDictation, VOICE_STOP_GRACE_MS, type Dictation, type VoiceErrorKind, type VoiceNative } from '@/services/voiceDictation';
 
 type SpeechModule = typeof import('expo-speech-recognition');
 
@@ -26,6 +27,8 @@ function recognitionAvailable() {
 /**
  * Speak the meal instead of typing it. Apple's speech recognition turns it
  * into text live (on device when available); nothing is recorded or stored.
+ * Words appear while speaking, are appended to what is already typed, and
+ * failures show a short message instead of doing nothing.
  * Without the native module (web, old builds) the button is simply absent.
  */
 export function VoiceInputButton({ value, onChange }: { value: string; onChange: (text: string) => void }) {
@@ -41,23 +44,26 @@ export function VoiceInputButton({ value, onChange }: { value: string; onChange:
   }, [available]);
   const speech = available ? speechModule : null;
   const [listening, setListening] = useState(false);
-  const prefix = useRef('');
+  const [error, setError] = useState<VoiceErrorKind | null>(null);
+  const dictation = useRef<Dictation | null>(null);
+  // Results arrive outside React; they always reach the current field setter.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const clearStopTimer = () => { if (stopTimer.current) { clearTimeout(stopTimer.current); stopTimer.current = null; } };
 
   useEffect(() => {
     if (!speech) return;
-    const subscriptions = [
-      speech.addSpeechRecognitionListener('result', event => {
-        const transcript = event.results[0]?.transcript ?? '';
-        onChange(`${prefix.current}${transcript}`.slice(0, 500));
-      }),
-      speech.addSpeechRecognitionListener('end', () => { setListening(false); clearStopTimer(); }),
-      speech.addSpeechRecognitionListener('error', () => { setListening(false); clearStopTimer(); }),
-    ];
-    return () => { subscriptions.forEach(subscription => subscription.remove()); clearStopTimer(); speech.ExpoSpeechRecognitionModule.abort(); };
-  }, [speech, onChange]);
+    // Listeners must be added on the native module itself (see voiceDictation.ts).
+    const controller = createDictation(speech.ExpoSpeechRecognitionModule as unknown as VoiceNative, {
+      onText: text => onChangeRef.current(text),
+      onListening: setListening,
+      onError: setError,
+    });
+    dictation.current = controller;
+    return () => { clearStopTimer(); controller.dispose(); dictation.current = null; };
+  }, [speech]);
 
   useEffect(() => {
     if (!listening) { pulse.stopAnimation(); pulse.setValue(0); return; }
@@ -74,15 +80,22 @@ export function VoiceInputButton({ value, onChange }: { value: string; onChange:
       // Stop must feel instant. iOS can take seconds to report "end" for
       // continuous on-device recognition (or never), which used to leave the
       // button pulsing as if it could not be stopped. The last words still
-      // arrive as a final result; if iOS does not finish, abort.
-      setListening(false);
-      speech.ExpoSpeechRecognitionModule.stop();
+      // arrive as a final result and are kept; if iOS does not finish, abort.
+      dictation.current?.stop();
       clearStopTimer();
-      stopTimer.current = setTimeout(() => { stopTimer.current = null; speech.ExpoSpeechRecognitionModule.abort(); }, 1500);
+      stopTimer.current = setTimeout(() => { stopTimer.current = null; dictation.current?.abortFallback(); }, VOICE_STOP_GRACE_MS);
       return;
     }
-    const permission = await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (!permission.granted) {
+    setError(null);
+    let granted = false;
+    try {
+      granted = (await speech.ExpoSpeechRecognitionModule.requestPermissionsAsync()).granted;
+    } catch {
+      setError('unavailable');
+      return;
+    }
+    if (!granted) {
+      setError('denied');
       Alert.alert(t.scan.voiceDeniedTitle, t.scan.voiceDeniedBody, [
         { text: t.common.cancel, style: 'cancel' },
         { text: t.scan.voiceOpenSettings, onPress: () => { void Linking.openSettings(); } },
@@ -91,8 +104,7 @@ export function VoiceInputButton({ value, onChange }: { value: string; onChange:
     }
     // A pending abort from the previous stop must not cut off this new session.
     clearStopTimer();
-    prefix.current = value.trim() ? `${value.trim()} ` : '';
-    speech.ExpoSpeechRecognitionModule.start({
+    dictation.current?.start(value, {
       lang: language === 'de' ? 'de-DE' : 'en-US',
       interimResults: true,
       continuous: true,
@@ -100,9 +112,9 @@ export function VoiceInputButton({ value, onChange }: { value: string; onChange:
       requiresOnDeviceRecognition: speech.supportsOnDeviceRecognition(),
       contextualStrings: t.scan.voiceVocabulary,
     });
-    setListening(true);
   };
 
+  const errorText = error ? t.scan.voiceErrors[error] : null;
   const ring = { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }] };
   return (
     <View style={styles.row}>
@@ -116,7 +128,13 @@ export function VoiceInputButton({ value, onChange }: { value: string; onChange:
         {listening ? <Animated.View pointerEvents="none" style={[styles.ring, ring]} /> : null}
         <Ionicons color={listening ? colors.onAccent : colors.text} name={listening ? 'stop' : 'mic'} size={22} />
       </Pressable>
-      <Text style={styles.hint}>{listening ? t.scan.voiceListening : t.scan.voiceHint}</Text>
+      <Text
+        accessibilityLiveRegion="polite"
+        accessibilityRole={errorText && !listening ? 'alert' : 'text'}
+        style={[styles.hint, errorText && !listening && styles.error]}
+      >
+        {listening ? t.scan.voiceListening : errorText ?? t.scan.voiceHint}
+      </Text>
     </View>
   );
 }
@@ -127,4 +145,5 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   buttonActive: { backgroundColor: colors.accent },
   ring: { ...StyleSheet.absoluteFillObject, borderRadius: 26, backgroundColor: colors.accent },
   hint: { flex: 1, color: colors.muted, fontSize: 14, lineHeight: 19 },
+  error: { color: colors.attentionText },
 });

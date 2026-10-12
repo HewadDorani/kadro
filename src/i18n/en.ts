@@ -403,6 +403,13 @@ export const en: typeof de = {
     voiceDeniedTitle: 'Microphone is off',
     voiceDeniedBody: 'Allow microphone and speech recognition in Settings to speak your meal.',
     voiceOpenSettings: 'Open Settings',
+    voiceErrors: {
+      denied: 'Microphone or speech recognition is off. Allow it in Settings or just type.',
+      unavailable: 'Speech recognition isn’t available right now. Check that Dictation is on in iOS Settings, or type your meal.',
+      network: 'Speech recognition needs a connection right now. Try again in a moment or type your meal.',
+      noSpeech: 'I didn’t catch anything. Tap and speak again.',
+      generic: 'Speaking didn’t work this time. Try again or type your meal.',
+    },
     brandSearchHint: 'For example Barilla, Heinz, Tesco',
     searchMore: 'Show more results',
     searchCount: (shown: number, total: number) => `${shown} of ${total} results`,

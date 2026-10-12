@@ -404,6 +404,13 @@ export const de = {
     voiceDeniedTitle: 'Mikrofon ist aus',
     voiceDeniedBody: 'Erlaube Mikrofon und Spracherkennung in den Einstellungen, um deine Mahlzeit einzusprechen.',
     voiceOpenSettings: 'Einstellungen öffnen',
+    voiceErrors: {
+      denied: 'Mikrofon oder Spracherkennung ist aus. Du kannst es in den Einstellungen erlauben oder einfach tippen.',
+      unavailable: 'Spracherkennung ist gerade nicht verfügbar. Prüfe, ob Diktieren in den iOS-Einstellungen an ist, oder tippe deine Mahlzeit.',
+      network: 'Spracherkennung braucht gerade eine Verbindung. Versuch es gleich noch mal oder tippe deine Mahlzeit.',
+      noSpeech: 'Ich habe nichts verstanden. Tippe und sprich noch mal.',
+      generic: 'Das Einsprechen hat nicht geklappt. Versuch es noch mal oder tippe deine Mahlzeit.',
+    },
     brandSearchHint: 'Zum Beispiel Milka, Barilla, Rewe Bio',
     searchMore: 'Weitere Treffer anzeigen',
     searchCount: (shown: number, total: number) => `${shown} von ${total} Treffern`,
