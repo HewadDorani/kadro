@@ -4,6 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -105,7 +106,8 @@ assert.match(searchFn, /language === 'de'/, 'the German dish names must only be 
 // Local first (own products, then the on-device BLS catalogue), remote after the debounce.
 assert.match(runFn, /const local = mergeSuggestions\(matchCustomFoods\(term, customFoods\), suggestFoods\(term, usage\)\);[\s\S]*setSearchResults\(local\);[\s\S]*searchTimer\.current = setTimeout\(/,
   'own products and on-device suggestions must show before the debounced gateway search');
-assert.match(screen, /setSearchResults\(mergeSuggestions\(local, results\)\)/, 'gateway rows are merged without duplicates');
+assert.match(screen, /const generic = mergeSuggestions\(local, results\.generic\);\s*setSearchResults\(generic\);/, 'gateway rows are merged without duplicates');
+assert.match(screen, /setProductResults\(mergeSuggestions\(generic, results\.products\)\.slice\(generic\.length\)\)/, 'a product that is also a generic row is shown once');
 assert.match(screen, /foodSourceBadge\(result\)/, 'every row shows where its values come from');
 assert.match(screen, /myProducts\.map\(renderResult\)[\s\S]*frequent\.map\(renderResult\)[\s\S]*recents\.map\(renderResult\)/,
   'an empty field lists own products, then frequent, then recent foods');
@@ -126,7 +128,7 @@ const shared = (name) => import(new URL(`../supabase/functions/_shared/${name}`,
 const modules = { 'bls-search-data.mjs': await shared('bls-search-data.mjs'), 'bls-reference.mjs': await shared('bls-reference.mjs'), 'bls-search.mjs': await shared('bls-search.mjs'), 'food-synonyms.mjs': await shared('food-synonyms.mjs') };
 const loaded = { exports: {} };
 new Function('require', 'module', 'exports', ts.transpileModule(suggestSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(
-  (id) => id === '@/i18n/active' ? { getLanguage: () => 'de', getDictionary: () => ({ scan: new Proxy({}, { get: () => '1 Portion' }) }) } : modules[id.split('/').pop()],
+  (id) => id === '@/i18n/active' ? { getLanguage: () => 'de', getDictionary: () => ({ scan: new Proxy({}, { get: () => '1 Portion' }) }) } : id.endsWith('.json') ? JSON.parse(readFileSync(resolve(projectRoot, 'src/data', id.split('/').pop()), 'utf8')) : modules[id.split('/').pop()],
   loaded, loaded.exports);
 const suggest = loaded.exports;
 const per100g = { calories: 63, protein: 11, carbs: 4, fat: 0.2 };

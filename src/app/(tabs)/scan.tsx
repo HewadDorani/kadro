@@ -20,7 +20,8 @@ import { radii, typeScale } from '@/constants/theme';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { frameToPhotoCrop, type Rect } from '@/utils/cameraCrop';
 import { useApp } from '@/context/AppContext';
-import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, searchFoods } from '@/services/mealAnalysis';
+import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, searchProducts } from '@/services/mealAnalysis';
+import { productSearchHint, productsFirst } from '@/services/productSearch';
 import { foodSourceBadge, foodUsage, frequentFoods, mergeSuggestions, recentFoods, suggestFoods, type FoodSourceBadge } from '@/services/foodSuggest';
 import { customFoodResult, deleteCustomFood, isCustomFoodResult, matchCustomFoods } from '@/services/customFoods';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
@@ -35,6 +36,12 @@ import { localDateKey } from '@/utils/date';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { subscribePrivateDataInvalidation } from '@/services/localRepository';
+
+/** Generic foods shown before "more"; the catalogue answers most words. */
+const GENERIC_PREVIEW = 5;
+const PRODUCT_PREVIEW = 8;
+/** Pause after typing before the product search asks the network. */
+const PRODUCT_SEARCH_DEBOUNCE_MS = 300;
 
 export default function ScanScreen() {
   const { colors } = useTheme();
@@ -65,8 +72,12 @@ export default function ScanScreen() {
   const [showDescription, setShowDescription] = useState(requestedMode === 'description');
   const [showSearch, setShowSearch] = useState(requestedMode === 'search');
   const [searchQuery, setSearchQuery] = useState(restoredInput?.searchQuery ?? '');
+  // Two lists: generic foods (own products, BLS, USDA) and branded products.
   const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
-  const [visibleSearchCount, setVisibleSearchCount] = useState(15);
+  const [productResults, setProductResults] = useState<FoodSearchResult[]>([]);
+  const [productError, setProductError] = useState(false);
+  const [visibleSearchCount, setVisibleSearchCount] = useState(GENERIC_PREVIEW);
+  const [visibleProductCount, setVisibleProductCount] = useState(PRODUCT_PREVIEW);
   const [searching, setSearching] = useState(false);
   const [completedEmptySearch, setCompletedEmptySearch] = useState(false);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
@@ -114,7 +125,7 @@ export default function ScanScreen() {
     setScanInputDraft(null);
     searchGeneration.current += 1;
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    setSearchResults([]); setSearching(false); setCompletedEmptySearch(false); setSearchNotice(null); setSearchError(null);
+    setSearchResults([]); setProductResults([]); setProductError(false); setSearching(false); setCompletedEmptySearch(false); setSearchNotice(null); setSearchError(null);
   }, []);
   useEffect(() => {
     if (!inputOwnerChanged) return;
@@ -392,7 +403,8 @@ export default function ScanScreen() {
     setSearchNotice(null);
     setSearchError(null);
     setSearchQuery(value);
-    setVisibleSearchCount(15);
+    setVisibleSearchCount(GENERIC_PREVIEW);
+    setVisibleProductCount(PRODUCT_PREVIEW);
     const term = value.trim();
     const generation = ++searchGeneration.current;
     latestSearch.current = term;
@@ -401,42 +413,45 @@ export default function ScanScreen() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (term.length < 2) {
       setSearchResults([]);
+      setProductResults([]);
+      setProductError(false);
       setSearching(false);
       return;
     }
     // Instant on-device suggestions (own products first, then the German
-    // catalogue); the gateway's brands/products follow after the debounce.
+    // catalogue); the branded products follow after the debounce.
     const local = mergeSuggestions(matchCustomFoods(term, customFoods), suggestFoods(term, usage));
     setSearchResults(local);
     setSearching(true);
+    setProductError(false);
     setSearchError(null);
+    // Products are always asked for, however many generic foods matched:
+    // "Donut" or "Skyr" match the catalogue and still mean a product for many.
+    // "lidl skyr" sends Lidl's own brands (Milbona, …) as a hint.
+    const hint = productSearchHint(term);
     searchTimer.current = setTimeout(() => {
       const request = term;
       latestSearch.current = request;
       const startedAt = Date.now();
       trackEvent('food search started', {});
-      void searchFoods(request, { catalogueOnly: !submitted })
+      void searchProducts(request, { brands: hint.brands })
         .then((results) => {
           if (latestSearch.current !== request || generation !== searchGeneration.current) return;
-          trackEvent('food search completed', { result_count: results.length === 0 ? '0' : results.length <= 15 ? '1-15' : results.length <= 30 ? '16-30' : '31+', duration: durationBucket(startedAt) });
-          // Catalogue-only results are normal while typing; the brand search
-          // sits as a quiet action under the list instead of a notice.
+          const count = results.generic.length + results.products.length;
+          trackEvent('food search completed', { result_count: count === 0 ? '0' : count <= 15 ? '1-15' : count <= 30 ? '16-30' : '31+', duration: durationBucket(startedAt) });
           setSearchNotice(results.searchStatus === 'partial' ? t.errors.searchPartial : null);
-          setCompletedEmptySearch(submitted && results.searchStatus === 'complete' && !results.length);
-          setSearchResults(mergeSuggestions(local, results));
+          const generic = mergeSuggestions(local, results.generic);
+          setSearchResults(generic);
+          // A product that is also an own product or a catalogue row shows once.
+          setProductResults(mergeSuggestions(generic, results.products).slice(generic.length));
+          setCompletedEmptySearch(results.searchStatus === 'complete' && !generic.length && !results.products.length);
           setSearching(false);
-          // Brands and products live outside the local catalogue. When typing
-          // pauses and the catalogue has little to offer, ask the full search
-          // without making the user find the return key.
-          if (!submitted && results.searchStatus === 'catalogue' && results.length < 5) {
-            searchTimer.current = setTimeout(() => {
-              if (generation === searchGeneration.current && latestSearch.current === request) runSearch(value, true);
-            }, 650);
-          }
         })
         .catch((error: unknown) => {
           if (latestSearch.current !== request || generation !== searchGeneration.current) return;
           setSearchResults(local);
+          setProductResults([]);
+          setProductError(true);
           // Swallowing this showed "nothing found" for a network failure and
           // for a withdrawn consent alike, which tells the user the food does
           // not exist when the truth is that we never asked.
@@ -445,7 +460,7 @@ export default function ScanScreen() {
           if (!local.length) setSearchError(error instanceof MealAnalysisError ? error.message : t.errors.gatewayProviderError);
           setSearching(false);
         });
-    }, submitted ? 0 : 350);
+    }, submitted ? 0 : PRODUCT_SEARCH_DEBOUNCE_MS);
   };
 
   useEffect(() => {
@@ -453,6 +468,8 @@ export default function ScanScreen() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     setSearching(false);
     setSearchResults([]);
+    setProductResults([]);
+    setProductError(false);
     setCompletedEmptySearch(false);
     setSearchNotice(null);
     setSearchError(null);
@@ -464,7 +481,7 @@ export default function ScanScreen() {
    * the only unit on offer.
    */
   const addSearchResult = (result: FoodSearchResult) => {
-    const rank = searchResults.indexOf(result) + 1;
+    const rank = [...searchResults, ...productResults].indexOf(result) + 1;
     trackEvent('food search selected', { rank: rank <= 3 ? '1-3' : rank <= 15 ? '4-15' : '16+' });
     Keyboard.dismiss();
     setPortionDraft(null);
@@ -480,7 +497,7 @@ export default function ScanScreen() {
       ]);
       return;
     }
-    setManualFor(null); setQuickAddFor(null); setPendingFood(null); setPortionDraft(null); setSearchQuery(''); setSearchResults([]); setShowSearch(false); setMode('photo'); };
+    setManualFor(null); setQuickAddFor(null); setPendingFood(null); setPortionDraft(null); setSearchQuery(''); setSearchResults([]); setProductResults([]); setShowSearch(false); setMode('photo'); };
 
   /** The search sheet is a native modal: it must be gone before a new screen. */
   const openLabelScan = () => {
@@ -513,7 +530,7 @@ export default function ScanScreen() {
     const kcal = Math.round(food.per100g.calories * grams / 100);
     setAdded(list => [...list, { id: `pick-${++pickSerial.current}`, food, name: food.name, grams, kcal }]);
     setPendingFood(null); setPortionDraft(null); setManualFor(null); setQuickAddFor(null);
-    setSearchQuery(''); setSearchResults([]); setScanInputDraft(null);
+    setSearchQuery(''); setSearchResults([]); setProductResults([]); setScanInputDraft(null);
     setSearchError(null); setSearchNotice(null); setCompletedEmptySearch(false); setSearching(false);
     searchGeneration.current += 1;
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -535,7 +552,7 @@ export default function ScanScreen() {
   const doneAdding = () => {
     setAdded([]); setAddError(null); setPlannedMealType(null); setPlannedMealDate(null);
     setPendingFood(null); setPortionDraft(null); setManualFor(null);
-    setSearchQuery(''); setSearchResults([]); setShowSearch(false); setMode('photo');
+    setSearchQuery(''); setSearchResults([]); setProductResults([]); setShowSearch(false); setMode('photo');
     Keyboard.dismiss();
     router.replace('/(tabs)/today');
   };
@@ -588,11 +605,16 @@ export default function ScanScreen() {
   const renderResult = (result: FoodSearchResult) => {
     const badge = badgeLabel(foodSourceBadge(result));
     const own = isCustomFoodResult(result);
+    // Products: name, then brand and pack size. BLS: everyday name, then the
+    // official label, so the source wording stays visible.
+    const productLine = [result.brand, result.packageG ? t.scan.productPackage(formatNumber(result.packageG, locale)) : null].filter(Boolean).join(' · ');
     return (
       <View key={result.id} style={styles.searchResultRow}>
         <Pressable accessibilityHint={t.scan.sourceBadgeLabel(badge)} accessibilityRole="button" onPress={() => addSearchResult(result)} style={[styles.searchRow, styles.searchRowMain]}>
           <View style={styles.searchRowCopy}>
-            <Text numberOfLines={2} style={styles.searchRowName}>{result.name}</Text>
+            <Text numberOfLines={2} style={styles.searchRowName}>{result.productName ?? result.name}</Text>
+            {productLine ? <Text numberOfLines={1} style={styles.searchRowBrand}>{productLine}</Text> : null}
+            {result.officialName ? <Text numberOfLines={1} style={styles.searchRowOfficial}>{result.officialName}</Text> : null}
             <Text style={styles.searchRowMeta}>
               {result.lastGrams
                 ? `${t.scan.lastAmount(`${formatNumber(result.lastGrams, locale)} g`)} · ${formatNumber(Math.round(result.per100g.calories * result.lastGrams / 100), locale)} kcal`
@@ -612,6 +634,45 @@ export default function ScanScreen() {
       </View>
     );
   };
+
+  // "Lebensmittel" and "Produkte & Marken". A store or brand in the query
+  // ("milbona skyr", "lidl") puts the products first.
+  const typedQuery = searchQuery.trim();
+  const productsLead = productsFirst(typedQuery, searchResults.length, productResults.length);
+  const showProductEmpty = typedQuery.length >= 2 && !searching && !productError && !searchError && !productResults.length;
+  const foodSection = searchResults.length ? <>
+    <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionFoods}</Text>
+    {searchResults.slice(0, visibleSearchCount).map(renderResult)}
+    {searchResults.length > visibleSearchCount ? <PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /> : null}
+  </> : null;
+  const productSection = typedQuery.length >= 2 ? <>
+    <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionProducts}</Text>
+    {searching && !productResults.length ? (
+      <View accessible accessibilityLabel={t.scan.productsSearching} accessibilityRole="progressbar" style={styles.skeletonList}>
+        {[0, 1, 2].map(row => (
+          <View key={row} style={styles.skeletonRow}>
+            <View style={[styles.skeletonLine, { width: row === 1 ? '56%' : '72%' }]} />
+            <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+          </View>
+        ))}
+      </View>
+    ) : null}
+    {productResults.slice(0, visibleProductCount).map(renderResult)}
+    {productResults.length > visibleProductCount ? <PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleProductCount((count) => count + 15)} /> : null}
+    {!searching && productError && !searchError ? <Text accessibilityLiveRegion="polite" style={styles.searchStatus}>{t.scan.productsUnavailable}</Text> : null}
+    {showProductEmpty ? (
+      <View style={styles.productEmpty}>
+        <Text style={styles.searchStatus}>{t.scan.productsEmpty}</Text>
+        <Pressable accessibilityHint={t.scan.labelScanHint} accessibilityRole="button" onPress={() => openLabelScan()} style={styles.searchRow}>
+          <View style={styles.searchRowCopy}>
+            <Text numberOfLines={2} style={styles.searchRowName}>{t.scan.labelScanCta}</Text>
+            <Text style={styles.searchRowMeta}>{t.scan.labelScanHint}</Text>
+          </View>
+          <Ionicons color={colors.accentText} name="nutrition-outline" size={24} />
+        </Pressable>
+      </View>
+    ) : null}
+  </> : null;
 
   return (
     <View ref={containerRef} style={[styles.container, !cameraActive && styles.fallbackBackground]}>
@@ -844,14 +905,14 @@ export default function ScanScreen() {
             />
             {searchNotice ? <Text accessibilityLiveRegion="polite" style={styles.searchStatus}>{searchNotice}</Text> : null}
             <View>
-              {searching && !searchResults.length ? <Text style={styles.searchStatus}>{t.scan.searchSearching}</Text> : null}
+              {searching && !searchResults.length && !productResults.length ? <Text style={styles.searchStatus}>{t.scan.searchSearching}</Text> : null}
               {!searching && searchError ? (
                 <Text accessibilityLiveRegion="polite" style={styles.searchError}>{searchError}</Text>
               ) : null}
-              {!searching && !searchError && !searchNotice && searchQuery.trim().length >= 2 && !searchResults.length ? (
+              {!searching && !searchError && !searchNotice && searchQuery.trim().length >= 2 && !searchResults.length && !productResults.length ? (
                 <Text style={styles.searchStatus}>{t.scan.searchEmpty}</Text>
               ) : null}
-              {!searching && !searchError && t.scan.searchHintEnglish && searchQuery.trim().length >= 2 && !searchResults.length ? (
+              {!searching && !searchError && t.scan.searchHintEnglish && searchQuery.trim().length >= 2 && !searchResults.length && !productResults.length ? (
                 <Text style={styles.searchStatus}>{t.scan.searchHintEnglish}</Text>
               ) : null}
               {completedEmptySearch && !searching && !searchError ? <CaptureSearchHelp query={searchQuery.trim()} onConfirm={value=>runSearch(value,true)}/> : null}
@@ -862,17 +923,7 @@ export default function ScanScreen() {
                 {frequent.map(renderResult)}
                 {recents.length ? <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.recentTitle}</Text> : null}
                 {recents.map(renderResult)}
-              </> : searchResults.slice(0, visibleSearchCount).map(renderResult)}
-              {searchResults.length > visibleSearchCount ? <PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /> : null}
-              {searchQuery.trim().length >= 2 && !searching ? (
-                <Pressable accessibilityRole="button" onPress={() => { Keyboard.dismiss(); runSearch(searchQuery, true); }} style={styles.searchRow}>
-                  <View style={styles.searchRowCopy}>
-                    <Text numberOfLines={2} style={styles.searchRowName}>{t.errors.searchSubmit}</Text>
-                    <Text style={styles.searchRowMeta}>{t.scan.brandSearchHint}</Text>
-                  </View>
-                  <Ionicons color={colors.accentText} name="search" size={22} />
-                </Pressable>
-              ) : null}
+              </> : productsLead ? <>{productSection}{foodSection}</> : <>{foodSection}{productSection}</>}
               {searchQuery.trim().length >= 2 && !searching ? (
                 <Pressable accessibilityRole="button" onPress={() => { Keyboard.dismiss(); setManualFor(searchQuery.trim()); }} style={styles.searchRow}>
                   <View style={styles.searchRowCopy}>
@@ -891,7 +942,7 @@ export default function ScanScreen() {
                   <Ionicons color={colors.accentText} name="flash-outline" size={24} />
                 </Pressable>
               ) : null}
-              {!searching ? (
+              {!searching && !showProductEmpty ? (
                 <Pressable accessibilityRole="button" onPress={() => openLabelScan()} style={styles.searchRow}>
                   <View style={styles.searchRowCopy}>
                     <Text numberOfLines={2} style={styles.searchRowName}>{t.scan.labelScanCta}</Text>
@@ -1040,6 +1091,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sourceBadgeTextOwn: { color: colors.accentText },
   searchRowName: { color: colors.text, fontSize: 16, fontWeight: '600', lineHeight: 21 },
   searchRowMeta: { color: colors.muted, fontSize: typeScale.caption },
+  searchRowBrand: { color: colors.text, fontSize: typeScale.caption, fontWeight: '600' },
+  searchRowOfficial: { color: colors.muted, fontSize: typeScale.micro },
+  skeletonList: { gap: 4 },
+  skeletonRow: { gap: 8, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
+  skeletonLine: { height: 14, borderRadius: 7, backgroundColor: colors.neutralSoft },
+  skeletonLineShort: { width: '38%', height: 12 },
+  productEmpty: { gap: 0 },
   describeSheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
   describeTitle: { color: colors.text, fontSize: 26, fontWeight: '700' },
   describeText: { color: colors.muted, fontSize: typeScale.caption, lineHeight: 19 },

@@ -26,6 +26,20 @@ const { resolveReviewedStapleFacts } = require('../../supabase/functions/_shared
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { applyFoodSynonyms } = require('../../supabase/functions/_shared/food-synonyms.mjs') as { applyFoodSynonyms: (folded: string, language: string) => string };
 
+/**
+ * Everyday names for the BLS foods people log most (src/data/blsDisplayNames.json,
+ * BLS code → [German, English]). BLS labels are precise but read like a lab
+ * sheet ("Speisequark Magerstufe, Magerquark < 10 % Fett i. Tr.", "Donut
+ * (Hefeteig) frittiert"): the everyday name becomes the title and the official
+ * label stays visible below it. Code and per-100 g values are unchanged.
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const BLS_DISPLAY_NAMES = require('../data/blsDisplayNames.json') as Record<string, readonly [string, string]>;
+export function everydayName(code: string, language: string): string | null {
+  const names = BLS_DISPLAY_NAMES[code];
+  return names ? names[language === 'de' ? 0 : 1] : null;
+}
+
 // "Haehnchen" and "Hähnchen" are the same word: umlaut spellings fold to the
 // same key on both sides (index and query), so ae/oe/ue typing still matches.
 export const fold = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/ae/g, 'a').replace(/oe/g, 'o').replace(/ue/g, 'u').replace(/[^a-z0-9%]+/g, ' ').trim();
@@ -79,6 +93,10 @@ const RAW_ALIASES: Record<string, readonly string[]> = {
   eiweiss: ['E113100'], eiklar: ['E113100'], eggwhite: ['E113100'], putenbrust: ['V486182', 'V486100'], pute: ['V486182'], turkey: ['V486182'],
   erdnussbutter: ['H880200'], peanutbutter: ['H880200'], banane: ['F503100'], banana: ['F503100'],
   musli: ['C512300'], muesli: ['C512300'], porridge: ['C133000'], oats: ['C133000'], oatmeal: ['C133000'], hafer: ['C133000', 'C660000'], haferflocken: ['C133000'],
+  // Bakery words people type, not the BLS dough names ("Donut (Hefeteig) frittiert").
+  donut: ['D741600', 'D741000', 'D7A6000'], donuts: ['D741600', 'D741000', 'D7A6000'], doughnut: ['D741600', 'D741000', 'D7A6000'], doughnuts: ['D741600', 'D741000', 'D7A6000'],
+  berliner: ['D7A6200', 'D7A6000', 'D7A6500'], krapfen: ['D7A6200', 'D7A6000', 'D7A6500'], kreppel: ['D7A6200', 'D7A6000', 'D7A6500'],
+  muffin: ['D400400', 'D400800'], muffins: ['D400400', 'D400800'], croissant: ['D771600', 'D771700'], croissants: ['D771600', 'D771700'], gipfeli: ['D771600'],
 };
 // Everyday dishes rank first in search, with a realistic serving. They are
 // deliberately not used to resolve free-text descriptions: "Pizza" there
@@ -125,6 +143,7 @@ const PORTIONS: Record<string, readonly (readonly [PortionKind, number])[]> = {
   F603600: [['glass', 200]], F110600: [['glass', 200]], N330000: [['can', 330], ['glass', 250]], N331000: [['can', 330], ['glass', 250]], P163000: [['bottle', 330]],
   P2A3000: [['glass', 200]], P210000: [['glass', 200]], P253000: [['glass', 200]], P220000: [['glass', 200]], G543100: [['piece', 160]], G541100: [['piece', 160]], G542100: [['piece', 160]], G520100: [['piece', 400]], X201160: [['portion', 150]], E113100: [['egg', 33]], V486182: [['fillet', 150]],
   Y038213: [['portion', 150]], X730033: [['portion', 350]], X912033: [['piece', 350], ['slice', 90]], Y921162: [['piece', 400]], Y921062: [['piece', 400]], Y943032: [['portion', 250]], Y944062: [['portion', 450]], X469753: [['portion', 350]], Y231322: [['piece', 150]], Y911060: [['piece', 110]], Y911160: [['piece', 120]],
+  D741600: [['piece', 60]], D741000: [['piece', 65]], D7A6000: [['piece', 70]], D7A6200: [['piece', 80]], D7A6500: [['piece', 80]], D400400: [['piece', 90]], D400800: [['piece', 90]],
   Q611000: [['tsp', 5]], H880200: [['tbsp', 15]], S120000: [['tsp', 8]], Q120000: [['tbsp', 10]],
   M402500: [['slice', 25]], M304600: [['slice', 20]], W424000: [['slice', 20]], W140000: [['slice', 10]], M032100: [['ball', 125]],
   C352032: [['portion', 150]], C351032: [['portion', 150]], E401032: [['portion', 180]], X6A1010: [['portion', 200], ['piece', 80]], K110100: [['portion', 200], ['piece', 80]],
@@ -197,9 +216,13 @@ function toResult(row: Row, language: string, usage?: FoodUsage): FoodSearchResu
   const labels = portionLabels();
   const [code, nameDe, nameEn, calories, protein, carbs, fat, fiber] = row;
   const portions = (PORTIONS[code] ?? []).map(([kind, grams]) => ({ label: labels[kind], grams, estimated: true, kind }));
+  // Everyday name as the title; the official BLS label stays visible below it.
+  const official = language === 'de' ? displayGerman(nameDe) : nameEn;
+  const everyday = everydayName(code, language);
   return {
     id: `bls-${code}`,
-    name: language === 'de' ? displayGerman(nameDe) : nameEn,
+    name: everyday ?? official,
+    ...(everyday && everyday !== official ? { officialName: official } : {}),
     per100g: { calories, protein, carbs, fat, fiber },
     defaultGrams: usage?.lastGrams ?? portions[0]?.grams ?? 100,
     portions,

@@ -411,7 +411,6 @@ export const de = {
       noSpeech: 'Ich habe nichts verstanden. Tippe und sprich noch mal.',
       generic: 'Das Einsprechen hat nicht geklappt. Versuch es noch mal oder tippe deine Mahlzeit.',
     },
-    brandSearchHint: 'Zum Beispiel Milka, Barilla, Rewe Bio',
     searchMore: 'Weitere Treffer anzeigen',
     searchCount: (shown: number, total: number) => `${shown} von ${total} Treffern`,
 
@@ -497,6 +496,11 @@ export const de = {
     quickAddName: 'Bezeichnung (optional)', quickAddDefaultName: 'Schnelleintrag', quickAddCalories: 'Kalorien', quickAddProtein: 'Protein (optional)',
     quickAddInvalid: 'Bitte 1 bis 5000 kcal angeben. Protein kann nicht mehr Energie liefern als die Kalorien insgesamt.', quickAddSave: 'Hinzufügen', quickAddSource: 'Schnell eingetragen',
     labelScanCta: 'Nährwerttabelle fotografieren', labelScanHint: 'Produkt fehlt? Du prüfst danach jeden Wert.',
+    // Search sections: generic foods and branded products (shown in parallel).
+    sectionFoods: 'Lebensmittel', sectionProducts: 'Produkte & Marken',
+    productsSearching: 'Produkte werden gesucht …', productsEmpty: 'Kein Produkt gefunden – fotografier einfach die Nährwerttabelle.',
+    productsUnavailable: 'Die Produktsuche ist gerade nicht erreichbar. Die Lebensmittel bleiben auswählbar.',
+    productPackage: (grams: string) => `Packung ${grams} g`,
   },
   analyzing: {
     phasePreparing: 'Foto wird vorbereitet …',
@@ -921,7 +925,6 @@ export const de = {
     retryAfterSeconds: "Erneut versuchen in {seconds} Sekunden.",
     searchPartial: "Einige zusätzliche Quellen sind nicht erreichbar. Die angezeigten Treffer bleiben auswählbar.",
     searchCatalogue: "Katalogtreffer. Absenden sucht zusätzlich nach Markenprodukten.",
-    searchSubmit: "Marken & Produkte suchen",
 
     retakeWholePlate: 'Bitte fotografiere den ganzen Teller erneut.',
     crashTitle: 'Etwas ist schiefgelaufen.',

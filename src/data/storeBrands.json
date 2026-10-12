@@ -1,0 +1,33 @@
+{
+  "stores": {
+    "Lidl": ["Lidl", "Milbona", "Pilos", "Crownfield", "Chef Select", "Deluxe", "Fin Carré", "Freeway", "Combino", "Snack Day", "Sondey", "Solevita", "Lord Nelson", "Dulano", "Duc de Coeur", "Baresa", "Vitasia", "Alesto", "McEnnedy", "Favorina", "Bellarom", "Vemondo", "Gelatelli", "Italiamo", "Eridanous", "Trattoria Alfredo", "Kania", "Linessa", "Bioorganic", "Perlenbacher", "Saskia", "Pikok"],
+    "Aldi": ["Aldi", "Milsani", "Moser Roth", "Choco Changers", "Gut Bio", "Lyttos", "Golden Seafood", "Almare", "Rio d'Oro", "Knusperone", "Cucina Nobile", "Asia Green Garden", "Mein Veggie Tag", "Meine Metzgerei", "Happy Harvest", "River"],
+    "Rewe": ["Rewe", "ja!", "REWE Beste Wahl", "REWE Bio", "REWE Feine Welt"],
+    "Edeka": ["Edeka", "Gut & Günstig", "EDEKA Bio", "EDEKA Herzstücke"],
+    "Kaufland": ["Kaufland", "K-Classic", "K-Bio", "K-Favourites", "K-Take it veggie"],
+    "Penny": ["Penny", "Naturgut"],
+    "Netto": ["Netto", "BioBio"],
+    "dm": ["dmBio"],
+    "Rossmann": ["enerBiO"],
+    "Alnatura": ["Alnatura"]
+  },
+  "storeWords": {
+    "lidl": "Lidl", "aldi": "Aldi", "aldi nord": "Aldi", "aldi sud": "Aldi", "rewe": "Rewe", "edeka": "Edeka", "kaufland": "Kaufland",
+    "penny": "Penny", "netto": "Netto", "netto marken discount": "Netto", "dm": "dm", "rossmann": "Rossmann", "alnatura": "Alnatura"
+  },
+  "manufacturers": [
+    "Milka", "Ritter Sport", "Lindt", "Kinder", "Ferrero", "Nutella", "Haribo", "Katjes", "Storck", "Bahlsen", "Leibniz", "Lambertz",
+    "Barilla", "Buitoni", "Dr. Oetker", "Wagner", "Knorr", "Maggi", "Iglo", "Frosta", "Kölln", "Seitenbacher", "Kellogg's", "Nestlé",
+    "Ehrmann", "Müller", "Danone", "Alpro", "Zott", "Weihenstephan", "Landliebe", "Bärenmarke", "Arla", "Exquisa", "Philadelphia",
+    "Leerdammer", "Bresso", "Grünländer", "Rügenwalder", "Wiesenhof", "Herta", "Meica", "Gutfried", "Golden Toast", "Harry", "Lieken",
+    "Mestemacher", "Coca-Cola", "Fanta", "Sprite", "Pepsi", "Red Bull", "Monster", "Capri-Sun", "Hohes C", "Valensina", "Lorenz",
+    "Funny-Frisch", "Chio", "Pringles", "Oreo", "Mars", "Snickers", "Twix", "Bounty", "Duplo", "Hanuta", "Yfood", "Mymuesli",
+    "ESN", "Oatly", "Lünebest", "Elinas", "Almighurt", "Activia", "Actimel", "Bonne Maman", "Zentis", "Hengstenberg", "Kühne",
+    "Hochland", "Emmi", "Rapunzel"
+  ],
+  "aliases": {
+    "gut und gunstig": "Gut & Günstig", "k favorites": "K-Favourites", "kclassic": "K-Classic", "rio doro": "Rio d'Oro",
+    "oetker": "Dr. Oetker", "kelloggs": "Kellogg's", "cocacola": "Coca-Cola", "coke": "Coca-Cola", "beste wahl": "REWE Beste Wahl",
+    "lidl bio": "Bioorganic", "aldi bio": "Gut Bio"
+  }
+}

@@ -14,7 +14,7 @@ const active = { getDictionary: () => ({ scan: labels, errors: { warnAmountEstim
 function load(path, deps) {
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync(new URL('../' + path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  new Function('require', 'module', 'exports', code)(id => { if (id.endsWith('bls-search-data.mjs')) return bls; if (id.endsWith('bls-reference.mjs')) return references; if (id.endsWith('bls-search.mjs')) return catalogue; if (id.endsWith('food-synonyms.mjs')) return synonyms; assert.ok(id in deps, `Unmocked dependency ${id}`); return deps[id]; }, module, module.exports);
+  new Function('require', 'module', 'exports', code)(id => { if (id.endsWith('bls-search-data.mjs')) return bls; if (id.endsWith('bls-reference.mjs')) return references; if (id.endsWith('bls-search.mjs')) return catalogue; if (id.endsWith('food-synonyms.mjs')) return synonyms; if (id.endsWith('.json') && id.startsWith('../data/')) return JSON.parse(fs.readFileSync(new URL(`../src/data/${id.slice(8)}`, import.meta.url), 'utf8')); assert.ok(id in deps, `Unmocked dependency ${id}`); return deps[id]; }, module, module.exports);
   return module.exports;
 }
 const suggest = load('src/services/foodSuggest.ts', { '@/i18n/active': active });
@@ -48,7 +48,9 @@ await test('foods the user logged before rank first and remember the last amount
   assert.equal(top('haf', usage), 'C660000');
   assert.equal(suggest.suggestFoods('haf', usage)[0].lastGrams, 60);
   const recents = suggest.recentFoods([...history, { id: 'm2', savedAt: '2026-10-03T09:00:00Z', items: [{ included: true, amountG: 150, name: 'Omas Zupfkuchen', nutritionPer100g: { calories: 253, protein: 5, carbs: 0, fat: 0 }, source: { provider: 'manual', referenceId: 'manual-1', label: 'Eigene Angabe' } }] }]);
-  assert.deepEqual(recents.map(food => food.name), ['Omas Zupfkuchen', 'Haferdrink ungesüßt']);
+  // BLS rows carry their everyday name; the official label stays visible as officialName.
+  assert.deepEqual(recents.map(food => food.name), ['Omas Zupfkuchen', 'Haferdrink']);
+  assert.equal(recents[1].officialName, 'Haferdrink ungesüßt');
   assert.equal(recents[0].lastGrams, 150);
 });
 
@@ -60,11 +62,13 @@ await test('suggestions carry editable typical portions; local rows win over dup
 });
 
 await test('audit search cases: preparation, typos, plurals, plant drinks and no fragment false hits', () => {
-  const first = (query, lang = 'de') => { language = lang; try { return suggest.suggestFoods(query)[0]?.name; } finally { language = 'de'; } };
+  // Ranking is checked against the official BLS label; the everyday title is checked below.
+  const label = food => food?.officialName ?? food?.name;
+  const first = (query, lang = 'de') => { language = lang; try { return label(suggest.suggestFoods(query)[0]); } finally { language = 'de'; } };
   assert.match(first('ei gekocht'), /^Eier gekocht|^Hühnerei gekocht/);
   for (const [query, lang] of [['egg', 'en'], ['eggs', 'en'], ['ei', 'de'], ['eier', 'de']]) {
     language = lang;
-    const names = suggest.suggestFoods(query).slice(0, 3).map(food => food.name);
+    const names = suggest.suggestFoods(query).slice(0, 3).map(label);
     language = 'de';
     assert.match(names[0], /gekocht|boiled/i, `${query}: boiled egg first`);
     assert.ok(!names.some(name => /egg-free|eifrei|Eierkuchen|Pfannkuchen/i.test(name)), `${query}: ${names.join(' | ')}`);
@@ -75,6 +79,7 @@ await test('audit search cases: preparation, typos, plurals, plant drinks and no
   assert.match(first('milchreis'), /^Milchreis mit Milch/);
   assert.match(first('mandelmilch'), /^Mandeldrink/);
   assert.equal(first('mandeln'), 'Mandel süß');
+  assert.equal(suggest.suggestFoods('mandeln')[0].name, 'Mandeln', 'the everyday name is the title');
   assert.match(first('oat milk', 'en'), /^Oat drink/);
   assert.match(first('oil', 'en'), /oil/i);
   assert.ok(!/rice/i.test(first('oil', 'en')), 'oil must not match inside boiled');
