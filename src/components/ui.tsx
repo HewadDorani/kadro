@@ -24,7 +24,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
-import { radii, spacing, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, spacing, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { TAB_BAR_CONTENT_HEIGHT } from '@/constants/layout';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -216,6 +216,44 @@ export function SectionTitle({ children, action }: PropsWithChildren<{ action?: 
   );
 }
 
+/**
+ * One row of a grouped settings card, like iOS Settings: a 36 pt icon in a
+ * soft circle, a title with an optional muted description, and an optional
+ * control on the right that centres on the text block.
+ */
+export function SettingsRow({
+  icon,
+  label,
+  detail,
+  accessory,
+  disabled = false,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  label: string;
+  detail?: string;
+  accessory?: ReactNode;
+  disabled?: boolean;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={[styles.settingsRow, !detail && styles.settingsRowSingle, disabled && styles.settingsRowDisabled]}>
+      {icon ? <View style={styles.settingsIcon}><Ionicons color={colors.text} name={icon} size={18} /></View> : null}
+      <View style={styles.settingsCopy}>
+        <Text style={styles.settingsLabel}>{label}</Text>
+        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
+      </View>
+      {accessory}
+    </View>
+  );
+}
+
+/** Hairline between rows of a grouped card; inset to the text column when rows carry icons. */
+export function ListDivider({ inset = true }: { inset?: boolean }) {
+  const styles = useThemedStyles(makeStyles);
+  return <View style={[styles.listDivider, inset && styles.listDividerInset]} />;
+}
+
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -262,10 +300,10 @@ export function MacroCard({
       <View style={[styles.macroIcon, reached && styles.macroIconReached]}>
         <Ionicons color={reached ? colors.onAccent : colors.text} name={reached ? 'checkmark' : over ? 'information-circle-outline' : icon} size={16} />
       </View>
-      <Text numberOfLines={1} style={styles.macroLabel}>{label}</Text>
+      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.macroLabel}>{label}</Text>
       {/* Three equal cards on a 320pt phone: the figure shrinks a little
           rather than cutting "/ 150 g" off. */}
-      <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
       <ProgressBar color={tint} value={current / target} />
     </Card>
   );
@@ -482,7 +520,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   eyebrow: {
     ...typeScale.eyebrow,
     color: colors.muted,
-    fontWeight: '700',
   },
   lightText: {
     color: 'rgba(255,255,255,0.72)',
@@ -506,12 +543,56 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     width: '100%',
     height: 6,
     overflow: 'hidden',
-    borderRadius: 6,
+    borderRadius: 3,
     backgroundColor: colors.border,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 3,
+  },
+  // Grouped settings rows: content lines up with the 20 pt card padding
+  // (8 card + 12 row), text starts at 60 pt so hairlines inset to it.
+  settingsRow: {
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingsRowSingle: {
+    minHeight: 56,
+  },
+  settingsRowDisabled: {
+    opacity: 0.55,
+  },
+  settingsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.neutralSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  settingsLabel: {
+    ...typeScale.label,
+    color: colors.text,
+  },
+  settingsDetail: {
+    ...typeScale.footnote,
+    color: colors.muted,
+  },
+  listDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+  },
+  listDividerInset: {
+    marginLeft: 60,
   },
   macroCard: {
     flex: 1,
@@ -539,23 +620,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '600',
   },
   macroValue: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 20,
-    lineHeight: 24,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
     marginBottom: 8,
   },
-  macroTarget: {
-    ...typeScale.caption,
-    color: colors.muted,
-    marginBottom: 7,
-    fontVariant: ['tabular-nums'],
-  },
   macroUnit: {
-    ...typeScale.caption,
+    ...typeScale.footnote,
     color: colors.muted,
     fontWeight: '600',
+    letterSpacing: 0,
   },
   confidence: {
     alignSelf: 'flex-start',

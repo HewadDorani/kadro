@@ -8,7 +8,7 @@ import { useAccess } from '@/context/AccessContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { selectionHaptic } from '@/services/haptics';
 import { getReminderPermission, getReminderSettings, MEAL_SLOTS, reminderSlots, updateReminder, type MealSlot, type ReminderOnboardingChoice, type ReminderPermission, type ReminderSettings, type SlotSetting } from '@/services/reminders';
-import { typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 const STEP_MINUTES = 15;
 const pad = (value: number) => String(value).padStart(2, '0');
@@ -90,14 +90,20 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
   // First setup is a full onboarding page (icon, headline, one line of value);
   // in settings the same controls sit in a regular card.
   const Wrapper = initialSetup ? View : Card;
-  return <Wrapper style={initialSetup ? { gap: 14, paddingTop: 12 } : undefined}>
+  // In settings the card follows the grouped-card rhythm: title, 6 pt, a
+  // muted subhead, then 16 pt to the controls. Its title is one step under
+  // the section header above it, not a second heading of the same size.
+  const note = { ...typeScale.footnote, color: colors.muted };
+  return <Wrapper style={initialSetup ? { gap: 14, paddingTop: 12 } : { gap: 16 }}>
     {initialSetup ? <View style={{ width: 56, height: 56, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
       <Ionicons color={colors.onAccent} name="notifications" size={26} />
     </View> : null}
-    <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 } : { ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
-    <Text style={{ ...typeScale.body, color: colors.muted }}>{singleSelection ? copy.reminderSingleText : copy.reminderText}</Text>
-    {access.ready && !access.canUse && !onDone ? <Text style={{ ...typeScale.body, color: colors.muted }}>{t.access.pausedReminder}</Text> : null}
-    {slots ? <View style={{ gap: 10, marginTop: 8 }}>
+    <View style={{ gap: initialSetup ? 14 : 6 }}>
+      <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 } : { ...typeScale.headline, color: colors.text, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
+      <Text style={{ ...(initialSetup ? typeScale.body : typeScale.subhead), color: colors.muted }}>{singleSelection ? copy.reminderSingleText : copy.reminderText}</Text>
+      {access.ready && !access.canUse && !onDone ? <Text style={{ ...(initialSetup ? typeScale.body : typeScale.subhead), color: colors.muted }}>{t.access.pausedReminder}</Text> : null}
+    </View>
+    {slots ? <View style={{ gap: 10, marginTop: initialSetup ? 8 : 0 }}>
       {MEAL_SLOTS.map(slot => {
         const value = slots[slot];
         const time = `${pad(value.hour)}:${pad(value.minute)}`;
@@ -118,19 +124,19 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
           >
             <Ionicons color={value.enabled ? colors.accentText : colors.muted} name={value.enabled ? 'checkmark-circle' : 'ellipse-outline'} size={24} />
             <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={{ ...typeScale.label, flex: 1, color: colors.text, fontWeight: '600' }}>{labels[slot]}</Text>
-            {!value.enabled ? <Text style={{ ...typeScale.label, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{time}</Text> : null}
+            {!value.enabled ? <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={{ ...typeScale.label, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{time}</Text> : null}
           </Pressable>
           {value.enabled ? <>
             {stepButton(-STEP_MINUTES, copy.earlier, 'remove')}
-            <Text accessibilityLiveRegion="polite" style={{ minWidth: 56, textAlign: 'center', color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{time}</Text>
+            <Text accessibilityLiveRegion="polite" maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={{ ...typeScale.headline, minWidth: 56, textAlign: 'center', color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{time}</Text>
             {stepButton(STEP_MINUTES, copy.later, 'add')}
           </> : null}
         </View>;
       })}
     </View> : null}
-    {permission === 'quiet' ? <Text style={{ color: colors.muted }}>{copy.quiet}</Text> : null}
-    {permission === 'denied' ? <View><Text style={{ color: colors.muted }}>{copy.permissionDenied}</Text><PrimaryButton label={copy.settings} variant="ghost" onPress={() => void Linking.openSettings().catch(() => setError(copy.reminderError))} /></View> : null}
-    {error ? <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{error}</Text> : null}
+    {permission === 'quiet' ? <Text style={note}>{copy.quiet}</Text> : null}
+    {permission === 'denied' ? <View><Text style={note}>{copy.permissionDenied}</Text><PrimaryButton label={copy.settings} variant="ghost" onPress={() => void Linking.openSettings().catch(() => setError(copy.reminderError))} /></View> : null}
+    {error ? <Text accessibilityRole="alert" style={{ ...note, color: colors.attentionText }}>{error}</Text> : null}
     <PrimaryButton disabled={busy || !settings || !slots || permission === 'unavailable'} label={busy ? t.common.moment : initialSetup ? copy.reminderAskYes : settings?.enabled ? copy.save : copy.activate} onPress={() => void apply(true)} />
     {settings?.enabled ? <PrimaryButton disabled={busy} variant="ghost" label={copy.disable} onPress={() => void apply(false)} /> : null}
     {onDone ? <PrimaryButton disabled={busy} variant="ghost" label={initialSetup ? copy.reminderAskLater : copy.skip} onPress={() => onDone('skipped')} /> : null}
