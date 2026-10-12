@@ -123,7 +123,7 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
             style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 }}
           >
             <Ionicons color={value.enabled ? colors.accentText : colors.muted} name={value.enabled ? 'checkmark-circle' : 'ellipse-outline'} size={24} />
-            <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={{ ...typeScale.label, flex: 1, color: colors.text, fontWeight: '600' }}>{labels[slot]}</Text>
+            <Text numberOfLines={1} style={{ ...typeScale.label, flexShrink: 1, flexGrow: 1, minWidth: 0, color: colors.text, fontWeight: '600' }}>{labels[slot]}</Text>
             {!value.enabled ? <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={{ ...typeScale.label, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{time}</Text> : null}
           </Pressable>
           {value.enabled ? <>
