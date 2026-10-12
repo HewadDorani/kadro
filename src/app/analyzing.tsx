@@ -15,6 +15,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { AnalysisErrorKind } from '@/services/contracts';
 import { setScanInputDraft } from '@/services/captureIntents';
 import { getUnknownBarcode } from '@/services/mealAnalysis';
+import { typeScale } from '@/constants/theme';
 
 /**
  * Most analyses answer within a few seconds. After this the screen says so
@@ -282,7 +283,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { height: 58, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   closeButtonSpacer: { width: 40, height: 40 },
-  topTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   photoWrap: { marginHorizontal: 20 },
@@ -290,11 +291,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   analyzingPill: { position: 'absolute', top: 14, left: 14, minHeight: 30, paddingVertical: 6, borderRadius: 15, backgroundColor: 'rgba(23,24,22,0.75)', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   warningDot: { backgroundColor: colors.attention },
-  analyzingPillText: { color: colors.white, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  analyzingPillText: { ...typeScale.caption, color: colors.white, fontWeight: '800', letterSpacing: 1 },
   content: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 30, paddingTop: 28 },
   sparkleCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   warningCircle: { backgroundColor: colors.attentionSoft },
-  title: { color: colors.text, fontSize: 24, fontWeight: '700', letterSpacing: -0.5, marginTop: 14, textAlign: 'center' },
-  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 340 },
+  title: { color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.5, marginTop: 14, textAlign: 'center' },
+  subtitle: { ...typeScale.footnote, color: colors.muted, textAlign: 'center', marginTop: 7, maxWidth: 340 },
   actions: { alignSelf: 'stretch', gap: 8, marginTop: 22 },
 });

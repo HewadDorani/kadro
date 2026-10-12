@@ -68,6 +68,7 @@ check('Actual trial card hides at expiry, on resume and for teens/non-trial Pro;
     '@/context/AppContext': { useApp: () => ({ mealHistory: [], profile: { completedAt: 'present', age }, hydrationReady: true }) },
     '@/context/SubscriptionContext': { useSubscription: () => ({ snapshot: { currentTrial: trial }, status }) },
     '@/context/ThemeContext': { useTheme: () => ({ colors: {} }) },
+    '@/constants/theme': { typeScale: {} },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: { trialActivation: copy }, locale: 'de-DE' }) },
     '@/hooks/useLocalDay': { useLocalDay: () => '2026-10-04' }, '@/services/weeklyReview': { trialActivity },
   };

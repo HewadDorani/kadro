@@ -14,6 +14,7 @@ import { FoodSearchResult, MealAnalysisError, searchIngredientReplacement } from
 import { formatNumber } from '@/utils/format';
 import { milkCorrectionQuery } from '@/utils/foodCorrectionQuery';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
+import { typeScale } from '@/constants/theme';
 
 export default function CorrectFoodScreen() {
   const { itemId } = useLocalSearchParams<{ itemId: string }>();
@@ -153,10 +154,10 @@ export default function CorrectFoodScreen() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   back: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  title: { flex: 1, color: colors.text, fontSize: 22, fontWeight: '700' },
-  foodName: { color: colors.text, fontSize: 18, fontWeight: '700', flexShrink: 1 },
-  copy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  source: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  title: { ...typeScale.title2, flex: 1, color: colors.text, fontWeight: '700' },
+  foodName: { color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', flexShrink: 1 },
+  copy: { ...typeScale.subhead, color: colors.muted },
+  source: { ...typeScale.footnote, color: colors.muted },
   input: { minHeight: 52, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, padding: 14, fontSize: 17 },
   result: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: 12 },
   resultCopy: { flex: 1, gap: 6 },

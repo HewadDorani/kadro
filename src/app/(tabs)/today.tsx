@@ -13,7 +13,7 @@ import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
 import { MealDetailSheet } from '@/components/MealDetailSheet';
 import { Card, Eyebrow, IconCircle, MacroCard, PressableScale, PrimaryButton, Screen, SectionTitle, SkeletonBlock } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
-import { radii, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { Meal } from '@/types/nutrition';
@@ -298,12 +298,12 @@ export default function TodayScreen() {
           <View style={styles.targetRow}>
             <View style={styles.targetBlock}>
               <Text style={styles.targetLabel}>{t.today.targetRange}</Text>
-              <Text style={styles.targetValue}>{calorieRange} kcal</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.targetValue}>{calorieRange} kcal</Text>
             </View>
             <View style={styles.targetDivider} />
             <View style={styles.targetBlock}>
               <Text style={styles.targetLabel}>{t.today.proteinLabel}</Text>
-              <Text style={styles.targetValue}>{proteinRange} g</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.targetValue}>{proteinRange} g</Text>
             </View>
           </View>
           {/* The aha moment is the first logged meal, not a list of ideas:
@@ -461,48 +461,49 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // The greeting has to yield to the avatar: "Good afternoon, <name>" is far
   // longer than "Guten Tag" and ran underneath it.
   headerCopy: { flex: 1, paddingRight: 12 },
-  date: { color: colors.muted, fontSize: typeScale.caption, fontWeight: '600' },
+  date: { ...typeScale.footnote, color: colors.muted, fontWeight: '600' },
   daySwitcher: { minHeight: 48, borderRadius: radii.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center' },
   dayChevron: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   dayChevronOff: { opacity: 0.3 },
   dayLabelWrap: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  dayLabel: { color: colors.text, fontSize: typeScale.compact, fontWeight: '700' },
-  dayBack: { color: colors.accentText, fontSize: typeScale.micro, fontWeight: '600', marginTop: 1 },
+  dayLabel: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  dayBack: { ...typeScale.caption, color: colors.accentText, fontWeight: '600', marginTop: 1 },
   pastCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  pastText: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 20 },
-  pastAction: { color: colors.accentText, fontSize: typeScale.caption, fontWeight: '700' },
-  sectionAction: { color: colors.accentText, fontSize: typeScale.caption, fontWeight: '700' },
-  greeting: { color: colors.text, fontSize: 28, lineHeight: 35, fontWeight: '700', letterSpacing: -0.8, marginTop: 5 },
+  pastText: { ...typeScale.subhead, flex: 1, color: colors.text },
+  pastAction: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
+  sectionAction: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
+  greeting: { ...typeScale.title1, color: colors.text, fontWeight: '700', marginTop: 5 },
   avatar: { width: 44, height: 44, flexShrink: 0, borderRadius: 22, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.surface, fontSize: typeScale.compact, fontWeight: '800' },
+  avatarText: { ...typeScale.callout, color: colors.surface, fontWeight: '800' },
   pendingBanner: { minHeight: 66, borderRadius: radii.card, backgroundColor: colors.attentionSoft, borderWidth: 1, borderColor: colors.attention, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   pendingIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   pendingCopy: { flex: 1, gap: 2 },
-  pendingTitle: { color: colors.text, fontSize: typeScale.caption, fontWeight: '700' },
-  pendingText: { color: colors.muted, fontSize: typeScale.micro },
+  pendingTitle: { ...typeScale.footnote, color: colors.text, fontWeight: '700' },
+  pendingText: { ...typeScale.caption, color: colors.muted },
   heroCard: { gap: 18, paddingVertical: 22 },
   heroSwipe: { gap: 18 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   heroHeading: { flex: 1, minWidth: 0 },
   onTrack: { color: colors.text, fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, marginTop: 4 },
   shareButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
-  consumed: { color: colors.muted, fontSize: typeScale.micro, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  macroRow: { flexDirection: 'row', gap: 9 },
-  dayDoneText: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  nextCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 18 },
-  nextHeader: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  nextHeading: { flex: 1, gap: 4 },
-  mealMoment: { color: colors.text, fontSize: 23, fontWeight: '700' },
+  consumed: { ...typeScale.caption, color: colors.muted, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  macroRow: { flexDirection: 'row', gap: 8 },
+  dayDoneText: { ...typeScale.subhead, color: colors.muted },
+  nextCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 16 },
+  nextHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextHeading: { flex: 1, gap: 2 },
+  mealMoment: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
   targetRow: { flexDirection: 'row', alignItems: 'center' },
-  targetBlock: { flex: 1, gap: 5 },
-  targetLabel: { color: colors.muted, fontSize: typeScale.micro, fontWeight: '800', letterSpacing: 1 },
-  targetValue: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  targetDivider: { width: 1, height: 42, backgroundColor: colors.accent, marginHorizontal: 14 },
-  sectionBlock: { gap: 14 },
+  targetBlock: { flex: 1, gap: 4 },
+  targetLabel: { ...typeScale.eyebrow, color: colors.muted },
+  targetValue: { color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '700', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
+  targetDivider: { width: 1, alignSelf: 'stretch', backgroundColor: colors.accent, marginHorizontal: 16 },
+  // 32 pt above a section header (20 pt screen gap + 12), 12 pt below it.
+  sectionBlock: { gap: 12, marginTop: 12 },
   slotCard: { padding: 6, gap: 0 },
   slotHeader: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 8 },
-  slotTitle: { flex: 1, color: colors.text, fontSize: typeScale.compact, fontWeight: '700' },
-  slotCalories: { color: colors.muted, fontSize: typeScale.caption, fontWeight: '600' },
+  slotTitle: { ...typeScale.callout, flex: 1, color: colors.text, fontWeight: '700' },
+  slotCalories: { ...typeScale.footnote, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
   slotAdd: { width: 44, height: 44, borderRadius: 17, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   timelineCard: { padding: 8 },
   mealRow: { minHeight: 72, borderRadius: 14, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 12 },
@@ -511,16 +512,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   mealIconLunch: { backgroundColor: colors.neutralSoft },
   mealInfo: { flex: 1, gap: 3 },
   mealMetaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
-  mealType: { color: colors.text, fontSize: typeScale.compact, fontWeight: '700' },
-  mealTime: { color: colors.muted, fontSize: typeScale.micro, fontVariant: ['tabular-nums'] },
-  mealName: { color: colors.muted, fontSize: typeScale.micro },
+  mealType: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  mealTime: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
+  mealName: { ...typeScale.caption, color: colors.muted },
   mealNumbers: { alignItems: 'flex-end' },
-  mealCalories: { color: colors.text, fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  mealUnit: { color: colors.muted, fontSize: typeScale.micro },
+  mealCalories: { ...typeScale.label, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  mealUnit: { ...typeScale.caption, color: colors.muted },
   rowDivider: { height: 1, backgroundColor: colors.border, marginLeft: 64 },
   addMealRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 12 },
   addIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
-  addMealText: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
+  addMealText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   repeatScroll: { marginHorizontal: -20 },
   repeatRow: { paddingHorizontal: 20, gap: REPEAT_GAP },
   repeatCard: { width: REPEAT_CARD_WIDTH, minHeight: 112, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 13, justifyContent: 'space-between' },
@@ -530,13 +531,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   repeatIconFavorite: { backgroundColor: colors.accent },
   repeatSkeleton: { marginTop: 6 },
   repeatTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  repeatCount: { color: colors.muted, fontSize: typeScale.micro, fontWeight: '800' },
-  repeatYesterday: { color: colors.text, fontSize: typeScale.micro, fontWeight: '700', marginTop: 6 },
-  repeatTitle: { color: colors.text, fontSize: typeScale.caption, fontWeight: '600', lineHeight: 17, marginTop: 6 },
-  repeatMacros: { color: colors.muted, fontSize: typeScale.micro, marginTop: 4, fontVariant: ['tabular-nums'] },
+  repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  repeatYesterday: { ...typeScale.caption, color: colors.text, fontWeight: '700', marginTop: 6 },
+  repeatTitle: { ...typeScale.footnote, color: colors.text, fontWeight: '600', marginTop: 6 },
+  repeatMacros: { ...typeScale.caption, color: colors.muted, marginTop: 4, fontVariant: ['tabular-nums'] },
   eveningRow: { minHeight: 66, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   eveningIcon: { width: 40, height: 40, borderRadius: 15, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   eveningCopy: { flex: 1, minWidth: 0, gap: 2 },
-  eveningTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  eveningText: { color: colors.muted, fontSize: typeScale.micro },
+  eveningTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
+  eveningText: { ...typeScale.caption, color: colors.muted },
 });

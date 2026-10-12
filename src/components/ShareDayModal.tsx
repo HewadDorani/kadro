@@ -9,7 +9,7 @@ import { initialWindowMetrics, SafeAreaProvider, SafeAreaView } from 'react-nati
 import { ShareDayCard, SHARE_CARD_HEIGHT, SHARE_CARD_WIDTH } from '@/components/ShareDayCard';
 import { PrimaryButton } from '@/components/ui';
 import type { ThemeColors } from '@/constants/theme';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import { useLocalDay } from '@/hooks/useLocalDay';
@@ -151,20 +151,20 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
   iconButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   iconSpacer: { width: 44, height: 44 },
-  title: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  title: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
   cardArea: { flex: 1, minHeight: 280, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 12 },
   cardAreaFocus: { paddingHorizontal: 0, paddingVertical: 0 },
   controlsScroll: { flexGrow: 0, maxHeight: '46%' },
   controls: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
   hintRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   hintCopy: { flex: 1, gap: 2 },
-  hintTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  hintText: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  hintTitle: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  hintText: { ...typeScale.footnote, color: colors.muted },
   optionCard: { borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14 },
   optionRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
   optionCopy: { flex: 1, gap: 2 },
-  optionLabel: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
-  optionDetail: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+  optionLabel: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
+  optionDetail: { ...typeScale.caption, color: colors.muted },
   optionDivider: { height: 1, backgroundColor: colors.border },
-  privacy: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  privacy: { ...typeScale.footnote, color: colors.muted },
 });

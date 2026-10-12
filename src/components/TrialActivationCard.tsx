@@ -9,6 +9,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useLocalDay } from '@/hooks/useLocalDay';
 import { trialActivity } from '@/services/weeklyReview';
+import { typeScale } from '@/constants/theme';
 
 export function TrialActivationCard() {
   const { colors } = useTheme();
@@ -43,20 +44,25 @@ export function TrialActivationCard() {
   const milestone = t.milestones ?? { streakTitle: (days: number) => String(days), streakNear: '', streakAway: '' };
   const near = !!targets?.calories && activity.averageCalories !== null && activity.averageCalories !== undefined
     && Math.abs(activity.averageCalories / targets.calories - 1) <= 0.1;
-  const text = { color: colors.muted, fontSize: 15, lineHeight: 22 };
+  const text = { ...typeScale.callout, color: colors.muted };
   return <View style={{ gap: 12 }}>
-    <Card>
-      {/* Seven trial days as dots: logged days fill in, the goal is visible. */}
-      <View accessibilityLabel={`${activity.loggedDays} / 7`} style={{ flexDirection: 'row', gap: 6 }}>
-        {Array.from({ length: 7 }, (_, index) => <View key={index} style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: index < activity.loggedDays ? colors.accentText : colors.neutralSoft }} />)}
+    <Card style={{ gap: 16 }}>
+      {/* Seven trial days as slim segments: logged days fill in, the goal is visible. */}
+      <View accessibilityLabel={`${activity.loggedDays} / 7`} style={{ flexDirection: 'row', gap: 4 }}>
+        {Array.from({ length: 7 }, (_, index) => <View key={index} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: index < activity.loggedDays ? colors.accentText : colors.border }} />)}
       </View>
-      <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 21, fontWeight: '700' }}>{activity.loggedDays >= 3 ? milestone.streakTitle(activity.loggedDays) : copy.title}</Text>
-      <Text style={text}>{activity.loggedDays >= 3
-        ? `${copy.progress(activity.loggedDays, activity.averageCalories!.toLocaleString(locale))} ${near ? milestone.streakNear : milestone.streakAway}`
-        : activity.loggedDays === 0 ? copy.firstMeal : copy.keepExploring}</Text>
+      <View style={{ gap: 6 }}>
+        <Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{activity.loggedDays >= 3 ? milestone.streakTitle(activity.loggedDays) : copy.title}</Text>
+        <Text style={text}>{activity.loggedDays >= 3
+          ? `${copy.progress(activity.loggedDays, activity.averageCalories!.toLocaleString(locale))} ${near ? milestone.streakNear : milestone.streakAway}`
+          : activity.loggedDays === 0 ? copy.firstMeal : copy.keepExploring}</Text>
+      </View>
       <PrimaryButton label={copy.logMeal} icon="add" onPress={() => router.push({ pathname: '/capture', params: { mode: 'search' } })} />
-      <Text style={text}>{copy.reminderOffer}</Text>
-      <PrimaryButton label={showReminders ? copy.closeReminders : copy.openReminders} variant="ghost" onPress={() => setShowReminders(value => !value)} />
+      {/* The reminder offer is optional, so it reads as a quiet footnote with its own text button. */}
+      <View style={{ gap: 2 }}>
+        <Text style={{ ...typeScale.footnote, color: colors.muted, textAlign: 'center' }}>{copy.reminderOffer}</Text>
+        <PrimaryButton label={showReminders ? copy.closeReminders : copy.openReminders} variant="ghost" onPress={() => setShowReminders(value => !value)} />
+      </View>
     </Card>
     {showReminders ? <ReminderPreferences onDone={() => setShowReminders(false)} /> : null}
   </View>;

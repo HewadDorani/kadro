@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
 import { Card, EmptyIllustration, Eyebrow, IconCircle, PageTitle, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { formatNumber } from '@/utils/format';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -106,7 +106,7 @@ export default function ProgressScreen() {
       <Card style={styles.consistencyHero}>
         <Text style={styles.heroLabel}>{t.progress.weekTitle}</Text>
         <View style={styles.heroValueRow}>
-          <Text style={[styles.heroValue, !loggedCalorieDays.length && styles.heroValueEmpty]}>{loggedCalorieDays.length ? formatNumber(averageCalories, locale) : '0'}</Text>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.heroValue, !loggedCalorieDays.length && styles.heroValueEmpty]}>{loggedCalorieDays.length ? formatNumber(averageCalories, locale) : '0'}</Text>
           <Text style={styles.heroOf}>{t.progress.caloriesAverage(formatNumber(Math.round(targets.calories), locale))}</Text>
         </View>
         {loggedCalorieDays.length ? (
@@ -142,7 +142,7 @@ export default function ProgressScreen() {
         <View style={styles.weightTop}>
           <View>
             <Text style={styles.cardLabel}>{visibleWeights.length ? t.progress.currentWeight : t.progress.profileWeight}</Text>
-            <Text style={styles.currentWeight}>{formatWeight(currentWeight, units, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.currentWeight}>{formatWeight(currentWeight, units, locale)}</Text>
           </View>
           {visibleWeights.length > 1 ? (
             <View style={styles.changePill}>
@@ -176,12 +176,12 @@ export default function ProgressScreen() {
         <View style={styles.heroValueRow}>
           {showsScore ? (
             <>
-              <Text style={styles.heroValue}>{reachedCount}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.heroValue}>{reachedCount}</Text>
               <Text style={styles.heroOf}>{t.progress.outOfTracked(trackedDays)}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.heroValue}>{trackedDays > 0 ? averageProtein : targets.protein}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.heroValue}>{trackedDays > 0 ? averageProtein : targets.protein}</Text>
               <Text style={styles.heroOf}>{trackedDays > 0 ? t.progress.goalSuffix(targets.protein) : t.progress.perDayGoal}</Text>
             </>
           )}
@@ -405,13 +405,13 @@ function WeekBars({ days, target }: { days: { key: string; label: string; today:
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   headerCopy: { flex: 1, gap: 8 },
-  subtitle: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+  subtitle: { ...typeScale.callout, color: colors.muted },
   heroValueEmpty: { color: colors.border },
   consistencyHero: { padding: 20, gap: 14 },
-  heroLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  heroLabel: { ...typeScale.eyebrow, color: colors.muted },
   heroValueRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 },
   heroValue: { color: colors.text, fontSize: 46, lineHeight: 50, fontWeight: '700', letterSpacing: -1.6, fontVariant: ['tabular-nums'] },
-  heroOf: { color: colors.muted, fontSize: 15 },
+  heroOf: { ...typeScale.callout, color: colors.muted },
   strip: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
   stripDay: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
   stripTrack: { width: '100%', height: 64, borderRadius: 8, backgroundColor: colors.neutralSoft, justifyContent: 'flex-end', overflow: 'hidden' },
@@ -419,58 +419,59 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   stripFill: { width: '100%', borderRadius: 8, backgroundColor: colors.border },
   stripFillLogged: { backgroundColor: colors.accent },
   stripFillReached: { backgroundColor: colors.accentDeep },
-  stripLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+  stripLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '600' },
   stripLabelToday: { color: colors.text, fontWeight: '800' },
-  heroFoot: { color: colors.muted, fontSize: 12, lineHeight: 16, fontVariant: ['tabular-nums'] },
-  weightCard: { padding: 22, gap: 16 },
+  heroFoot: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
+  weightCard: { padding: 20, gap: 16 },
   weightTop: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  cardLabel: { ...typeScale.eyebrow, color: colors.muted },
   currentWeight: { color: colors.text, fontSize: 42, lineHeight: 49, fontWeight: '700', letterSpacing: -1.4, marginTop: 4, fontVariant: ['tabular-nums'] },
-  kg: { fontSize: 17, fontWeight: '600', letterSpacing: 0 },
+  kg: { ...typeScale.headline, fontWeight: '600' },
   changePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.neutralSoft, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 7 },
-  changeText: { color: colors.accentText, fontSize: 12, fontWeight: '700' },
+  changeText: { ...typeScale.caption, color: colors.accentText, fontWeight: '700' },
   firstPill: { backgroundColor: colors.neutralSoft, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 7 },
-  firstPillText: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 0.7 },
+  firstPillText: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 0.7 },
   chart: { height: WEIGHT_CHART_HEIGHT, overflow: 'hidden' },
   emptyChart: { minHeight: 150, borderRadius: radii.input, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 18 },
   emptyWeek: { minHeight: 112, alignItems: 'center', justifyContent: 'center' },
-  goalLineLabel: { position: 'absolute', right: 0, color: colors.muted, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'], backgroundColor: colors.surface, paddingLeft: 6 },
+  goalLineLabel: { ...typeScale.caption, position: 'absolute', right: 0, color: colors.muted, fontWeight: '700', fontVariant: ['tabular-nums'], backgroundColor: colors.surface, paddingLeft: 6 },
   weekLabels: { flexDirection: 'row', marginTop: 8 },
   weekLabel: { flex: 1, textAlign: 'center' },
   weekTiles: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 14 },
   weekTile: { flex: 1, gap: 6 },
   weekTileDivider: { width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginHorizontal: 14 },
-  weekTileValue: { color: colors.text, fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  weekTileLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  emptyChartText: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  weekTileValue: { color: colors.text, fontSize: 20, lineHeight: 25, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  weekTileLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '600' },
+  emptyChartText: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
   chartLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  chartLabel: { color: colors.muted, fontSize: 12 },
+  chartLabel: { ...typeScale.caption, color: colors.muted },
   weekGoalBody: { gap: 4 },
-  weekGoalTitle: { color: colors.text, fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  weekGoalTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   weekGoalDots: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, minHeight: 24, alignItems: 'center' },
   // Logged days fill in; empty days stay a quiet outline, never a warning colour.
   weekGoalDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface },
   weekGoalDotLogged: { backgroundColor: colors.accent, borderColor: colors.accent },
   weekGoalDotToday: { borderColor: colors.accentText },
-  weekGoalText: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  statCard: { flexGrow: 1, flexBasis: 95, padding: 13, borderRadius: 20, gap: 6 },
-  statValue: { color: colors.text, fontSize: 17, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] },
-  statLabel: { color: colors.muted, fontSize: 12, lineHeight: 16 },
-  section: { gap: 13 },
+  weekGoalText: { ...typeScale.footnote, color: colors.muted },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statCard: { flexGrow: 1, flexBasis: 95, padding: 14, borderRadius: radii.card, gap: 4 },
+  statValue: { ...typeScale.headline, color: colors.text, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] },
+  statLabel: { ...typeScale.caption, color: colors.muted },
+  // 32 pt above a section header (20 pt screen gap + 12), 12 pt below it.
+  section: { gap: 12, marginTop: 12 },
   insightCard: { flexDirection: 'row', gap: 14, backgroundColor: colors.accentSoft, borderColor: colors.accent },
   insightIcon: { width: 46, height: 46, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  insightCopy: { flex: 1, gap: 7 },
-  insightTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  insightText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  insightCopy: { flex: 1, gap: 6 },
+  insightTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
+  insightText: { ...typeScale.footnote, color: colors.muted },
   modalScrim: { flex: 1, backgroundColor: 'rgba(20,21,15,0.42)', justifyContent: 'flex-end' },
   modalScroll: { flexGrow: 0, maxHeight: '100%', borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface },
-  modalCard: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
-  modalTitle: { color: colors.text, fontSize: 25, fontWeight: '700' },
-  modalText: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  modalCard: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 24, paddingTop: 24, gap: 12 },
+  modalTitle: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
+  modalText: { ...typeScale.footnote, color: colors.muted },
   weightInputRow: { minHeight: 64, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   weightInputSplit: { minWidth: 76, flex: 0 },
   weightInput: { flex: 1, minWidth: 0, color: colors.text, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  weightUnit: { color: colors.muted, fontSize: 16, fontWeight: '600' },
-  error: { color: colors.attentionText, fontSize: 12 },
+  weightUnit: { ...typeScale.label, color: colors.muted, fontWeight: '600' },
+  error: { ...typeScale.caption, color: colors.attentionText },
 });

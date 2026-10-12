@@ -6,6 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import type { CustomFoodDraft } from '@/services/customFoods';
 import { formatNumber } from '@/utils/format';
+import { typeScale } from '@/constants/theme';
 
 // Same parser and limits as the server table and the gateway's label check.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -70,7 +71,7 @@ export function LabelFoodForm({ initial, notices, saving, saveError, showBarcode
 
   const field = (key: keyof LabelForm, label: string, unit: string, numeric = true) => (
     <View style={{ gap: 4, flex: 1, minWidth: 0 }}>
-      <Text style={{ color: colors.muted, fontSize: 13 }}>{label}</Text>
+      <Text style={{ ...typeScale.footnote, color: colors.muted }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, backgroundColor: colors.surface }}>
         <TextInput
           accessibilityLabel={unit ? `${label} (${unit})` : label}
@@ -81,7 +82,7 @@ export function LabelFoodForm({ initial, notices, saving, saveError, showBarcode
           style={{ flex: 1, minWidth: 0, width: '100%', color: colors.text, fontSize: 17 }}
           value={form[key]}
         />
-        {unit ? <Text style={{ color: colors.muted, marginLeft: 4, fontSize: 14 }}>{unit}</Text> : null}
+        {unit ? <Text style={{ ...typeScale.subhead, color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
       </View>
     </View>
   );
@@ -95,11 +96,11 @@ export function LabelFoodForm({ initial, notices, saving, saveError, showBarcode
   return (
     <View style={{ gap: 12 }}>
       {notices.map(notice => (
-        <Text key={notice} style={{ color: colors.attentionText, fontSize: 14, lineHeight: 20 }}>{notice}</Text>
+        <Text key={notice} style={{ ...typeScale.subhead, color: colors.attentionText }}>{notice}</Text>
       ))}
       {field('name', copy.fieldName, '', false)}
       {field('brand', copy.fieldBrand, '', false)}
-      <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 16, fontWeight: '700', marginTop: 4 }}>{copy.per100}</Text>
+      <Text accessibilityRole="header" style={{ ...typeScale.label, color: colors.text, fontWeight: '700', marginTop: 4 }}>{copy.per100}</Text>
       {row(field('calories', copy.fieldCalories, 'kcal'), field('protein', copy.fieldProtein, 'g'))}
       {row(field('carbs', copy.fieldCarbs, 'g'), field('sugar', copy.fieldSugar, 'g'))}
       {row(field('fat', copy.fieldFat, 'g'), field('saturatedFat', copy.fieldSaturated, 'g'))}
@@ -108,11 +109,11 @@ export function LabelFoodForm({ initial, notices, saving, saveError, showBarcode
       {showBarcode ? field('barcode', copy.fieldBarcode, '') : null}
       {warnings.length ? (
         <View accessibilityLiveRegion="polite" style={{ gap: 6, padding: 12, borderRadius: 14, backgroundColor: colors.attentionSoft }}>
-          {warnings.map(warning => <Text key={warning} style={{ color: colors.attentionText, fontSize: 14, lineHeight: 20 }}>{warning}</Text>)}
+          {warnings.map(warning => <Text key={warning} style={{ ...typeScale.subhead, color: colors.attentionText }}>{warning}</Text>)}
         </View>
       ) : null}
-      {errors.map(error => <Text accessibilityRole="alert" key={error} style={{ color: colors.attentionText, fontSize: 14, lineHeight: 20 }}>{error}</Text>)}
-      {saveError ? <Text accessibilityRole="alert" style={{ color: colors.attentionText, fontSize: 14, lineHeight: 20 }}>{saveError}</Text> : null}
+      {errors.map(error => <Text accessibilityRole="alert" key={error} style={{ ...typeScale.subhead, color: colors.attentionText }}>{error}</Text>)}
+      {saveError ? <Text accessibilityRole="alert" style={{ ...typeScale.subhead, color: colors.attentionText }}>{saveError}</Text> : null}
       <PrimaryButton disabled={saving} icon="checkmark" label={saving ? copy.saving : copy.save} onPress={() => submit(true)} />
       <PrimaryButton disabled={saving} variant="secondary" label={copy.saveOnly} onPress={() => submit(false)} />
       <PrimaryButton variant="ghost" label={t.common.cancel} onPress={onCancel} />

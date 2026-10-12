@@ -24,7 +24,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
-import { radii, spacing } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, spacing, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { TAB_BAR_CONTENT_HEIGHT } from '@/constants/layout';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -216,6 +216,47 @@ export function SectionTitle({ children, action }: PropsWithChildren<{ action?: 
   );
 }
 
+/**
+ * One row of a grouped settings card, like iOS Settings: a 36 pt icon in a
+ * soft circle, a title with an optional muted description, and an optional
+ * control on the right that centres on the text block.
+ */
+export function SettingsRow({
+  icon,
+  label,
+  detail,
+  accessory,
+  disabled = false,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  label: string;
+  detail?: string;
+  accessory?: ReactNode;
+  disabled?: boolean;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={[styles.settingsRow, !detail && styles.settingsRowSingle, disabled && styles.settingsRowDisabled]}>
+      {icon ? <View style={styles.settingsIcon}><Ionicons color={colors.text} name={icon} size={18} /></View> : null}
+      <View style={styles.settingsCopy}>
+        <Text style={styles.settingsLabel}>{label}</Text>
+        {detail ? <Text style={styles.settingsDetail}>{detail}</Text> : null}
+      </View>
+      {accessory}
+    </View>
+  );
+}
+
+/**
+ * Hairline between rows of a grouped card. It starts where the row text
+ * starts: at the text column after an icon, or at the row padding without one.
+ */
+export function ListDivider({ inset = true }: { inset?: boolean }) {
+  const styles = useThemedStyles(makeStyles);
+  return <View style={[styles.listDivider, inset ? styles.listDividerInset : styles.listDividerFlush]} />;
+}
+
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -262,10 +303,10 @@ export function MacroCard({
       <View style={[styles.macroIcon, reached && styles.macroIconReached]}>
         <Ionicons color={reached ? colors.onAccent : colors.text} name={reached ? 'checkmark' : over ? 'information-circle-outline' : icon} size={16} />
       </View>
-      <Text numberOfLines={1} style={styles.macroLabel}>{label}</Text>
+      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.macroLabel}>{label}</Text>
       {/* Three equal cards on a 320pt phone: the figure shrinks a little
           rather than cutting "/ 150 g" off. */}
-      <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
       <ProgressBar color={tint} value={current / target} />
     </Card>
   );
@@ -467,10 +508,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     opacity: 0.42,
   },
   buttonText: {
+    ...typeScale.label,
     flexShrink: 1,
     textAlign: 'center',
     color: colors.text,
-    fontSize: 16,
     fontWeight: '700',
   },
   buttonTextLight: {
@@ -480,21 +521,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.text,
   },
   eyebrow: {
+    ...typeScale.eyebrow,
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
   },
   lightText: {
     color: 'rgba(255,255,255,0.72)',
   },
   pageTitle: {
+    ...typeScale.display,
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 39,
     fontWeight: '700',
-    letterSpacing: -1.1,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -502,22 +538,67 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 22,
-    lineHeight: 28,
     fontWeight: '700',
-    letterSpacing: -0.5,
   },
   progressTrack: {
     width: '100%',
     height: 6,
     overflow: 'hidden',
-    borderRadius: 6,
+    borderRadius: 3,
     backgroundColor: colors.border,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 3,
+  },
+  // Grouped settings rows: content lines up with the 20 pt card padding
+  // (8 card + 12 row), text starts at 60 pt so hairlines inset to it.
+  settingsRow: {
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingsRowSingle: {
+    minHeight: 56,
+  },
+  settingsRowDisabled: {
+    opacity: 0.55,
+  },
+  settingsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.neutralSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  settingsLabel: {
+    ...typeScale.label,
+    color: colors.text,
+  },
+  settingsDetail: {
+    ...typeScale.footnote,
+    color: colors.muted,
+  },
+  listDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+  },
+  listDividerInset: {
+    marginLeft: 60,
+  },
+  listDividerFlush: {
+    marginHorizontal: 12,
   },
   macroCard: {
     flex: 1,
@@ -540,28 +621,22 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 4,
   },
   macroLabel: {
+    ...typeScale.caption,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '600',
   },
   macroValue: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 20,
-    lineHeight: 24,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
     marginBottom: 8,
   },
-  macroTarget: {
-    color: colors.muted,
-    fontSize: 12,
-    marginBottom: 7,
-    fontVariant: ['tabular-nums'],
-  },
   macroUnit: {
+    ...typeScale.footnote,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '600',
+    letterSpacing: 0,
   },
   confidence: {
     alignSelf: 'flex-start',
@@ -577,8 +652,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.attentionSoft,
   },
   confidenceText: {
+    ...typeScale.caption,
     color: colors.success,
-    fontSize: 12,
     fontWeight: '700',
   },
   confidenceTextUncertain: {
@@ -592,8 +667,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   photoPlaceholder: { backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center', padding: 24 },
   photoPlaceholderIcon: { width: 70, height: 70, borderRadius: 26, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  photoPlaceholderTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 13 },
-  photoPlaceholderText: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 5, maxWidth: 260 },
+  photoPlaceholderTitle: { color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', marginTop: 13 },
+  photoPlaceholderText: { ...typeScale.footnote, color: colors.muted, textAlign: 'center', marginTop: 5, maxWidth: 260 },
   photo: {
     width: '100%',
     height: '100%',
@@ -608,8 +683,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 6,
   },
   demoBadgeText: {
+    ...typeScale.caption,
     color: colors.white,
-    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
   },

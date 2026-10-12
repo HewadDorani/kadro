@@ -10,6 +10,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { formatNumber } from '@/utils/format';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 // Screen padding (2 x 20) plus hero card padding (2 x 20).
 const HORIZONTAL_CHROME = 80;
@@ -69,8 +70,8 @@ export function CalorieRing({
 
   const side = (value: number, label: string) => (
     <View style={styles.side}>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={styles.sideValue}>{formatNumber(value, locale)}</Text>
-      <Text numberOfLines={1} style={styles.sideLabel}>{label}</Text>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.sideValue}>{formatNumber(value, locale)}</Text>
+      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.sideLabel}>{label}</Text>
     </View>
   );
 
@@ -106,19 +107,22 @@ export function CalorieRing({
           />
         </Svg>
         <View style={styles.inner}>
+          {/* Everything inside the ring has a fixed circle to fit: it follows
+              Dynamic Type up to 130%, then the ring itself is the limit. */}
           <Text
             adjustsFontSizeToFit
+            maxFontSizeMultiplier={HERO_MAX_FONT_SCALE}
             numberOfLines={1}
             style={[styles.value, { fontSize: Math.round(size * 0.223), lineHeight: Math.round(size * 0.245) }]}
           >
             {formatNumber(over > 0 ? over : remaining, locale)}
           </Text>
-          <Text style={styles.label}>{over > 0 ? t.ring.over : t.ring.left}</Text>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.label}>{over > 0 ? t.ring.over : t.ring.left}</Text>
           <View style={styles.statusRow}>
             {celebrating
               ? <Ionicons color={statusColor} name="checkmark-circle" size={13} />
               : <View style={[styles.statusDot, { backgroundColor: statusColor }]} />}
-            <Text style={[styles.status, { color: statusColor }]}>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.status, { color: statusColor }]}>
               {over > 0 ? (level === 'over' ? t.ring.aboveTarget : t.ring.slightlyOver) : celebrating ? t.ring.proteinDone : t.ring.inPlan}
             </Text>
           </View>
@@ -143,19 +147,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 2,
   },
   sideValue: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 21,
-    lineHeight: 26,
     fontWeight: '700',
-    letterSpacing: -0.4,
     fontVariant: ['tabular-nums'],
   },
   sideLabel: {
+    ...typeScale.eyebrow,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
   svg: {
     position: 'absolute',
@@ -174,8 +174,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   label: {
+    ...typeScale.subhead,
     color: colors.muted,
-    fontSize: 14,
     fontWeight: '600',
     marginTop: 0,
   },
@@ -196,7 +196,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 4,
   },
   status: {
-    fontSize: 12,
+    ...typeScale.caption,
     fontWeight: '700',
   },
 });

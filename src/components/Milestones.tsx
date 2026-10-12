@@ -14,6 +14,7 @@ import { claimFirstMealCelebration, markFirstMealCelebrated, markThreeDayMilesto
 import type { Meal } from '@/types/nutrition';
 import { localDateKey } from '@/utils/date';
 import { formatNumber } from '@/utils/format';
+import { typeScale } from '@/constants/theme';
 
 /** Real logged days (no seed/demo), with their calorie totals. */
 export function loggedDays(meals: Meal[]) {
@@ -111,8 +112,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: 28, padding: 26, alignItems: 'center', gap: 14 },
   badge: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   title: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: -0.6, textAlign: 'center' },
-  body: { color: colors.muted, fontSize: 16, lineHeight: 23, textAlign: 'center' },
+  body: { ...typeScale.body, color: colors.muted, textAlign: 'center' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, backgroundColor: colors.neutralSoft, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  pillText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  pillText: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
 });

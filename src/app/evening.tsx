@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Eyebrow, PrimaryButton, Screen } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import {
   enableEveningCheckIn,
@@ -96,12 +96,12 @@ export default function EveningScreen() {
 
         <View style={styles.numbersRow}>
           <View style={styles.numberBlock}>
-            <Text style={styles.number}>{formatNumber(consumed.calories, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.number}>{formatNumber(consumed.calories, locale)}</Text>
             <Text style={styles.numberLabel}>{t.evening.eatenLabel}</Text>
           </View>
           <View style={styles.numberDivider} />
           <View style={styles.numberBlock}>
-            <Text style={styles.number}>{consumed.protein} g</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.number}>{consumed.protein} g</Text>
             <Text style={styles.numberLabel}>{t.evening.proteinShare(proteinShare)}</Text>
           </View>
         </View>
@@ -163,33 +163,33 @@ export default function EveningScreen() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   heroCard: { backgroundColor: colors.camera, borderColor: colors.camera, gap: 22, paddingVertical: 24 },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   heroCopy: { flex: 1, minWidth: 0, gap: 6 },
-  headline: { color: colors.white, fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.8 },
+  headline: { ...typeScale.title1, color: colors.white, fontWeight: '700' },
   badge: { width: 46, height: 46, borderRadius: 17, backgroundColor: 'rgba(187,220,142,0.16)', alignItems: 'center', justifyContent: 'center' },
   badgeAttention: { backgroundColor: 'rgba(200,155,75,0.18)' },
   numbersRow: { flexDirection: 'row', alignItems: 'center' },
   numberBlock: { flex: 1, minWidth: 0, gap: 4 },
   numberDivider: { width: 1, height: 42, backgroundColor: 'rgba(255,255,255,0.13)', marginHorizontal: 18 },
-  number: { color: colors.white, fontSize: 26, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  numberLabel: { color: 'rgba(255,255,255,0.54)', fontSize: 12, lineHeight: 16 },
-  verdict: { color: 'rgba(255,255,255,0.82)', fontSize: 14, lineHeight: 21 },
+  number: { color: colors.white, fontSize: 26, lineHeight: 32, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  numberLabel: { ...typeScale.caption, color: 'rgba(255,255,255,0.54)' },
+  verdict: { ...typeScale.subhead, color: 'rgba(255,255,255,0.82)' },
   mealsCard: { padding: 8, gap: 2 },
-  sectionLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
   mealRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10 },
-  mealType: { width: 92, color: colors.text, fontSize: 13, fontWeight: '600' },
-  mealName: { flex: 1, minWidth: 0, color: colors.muted, fontSize: 12 },
-  mealCalories: { color: colors.text, fontSize: 13, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  mealType: { ...typeScale.footnote, width: 92, color: colors.text, fontWeight: '600' },
+  mealName: { ...typeScale.caption, flex: 1, minWidth: 0, color: colors.muted },
+  mealCalories: { ...typeScale.footnote, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 10 },
   tomorrowCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 14 },
   tomorrowTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tomorrowIcon: { width: 42, height: 42, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   tomorrowCopy: { flex: 1, minWidth: 0, gap: 3 },
-  tomorrowTitle: { color: colors.text, fontSize: 17, fontWeight: '600' },
-  tomorrowText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  tomorrowTitle: { ...typeScale.headline, color: colors.text, fontWeight: '600' },
+  tomorrowText: { ...typeScale.footnote, color: colors.muted },
   offerCard: { gap: 12 },
-  offerTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  offerText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  offerTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
+  offerText: { ...typeScale.footnote, color: colors.muted },
 });

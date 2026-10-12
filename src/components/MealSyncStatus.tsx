@@ -6,6 +6,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { DeletedMeal, getLocalDataGeneration, loadAllStoredScans, loadDeletedMeals, loadLocalAccountSwitch, subscribeLocalMeals } from '@/services/localRepository';
 import { resolveMealDeletionConflict, resolveMealSyncConflict } from '@/services/syncRepository';
 import { Meal } from '@/types/nutrition';
+import { typeScale } from '@/constants/theme';
 
 /** Local acknowledgement and cloud acknowledgement deliberately have different copy. */
 export function MealSyncStatus() {
@@ -60,11 +61,11 @@ export function MealSyncStatus() {
     ]);
     else void run(async () => {});
   };
-  return <View style={{ padding: 14, gap: 6, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
-    <Text style={{ color: colors.text, fontWeight: '700' }}>{conflict || deletion ? t.mealSync.conflictTitle : t.mealSync.localTitle}</Text>
-    <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{error ? t.mealSync.failed : conflict || deletion ? t.mealSync.conflictHint : t.mealSync.pending}</Text>
+  return <View style={{ padding: 16, gap: 4, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}>
+    <Text style={{ ...typeScale.subhead, color: colors.text, fontWeight: '700' }}>{conflict || deletion ? t.mealSync.conflictTitle : t.mealSync.localTitle}</Text>
+    <Text style={{ ...typeScale.footnote, color: colors.muted }}>{error ? t.mealSync.failed : conflict || deletion ? t.mealSync.conflictHint : t.mealSync.pending}</Text>
     <Pressable accessibilityRole="button" disabled={busy} onPress={resolve} style={{ minHeight: 44, justifyContent: 'center', opacity: busy ? 0.5 : 1 }}>
-      <Text style={{ color: colors.text, fontWeight: '700' }}>{busy ? t.mealSync.working : conflict || deletion ? t.mealSync.choose : t.mealSync.retry}</Text>
+      <Text style={{ ...typeScale.subhead, color: colors.text, fontWeight: '700' }}>{busy ? t.mealSync.working : conflict || deletion ? t.mealSync.choose : t.mealSync.retry}</Text>
     </Pressable>
   </View>;
 }

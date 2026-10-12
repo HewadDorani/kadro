@@ -10,6 +10,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { useLocalDay } from '@/hooks/useLocalDay';
 import { weeklyReview } from '@/services/weeklyReview';
 import { formatDateParts } from '@/utils/format';
+import { typeScale } from '@/constants/theme';
 
 /** First day of the review week that was given for free on this device. */
 const FREE_REVIEW_KEY = '@kandro/free-weekly-review:v1';
@@ -63,26 +64,29 @@ export function WeeklyReviewCard() {
   const copy = t.weeklyReview;
   const { current, previous, proteinChangePercent } = review;
   const number = (value: number) => value.toLocaleString(locale);
-  const text = { color: colors.muted, fontSize: 15, lineHeight: 22 };
-  return <Card style={{ gap: 10 }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+  const text = { ...typeScale.callout, color: colors.muted };
+  const showWeek = pro || access?.full;
+  return <Card style={{ gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 }}>
       <IconCircle name="calendar-clear-outline" size={40} tone="neutral" />
-      <Text accessibilityRole="header" style={{ flex: 1, color: colors.text, fontSize: 21, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4 }}>{copy.title}</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{copy.title}</Text>
+        {showWeek ? <Text style={{ ...typeScale.footnote, color: colors.muted, fontVariant: ['tabular-nums'] }}>{formatDateParts(current.from, { day: 'numeric', month: 'short' }, locale)} – {formatDateParts(current.to, { day: 'numeric', month: 'short' }, locale)}</Text> : null}
+      </View>
     </View>
-    {pro || access?.full ? <>
-      <Text style={text}>{formatDateParts(current.from, { day: 'numeric', month: 'short' }, locale)} – {formatDateParts(current.to, { day: 'numeric', month: 'short' }, locale)}</Text>
-      <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600' }}>{copy.loggedDays(current.loggedDays)}</Text>
+    {showWeek ? <>
+      <Text style={{ ...typeScale.headline, color: colors.text, fontVariant: ['tabular-nums'] }}>{copy.loggedDays(current.loggedDays)}</Text>
       {current.loggedDays ? <View style={{ gap: 8 }}>
         <Text style={text}>{copy.averages(number(current.averageCalories!), number(current.averageProtein!))}</Text>
         {current.daysNearCurrentTarget !== null ? <Text style={text}>{copy.nearTarget(current.daysNearCurrentTarget, current.loggedDays, number(targets.calories))}</Text> : null}
         <Text style={text}>{proteinChangePercent !== null
           ? copy.proteinComparison(`${proteinChangePercent > 0 ? '+' : ''}${number(proteinChangePercent)}%`, current.loggedDays, previous.loggedDays)
           : copy.comparisonPending}</Text>
-        <Text style={text}>{copy.dataNote}</Text>
+        <Text style={{ ...text, ...typeScale.footnote }}>{copy.dataNote}</Text>
       </View> : <Text style={text}>{copy.empty}</Text>}
-      {!pro && current.loggedDays ? <Text style={{ ...text, fontSize: 13 }}>{copy.freeNote}</Text> : null}
+      {!pro && current.loggedDays ? <Text style={{ ...text, ...typeScale.footnote }}>{copy.freeNote}</Text> : null}
     </> : <>
-      <Text style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}>{copy.teaser}</Text>
+      <Text style={{ ...typeScale.headline, color: colors.text, fontWeight: '600' }}>{copy.teaser}</Text>
       <Text style={text}>{copy.proDescription}</Text>
       <PrimaryButton label={copy.openPro} variant="secondary" onPress={() => router.push('/paywall')} />
     </>}

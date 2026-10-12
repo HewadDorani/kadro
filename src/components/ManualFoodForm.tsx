@@ -6,6 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import type { FoodSearchResult } from '@/services/mealAnalysis';
 import { newAnalysisRequestId } from '@/utils/requestId';
+import { typeScale } from '@/constants/theme';
 
 /** Accepts "250", "12,5" or "12.5"; empty optional fields count as 0. */
 function parse(value: string, optional: boolean) {
@@ -59,7 +60,7 @@ export function ManualFoodForm({ initialName, onCancel, onConfirm }: {
 
   const field = (label: string, value: string, onChange: (next: string) => void, unit: string, numeric = true) => (
     <View style={{ gap: 4, flex: 1, minWidth: 0 }}>
-      <Text style={{ color: colors.muted, fontSize: 13 }}>{label}</Text>
+      <Text style={{ ...typeScale.footnote, color: colors.muted }}>{label}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, backgroundColor: colors.surface }}>
         <TextInput
           accessibilityLabel={label}
@@ -69,15 +70,15 @@ export function ManualFoodForm({ initialName, onCancel, onConfirm }: {
           style={{ flex: 1, minWidth: 0, width: '100%', color: colors.text, fontSize: 17 }}
           value={value}
         />
-        {unit ? <Text style={{ color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
+        {unit ? <Text style={{ ...typeScale.callout, color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
       </View>
     </View>
   );
 
   return (
     <View style={{ gap: 12 }}>
-      <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 22, fontWeight: '700' }}>{copy.manualTitle}</Text>
-      <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>{copy.manualHint}</Text>
+      <Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{copy.manualTitle}</Text>
+      <Text style={{ ...typeScale.subhead, color: colors.muted }}>{copy.manualHint}</Text>
       {field(copy.manualName, name, setName, '', false)}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {field(copy.manualAmount, grams, setGrams, 'g')}
@@ -88,7 +89,7 @@ export function ManualFoodForm({ initialName, onCancel, onConfirm }: {
         {field(t.common.carbs, carbs, setCarbs, 'g')}
         {field(t.common.fat, fat, setFat, 'g')}
       </View>
-      {error ? <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{copy.manualInvalid}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={{ ...typeScale.subhead, color: colors.attentionText }}>{copy.manualInvalid}</Text> : null}
       <PrimaryButton icon="checkmark" label={copy.manualSave} onPress={save} />
       <PrimaryButton variant="ghost" label={t.common.cancel} onPress={onCancel} />
     </View>

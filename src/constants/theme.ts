@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 export const lightColors = {
   background: '#F5F3EE',
   surface: '#FFFFFF',
@@ -93,13 +95,35 @@ export function scanShadow(mode: 'light' | 'dark') {
   } as const;
 }
 
+/**
+ * Text styles. Every step carries its own line height and tracking, so a
+ * paragraph never sits on a cramped default line box. Spread a step first
+ * and override only colour, weight or alignment:
+ *
+ *   title: { ...typeScale.title2, color: colors.text, fontWeight: '700' }
+ *
+ * Headings track slightly tighter, reading text stays at 0. Card descriptions
+ * use subhead or footnote in muted colour and are never larger than the card
+ * title. React Native scales fontSize and lineHeight together with Dynamic Type.
+ */
 export const typeScale = {
-  display: 56,
-  title: 32,
-  heading: 22,
-  body: 17,
-  compact: 15,
-  caption: 13,
+  display: { fontSize: 34, lineHeight: 40, letterSpacing: -0.6 },
+  title1: { fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
+  title2: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  headline: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2, fontWeight: '600' },
+  /** Row and button titles: one step under headline. */
+  label: { fontSize: 16, lineHeight: 21, letterSpacing: -0.1, fontWeight: '600' },
+  body: { fontSize: 16, lineHeight: 23, letterSpacing: 0 },
+  callout: { fontSize: 15, lineHeight: 21, letterSpacing: 0 },
+  subhead: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
+  footnote: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
   /** The floor: no rendered text goes below 12 pt. */
-  micro: 12,
-} as const;
+  caption: { fontSize: 12, lineHeight: 16, letterSpacing: 0 },
+  eyebrow: { fontSize: 12, lineHeight: 16, letterSpacing: 0.8, fontWeight: '600', textTransform: 'uppercase' },
+} as const satisfies Record<string, TextStyle>;
+
+/**
+ * Tight numeric hero figures (ring totals, the plan calorie number) stop
+ * growing at 130% Dynamic Type so they stay on one line; body text is never capped.
+ */
+export const HERO_MAX_FONT_SCALE = 1.3;

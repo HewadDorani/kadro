@@ -6,13 +6,14 @@ import { ReminderPreferences } from '@/components/ReminderPreferences';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { legalProvider } from '@/constants/legal';
+import { typeScale } from '@/constants/theme';
 
 export default function AccountHelp() {
   const router = useRouter(); const { t, language } = useLanguage(); const { colors } = useTheme();
   return <Screen>
     <PrimaryButton variant="ghost" label={t.common.back} onPress={() => router.canGoBack() ? router.back() : router.replace('/paywall')} />
-    <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 28, fontWeight: '700' }}>{t.access.accountHelp}</Text>
-    <Text style={{ color: colors.text, fontSize: 20, fontWeight: '600' }}>{t.access.signIn}</Text>
+    <Text accessibilityRole="header" style={{ ...typeScale.title1, color: colors.text, fontWeight: '700' }}>{t.access.accountHelp}</Text>
+    <Text style={{ color: colors.text, fontSize: 20, lineHeight: 25, fontWeight: '600' }}>{t.access.signIn}</Text>
     <AccountLinkCard />
     <PrimaryButton label={t.paywall.restore} variant="secondary" onPress={() => router.push('/paywall')} />
     <PrimaryButton label={t.access.manage} variant="secondary" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')} />

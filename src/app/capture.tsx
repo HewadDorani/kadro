@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { Screen, Card, PrimaryButton } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { clearCaptureIntent, getScanInputDraft, pendingCaptureIntent } from '@/services/captureIntents';
 import { isReminderOnboardingPending } from '@/services/reminders';
+import { typeScale } from '@/constants/theme';
 export default function CaptureEntry() {
   const router = useRouter();
   const app = useApp(); const { t } = useLanguage(); const { colors } = useTheme();
@@ -31,5 +32,5 @@ export default function CaptureEntry() {
     else if (app.analysisStatus !== 'idle') router.replace('/analyzing');
     else router.replace({ pathname: '/(tabs)/scan', params: { mode: app.descriptionInput ? 'description' : 'photo' } });
   };
-  return <Screen><Card><Text accessibilityRole="header" style={{ color: colors.text, fontSize: 24, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ color: colors.muted, fontSize: 16, lineHeight: 24 }}>{t.captureExtras.draftText}</Text><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
+  return <Screen><Card style={{ gap: 16 }}><View style={{ gap: 6 }}><Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ ...typeScale.body, color: colors.muted }}>{t.captureExtras.draftText}</Text></View><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
 }

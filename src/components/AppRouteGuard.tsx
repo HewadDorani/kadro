@@ -17,6 +17,7 @@ import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { requiresMealDraftRedirect } from '@/utils/mealDraftGuard';
 import { canSaveMealDraft } from '@/utils/ingredientCorrection';
+import { typeScale } from '@/constants/theme';
 
 const publicBeforeConsent = new Set(['index', 'account-help', 'saved-meals', 'onboarding', 'data-consent', 'privacy', 'terms', 'sources', 'account-deletion']);
 // Every other root segment needs a completed profile: 'first-scan' included.
@@ -147,5 +148,5 @@ function BrandGate() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   gate: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 28, backgroundColor: colors.background },
   title: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '800', textAlign: 'center' },
-  copy: { maxWidth: 420, color: colors.muted, fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  copy: { ...typeScale.subhead, maxWidth: 420, color: colors.muted, textAlign: 'center' },
 });

@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatNumber } from '@/utils/format';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import type { Nutrition } from '@/types/nutrition';
 import { type FoodPortion, initialSelection, resolveGrams, scaleNutrition } from '@/utils/portions';
@@ -209,28 +209,28 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   body: { gap: 14, paddingBottom: 8 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   close: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.neutralSoft },
-  closeText: { color: colors.text, fontSize: 26 },
+  closeText: { color: colors.text, fontSize: 26, lineHeight: 30 },
   countStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   grabber: { alignSelf: 'center', width: 42, height: 5, borderRadius: 3, backgroundColor: colors.border },
-  title: { flex: 1, color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.4 },
-  source: { color: colors.muted, fontSize: 12 },
+  title: { flex: 1, color: colors.text, fontSize: 20, lineHeight: 25, fontWeight: '700', letterSpacing: -0.4 },
+  source: { ...typeScale.caption, color: colors.muted },
   amountRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  amountInput: { minWidth: 108, minHeight: 64, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.neutralSoft, color: colors.text, fontSize: 30, fontWeight: '700', paddingHorizontal: 16, textAlign: 'center' },
-  amountUnit: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '600' },
+  amountInput: { minWidth: 108, minHeight: 64, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.neutralSoft, color: colors.text, fontSize: 30, fontWeight: '700', paddingHorizontal: 16, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  amountUnit: { ...typeScale.headline, flex: 1, color: colors.text, fontWeight: '600' },
   quickRow: { gap: 8, paddingRight: 8 },
   quickChip: { minHeight: 44, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   quickChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  quickChipText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  quickChipText: { ...typeScale.subhead, color: colors.muted, fontWeight: '700' },
   quickChipTextOn: { color: colors.onAccent },
   unitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   unitChip: { minHeight: 48, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 6, justifyContent: 'center' },
   unitChipOn: { backgroundColor: colors.accentSoft, borderColor: colors.accentText },
-  unitChipText: { color: colors.text, fontSize: 13, fontWeight: '600', maxWidth: 170 },
+  unitChipText: { ...typeScale.footnote, color: colors.text, fontWeight: '600', maxWidth: 170 },
   unitChipTextOn: { color: colors.accentText },
-  unitChipGrams: { color: colors.muted, fontSize: 12 },
+  unitChipGrams: { ...typeScale.caption, color: colors.muted },
   preview: { borderRadius: radii.input, backgroundColor: colors.neutralSoft, padding: 14, gap: 3 },
-  previewValue: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  previewMacros: { color: colors.muted, fontSize: 12 },
+  previewValue: { ...typeScale.title2, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  previewMacros: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
   cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  cancelText: { ...typeScale.subhead, color: colors.muted, fontWeight: '600' },
 });

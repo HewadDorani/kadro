@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from 'react-native-svg';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { normalizePersonalGoal } from '@/services/personalGoal';
@@ -59,8 +59,8 @@ export function PersonalGoalSummary({ profile }: { profile: UserProfile }) {
         <Ionicons color={colors.onAccent} name="flag" size={18} />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>{t.onboarding.personalGoalTitle}</Text>
-        <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>{date ? t.onboarding.goalBy(weight, date) : weight}</Text>
+        <Text style={{ ...typeScale.caption, color: colors.muted, fontWeight: '700' }}>{t.onboarding.personalGoalTitle}</Text>
+        <Text style={{ ...typeScale.headline, color: colors.text, fontWeight: '700' }}>{date ? t.onboarding.goalBy(weight, date) : weight}</Text>
       </View>
     </View>
     {endIso ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" onLayout={event => setWidth(event.nativeEvent.layout.width)} style={{ height: CHART_HEIGHT }}>
@@ -79,10 +79,10 @@ export function PersonalGoalSummary({ profile }: { profile: UserProfile }) {
       </Svg> : null}
     </View> : null}
     {endIso ? <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '600' }}>{t.onboarding.projectionToday} · {formatWeight(profile.weightKg, profile.unitSystem, locale)}</Text>
-      <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700' }}>{short(endIso)} · {weight}</Text>
+      <Text style={{ ...typeScale.caption, color: colors.muted, fontWeight: '600' }}>{t.onboarding.projectionToday} · {formatWeight(profile.weightKg, profile.unitSystem, locale)}</Text>
+      <Text style={{ ...typeScale.caption, color: colors.text, fontWeight: '700' }}>{short(endIso)} · {weight}</Text>
     </View> : null}
-    <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 16 }}>{t.onboarding.personalGoalDisclaimer}</Text>
+    <Text style={{ ...typeScale.caption, color: colors.muted }}>{t.onboarding.personalGoalDisclaimer}</Text>
   </View>;
 }
 

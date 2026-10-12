@@ -9,6 +9,7 @@ import { PrimaryButton } from '@/components/ui';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
+import { typeScale } from '@/constants/theme';
 
 /** Points at the existing five-tab navigation; no additional permissions. */
 export function AppIntroduction({ onClose, onStart }: { onClose: () => void; onStart: () => void }) {
@@ -81,9 +82,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: { position: 'absolute', left: 20, right: 20, borderRadius: 18, backgroundColor: colors.surface, overflow: 'hidden' },
   content: { padding: 22, gap: 16 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  counter: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  counter: { ...typeScale.footnote, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
   title: { color: colors.text, fontSize: 25, lineHeight: 31, fontWeight: '700' },
-  body: { color: colors.text, fontSize: 16, lineHeight: 24 },
+  body: { ...typeScale.body, color: colors.text },
   actions: { flexDirection: 'row', gap: 8 },
   action: { flex: 1, paddingHorizontal: 4 },
   target: { position: 'absolute', width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: colors.accent },

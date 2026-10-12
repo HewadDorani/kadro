@@ -6,6 +6,7 @@ import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
 import { formatNumber } from '@/utils/format';
 import { parseDecimalInput, stepWeightInput } from '@/utils/decimalInput';
+import { typeScale } from '@/constants/theme';
 
 /** A visible input: entering 90 kg takes two digits, not 120 small steps. */
 export function WeightEntry({ value, min, max, unit, hint, label, compact = false, onChange, onValidityChange }: {
@@ -168,29 +169,29 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { width: '100%', maxWidth: 360, alignSelf: 'center', gap: 12 },
   compactWrap: { gap: 6 },
   row: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 16 },
-  rowLabel: { flexShrink: 1, color: colors.text, fontSize: 16, fontWeight: '600' },
+  rowLabel: { ...typeScale.label, flexShrink: 1, color: colors.text, fontWeight: '600' },
   rowControls: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
   rowValue: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', minWidth: 96 },
   compactInput: { minWidth: 58, paddingVertical: 6, fontSize: 26, fontWeight: '700', color: colors.text, textAlign: 'right', fontVariant: ['tabular-nums'] },
-  rowUnit: { marginLeft: 4, fontSize: 15, fontWeight: '600', color: colors.muted },
+  rowUnit: { ...typeScale.callout, marginLeft: 4, fontWeight: '600', color: colors.muted },
   round: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutralSoft },
-  roundText: { fontSize: 22, lineHeight: 24, fontWeight: '600', color: colors.text },
-  label: { fontSize: 14, fontWeight: '600', color: colors.muted },
+  roundText: { ...typeScale.title2, fontWeight: '600', color: colors.text },
+  label: { ...typeScale.subhead, fontWeight: '600', color: colors.muted },
   field: { flexDirection: 'row', alignItems: 'center', borderWidth: 2, borderColor: colors.border, borderRadius: 18, paddingHorizontal: 18, backgroundColor: colors.surface },
   focused: { borderColor: colors.accentDeep },
   invalid: { borderColor: colors.error },
   input: { flex: 1, minWidth: 0, minHeight: 82, paddingVertical: 10, fontSize: 42, fontWeight: '700', color: colors.text, fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 22, fontWeight: '600', color: colors.muted },
-  hint: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  unit: { ...typeScale.title2, fontWeight: '600', color: colors.muted },
+  hint: { ...typeScale.footnote, color: colors.muted },
   error: { color: colors.error },
   controls: { flexDirection: 'row', gap: 12 },
   adjust: { flex: 1, minHeight: 48, padding: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 14 },
-  adjustText: { fontSize: 17, fontWeight: '600', color: colors.text },
+  adjustText: { ...typeScale.headline, fontWeight: '600', color: colors.text },
   pressed: { opacity: 0.65 },
   done: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  doneText: { color: colors.accentText, fontSize: 16, fontWeight: '700' },
+  doneText: { ...typeScale.label, color: colors.accentText, fontWeight: '700' },
   keyboardBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  keyboardHint: { flex: 1, color: colors.muted, fontSize: 13, lineHeight: 18, paddingVertical: 8 },
+  keyboardHint: { ...typeScale.footnote, flex: 1, color: colors.muted, paddingVertical: 8 },
   keyboardDone: { minHeight: 44, minWidth: 64, alignItems: 'center', justifyContent: 'center' },
   // Reserve its space: removing Done on blur moved the +/- controls between
   // pointer-down and pointer-up, swallowing the first tap after typing.

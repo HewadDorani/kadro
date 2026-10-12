@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card, PrimaryButton, Screen } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { typeScale } from '@/constants/theme';
 
 export default function DataConsentScreen() {
   const { colors } = useTheme();
@@ -83,11 +84,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   statusIcon: { width: 58, height: 58, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   statusIconPaused: { backgroundColor: colors.attentionSoft },
   title: { color: colors.text, fontSize: 30, lineHeight: 36, fontWeight: '700', letterSpacing: -0.7 },
-  stateTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  copy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  stateTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
+  copy: { ...typeScale.footnote, color: colors.muted },
   card: { gap: 8 },
-  cardTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  cardText: { color: colors.muted, fontSize: 12, lineHeight: 19 },
-  hint: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: 'center' },
-  error: { color: colors.attentionText, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  cardTitle: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  cardText: { ...typeScale.footnote, color: colors.muted },
+  hint: { ...typeScale.footnote, color: colors.muted, textAlign: 'center' },
+  error: { ...typeScale.footnote, color: colors.attentionText, textAlign: 'center' },
 });

@@ -11,6 +11,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { explainTargets } from '@/services/personalization';
 import type { UserProfile } from '@/types/nutrition';
 import { formatNumber } from '@/utils/format';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 /** Long enough to watch the number settle, short enough not to be a wait. */
 export const BUILDING_MS = 3400;
@@ -149,7 +150,7 @@ export function PlanBuilder({ profile, showcase = false }: { profile: UserProfil
           </Svg>
         </Animated.View>
         <View style={styles.centre}>
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.value}>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} adjustsFontSizeToFit numberOfLines={1} style={styles.value}>
             {formatNumber(frame.value, locale)}
           </Text>
           <Text style={styles.unit}>{current?.unit === 'g' ? t.onboarding.proteinUnit : t.onboarding.kilocalories}</Text>
@@ -190,15 +191,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   ring: { width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' },
   spinner: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   centre: { alignItems: 'center', paddingHorizontal: 20 },
-  value: { color: colors.text, fontSize: 42, fontWeight: '700', letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
-  unit: { color: colors.muted, fontSize: 13, marginTop: -2 },
-  caption: { color: colors.text, fontSize: 15, fontWeight: '600', textAlign: 'center', minHeight: 44, lineHeight: 22, paddingHorizontal: 8 },
+  value: { color: colors.text, fontSize: 42, lineHeight: 47, fontWeight: '700', letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
+  unit: { ...typeScale.footnote, color: colors.muted, marginTop: -2 },
+  caption: { ...typeScale.callout, color: colors.text, fontWeight: '600', textAlign: 'center', minHeight: 44, paddingHorizontal: 8 },
   dots: { flexDirection: 'row', gap: 8 },
   showcase: { alignSelf: 'stretch', gap: 10, marginTop: 6, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 16 },
-  showcaseTitle: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  showcaseTitle: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
   showcaseRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   showcaseIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  showcaseText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '600' },
+  showcaseText: { ...typeScale.callout, flex: 1, color: colors.text, fontWeight: '600' },
   dot: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   dotDone: { backgroundColor: colors.accent },
   dotActive: { backgroundColor: colors.accentSoft },

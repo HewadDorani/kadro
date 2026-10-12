@@ -11,6 +11,7 @@ import { recipeTitle } from '@/services/recommendations';
 import { getRecipe } from '@/services/recipes';
 import { recipePortion } from '@/utils/mealSuggestions';
 import { formatNumber } from '@/utils/format';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 export default function RecipeScreen() {
   const { colors } = useTheme();
@@ -58,7 +59,7 @@ export default function RecipeScreen() {
 
       <Card style={styles.macroCard}>
         <View style={styles.macroRow}>
-          <Text style={styles.macroValue}>{formatNumber(recipe.nutrition.calories, locale)}</Text>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.macroValue}>{formatNumber(recipe.nutrition.calories, locale)}</Text>
           <Text style={styles.macroUnit}>kcal</Text>
         </View>
         <Text style={styles.macroDetail}>
@@ -106,25 +107,25 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   iconButtonSpacer: { width: 42, height: 42 },
-  topTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   heading: { gap: 6 },
-  missing: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  missing: { ...typeScale.subhead, color: colors.muted },
   macroCard: { gap: 4 },
   macroRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  macroValue: { color: colors.text, fontSize: 34, fontWeight: '700', letterSpacing: -1 },
-  macroUnit: { color: colors.muted, fontSize: 15, fontWeight: '600' },
-  macroDetail: { color: colors.muted, fontSize: 13 },
+  macroValue: { ...typeScale.display, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  macroUnit: { ...typeScale.callout, color: colors.muted, fontWeight: '600' },
+  macroDetail: { ...typeScale.footnote, color: colors.muted },
   section: { gap: 10 },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  sectionTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   listCard: { padding: 6 },
   ingredientRow: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, gap: 12 },
-  ingredientName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' },
-  ingredientState: { color: colors.muted, fontSize: 12, lineHeight: 17 },
-  ingredientAmount: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+  ingredientName: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
+  ingredientState: { ...typeScale.footnote, color: colors.muted },
+  ingredientAmount: { ...typeScale.subhead, color: colors.muted, fontWeight: '700', fontVariant: ['tabular-nums'] },
   divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 12 },
-  note: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+  note: { ...typeScale.caption, color: colors.muted },
   stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   stepNumber: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  stepNumberText: { color: colors.onAccent, fontSize: 12, fontWeight: '800' },
-  stepText: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 21, paddingTop: 3 },
+  stepNumberText: { ...typeScale.caption, color: colors.onAccent, fontWeight: '800' },
+  stepText: { ...typeScale.subhead, flex: 1, color: colors.text, paddingTop: 3 },
 });

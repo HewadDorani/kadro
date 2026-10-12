@@ -23,7 +23,7 @@ function fixture(ready = true, pending = true) {
   };
   const jsx = (type, props) => ({ type, props });
   const access = { ready, enrollmentPending: pending, async enroll(value) { enrolled.push(value); } };
-  const mocks = { react, 'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' }, 'react-native': { Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'KandroMark' }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ replace: path => navigated.push(path) }) }, '@/components/ui': { Screen: 'Screen', PrimaryButton: 'Button' }, '@/context/AccessContext': { useAccess: () => access }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }) }, '@/i18n/LanguageProvider': { useLanguage: () => ({ t: { access: { identityTitle: 'Access', preparing: 'Preparing', verify: 'Retry', identityContinue: 'Check', identitySkip: 'Skip', settingUp: 'Setting up' }, common: { moment: 'Busy' } } }) } };
+  const mocks = { react, 'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' }, 'react-native': { Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'KandroMark' }, '@/constants/theme': { typeScale: {} }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ replace: path => navigated.push(path) }) }, '@/components/ui': { Screen: 'Screen', PrimaryButton: 'Button' }, '@/context/AccessContext': { useAccess: () => access }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }) }, '@/i18n/LanguageProvider': { useLanguage: () => ({ t: { access: { identityTitle: 'Access', preparing: 'Preparing', verify: 'Retry', identityContinue: 'Check', identitySkip: 'Skip', settingUp: 'Setting up' }, common: { moment: 'Busy' } } }) } };
   const compiled = ts.transpileModule(read('src/app/access-setup.tsx'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
   const module = { exports: {} }; new Function('require', 'module', 'exports', compiled)(name => { assert.ok(name in mocks, name); return mocks[name]; }, module, module.exports);
   return { enrolled, navigated, effects, render() { cursor = 0; effects.length = 0; return module.exports.default(); } };
@@ -75,7 +75,7 @@ function guardFixture(state) {
   };
   const jsx = (type, props) => ({ type, props });
   const Guard = compileModule('src/components/AppRouteGuard.tsx', {
-    react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
+    react, 'react/jsx-runtime': { jsx, jsxs: jsx }, '@/constants/theme': { typeScale: {} }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
     'expo-apple-authentication': { isAvailableAsync: async () => false },
     'expo-router': { usePathname: () => state.path, useSegments: () => [state.path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
     '@/components/KandroMark': { KandroMark: 'Brand' }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },

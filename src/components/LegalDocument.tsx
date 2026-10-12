@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/ui';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import type { LegalCopy } from '@/i18n/legal.de';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 
 export function LegalDocument({ document, version }: { document: LegalCopy; version: string }) {
   const { colors } = useTheme();
@@ -42,12 +42,12 @@ export function LegalDocument({ document, version }: { document: LegalCopy; vers
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   heading: { gap: 9 },
   title: { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.8 },
-  version: { color: colors.muted, fontSize: 12 },
-  intro: { color: colors.text, fontSize: 15, lineHeight: 23, marginTop: 5 },
+  version: { ...typeScale.caption, color: colors.muted },
+  intro: { ...typeScale.callout, color: colors.text, marginTop: 5 },
   section: { borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 20, gap: 10 },
   sectionTitle: { color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '700' },
-  paragraph: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  paragraph: { ...typeScale.footnote, color: colors.muted },
 });

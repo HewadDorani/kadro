@@ -10,8 +10,8 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AccountLinkCard } from '@/components/AccountLinkCard';
-import { Card, Eyebrow, PageTitle, PressableScale, Screen, SectionTitle } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { Card, Eyebrow, ListDivider, PageTitle, PressableScale, Screen, SectionTitle, SettingsRow } from '@/components/ui';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { lastMealSavedAt } from '@/services/consistency';
@@ -126,7 +126,7 @@ export default function ProfileScreen() {
               : weeklyRateLabel(effectiveGoal(profile), profile.weeklyRateKg, t.common, profile.unitSystem)} />
             <PlanStat label={t.profile.activity} value={activityLabel(profile.activityLevel, t.common)} />
           </View>
-          <View style={styles.divider} />
+          <ListDivider />
           {/*
             A goal is not a one-time decision: people finish losing weight and
             move on to building muscle, and their weight and activity change
@@ -158,20 +158,22 @@ export default function ProfileScreen() {
           </Card>
         ) : null}
         <WidgetPreferences />
-        <MenuRow icon="sparkles-outline" label={t.profile.openEvening} onPress={() => router.push('/evening')} />
+        <Card style={styles.listCard}>
+          <MenuRow icon="sparkles-outline" label={t.profile.openEvening} onPress={() => router.push('/evening')} />
+        </Card>
       </View>
 
       <View style={styles.section}>
         <SectionTitle>{t.profile.privacySettings}</SectionTitle>
         <Card style={styles.listCard}>
           <MenuRow icon="shield-checkmark-outline" label={t.profile.dataConsent} onPress={() => router.push('/data-consent' as never)} />
-          <View style={styles.divider} />
+          <ListDivider />
           <InfoRow
             detail={t.profile.photoHandlingDetail}
             icon="image-outline"
             label={t.profile.photoHandling}
           />
-          <View style={styles.divider} />
+          <ListDivider />
           <ToggleRow
             detail={isMinor
               ? t.profile.analyticsMinor
@@ -190,13 +192,7 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <SectionTitle>{t.profile.units}</SectionTitle>
         <Card style={styles.listCard}>
-          <View style={styles.toggleRow}>
-            <View style={styles.rowIcon}><Ionicons color={colors.text} name="swap-horizontal-outline" size={20} /></View>
-            <View style={styles.rowCopy}>
-              <Text style={styles.rowLabel}>{t.profile.units}</Text>
-              <Text style={styles.rowDetail}>{t.profile.unitsDetail}</Text>
-            </View>
-          </View>
+          <SettingsRow detail={t.profile.unitsDetail} icon="swap-horizontal-outline" label={t.profile.units} />
           <View style={styles.languageChoice}>
             {UNIT_SYSTEMS.map((system) => {
               const active = system === profile.unitSystem;
@@ -218,7 +214,7 @@ export default function ProfileScreen() {
               );
             })}
           </View>
-          <View style={styles.divider} />
+          <ListDivider />
           <MenuRow
             detail={`${formatHeight(profile.heightCm, profile.unitSystem)} · ${formatWeight(profile.weightKg, profile.unitSystem, locale)}`}
             icon="body-outline"
@@ -231,13 +227,7 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <SectionTitle>{t.profile.language}</SectionTitle>
         <Card style={styles.listCard}>
-          <View style={styles.toggleRow}>
-            <View style={styles.rowIcon}><Ionicons color={colors.text} name="language-outline" size={20} /></View>
-            <View style={styles.rowCopy}>
-              <Text style={styles.rowLabel}>{t.profile.language}</Text>
-              <Text style={styles.rowDetail}>{t.profile.languageDetail}</Text>
-            </View>
-          </View>
+          <SettingsRow detail={t.profile.languageDetail} icon="language-outline" label={t.profile.language} />
           <View style={styles.languageChoice}>
             {LANGUAGE_OPTIONS.map((option) => {
               const active = option.value === language;
@@ -259,8 +249,8 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <SectionTitle>{t.profile.appearance}</SectionTitle>
-        <Card>
-          <Text style={[styles.rowDetail, { padding: 16 }]}>{t.profile.appearanceDetail}</Text>
+        <Card style={styles.listCard}>
+          <SettingsRow detail={t.profile.appearanceDetail} icon="contrast-outline" label={t.profile.appearance} />
           <View style={styles.languageChoice}>
             {(['system', 'light', 'dark'] as const).map((choice) => <Pressable key={choice} aria-checked={themePreference === choice} accessibilityLabel={t.profile[choice]} accessibilityRole="radio" accessibilityState={{ checked: themePreference === choice }} onPress={() => setThemePreference(choice)} style={[styles.languageOption, themePreference === choice && styles.languageOptionActive]}>
               <Text numberOfLines={1} style={[styles.languageLabel, themePreference === choice && styles.languageLabelActive]}>{t.profile[choice]}</Text>
@@ -273,19 +263,20 @@ export default function ProfileScreen() {
         <SectionTitle>{t.profile.support}</SectionTitle>
         <Card style={styles.listCard}>
           <MenuRow icon="compass-outline" label={t.profile.appTour} onPress={() => router.push({ pathname: '/(tabs)/today', params: { tour: '1' } })} />
+          <ListDivider />
           <MenuRow icon="shield-checkmark-outline" label={t.profile.privacy} onPress={() => router.push('/privacy')} />
-          <View style={styles.divider} />
+          <ListDivider />
           <MenuRow icon="document-text-outline" label={t.profile.terms} onPress={() => router.push('/terms')} />
-          <View style={styles.divider} />
+          <ListDivider />
           <MenuRow icon="library-outline" label={t.profile.sources} onPress={() => router.push('/sources')} />
-          <View style={styles.divider} />
+          <ListDivider />
           <MenuRow
             detail={t.profile.eatingHelpDetail}
             icon="heart-outline"
             label={t.profile.eatingHelp}
             onPress={() => void Linking.openURL(EATING_DISORDER_HELP[language]).catch(() => undefined)}
           />
-          <View style={styles.divider} />
+          <ListDivider />
           <MenuRow icon="trash-outline" label={t.profile.deleteAccount} onPress={() => router.push('/account-deletion')} />
         </Card>
       </View>
@@ -312,100 +303,74 @@ function PlanStat({ label, value }: { label: string; value: string }) {
 }
 
 function ToggleRow({ detail, disabled, icon, label, onValueChange, value }: { detail: string; disabled?: boolean; icon: keyof typeof Ionicons.glyphMap; label: string; onValueChange: (value: boolean) => void; value: boolean }) {
-  const { colors, mode: themeMode } = useTheme();
-  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   return (
-    <View style={[styles.toggleRow, disabled && styles.disabledRow]}>
-      <View style={styles.rowIcon}><Ionicons color={colors.text} name={icon} size={20} /></View>
-      <View style={styles.rowCopy}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowDetail}>{detail}</Text>
-      </View>
-      {/*
-        Without a label VoiceOver announces only "switch, off": the row's
-        text sits in a sibling view and is not read as part of the control.
-      */}
-      <Switch
-        accessibilityHint={detail}
-        accessibilityLabel={label}
-        disabled={disabled}
-        ios_backgroundColor={colors.border}
-        onValueChange={onValueChange}
-        thumbColor={colors.surface}
-        trackColor={{ false: colors.border, true: colors.accentText }}
-        value={value}
-      />
-    </View>
+    <SettingsRow
+      accessory={
+        /*
+          Without a label VoiceOver announces only "switch, off": the row's
+          text sits in a sibling view and is not read as part of the control.
+        */
+        <Switch
+          accessibilityHint={detail}
+          accessibilityLabel={label}
+          disabled={disabled}
+          ios_backgroundColor={colors.border}
+          onValueChange={onValueChange}
+          thumbColor={colors.surface}
+          trackColor={{ false: colors.border, true: colors.accentText }}
+          value={value}
+        />
+      }
+      detail={detail}
+      disabled={disabled}
+      icon={icon}
+      label={label}
+    />
   );
 }
 
 function InfoRow({ detail, icon, label }: { detail: string; icon: keyof typeof Ionicons.glyphMap; label: string }) {
-  const { colors, mode: themeMode } = useTheme();
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.toggleRow}>
-      <View style={styles.rowIcon}><Ionicons color={colors.text} name={icon} size={20} /></View>
-      <View style={styles.rowCopy}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowDetail}>{detail}</Text>
-      </View>
-    </View>
-  );
+  return <SettingsRow detail={detail} icon={icon} label={label} />;
 }
 
 function MenuRow({ detail, icon, label, onPress }: { detail?: string; icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
-  const { colors, mode: themeMode } = useTheme();
-  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   return (
-    <PressableScale accessibilityRole="button" onPress={onPress} style={styles.menuRow}>
-      <View style={styles.rowIcon}><Ionicons color={colors.text} name={icon} size={20} /></View>
-      <View style={styles.menuCopy}>
-        <Text style={styles.menuLabel}>{label}</Text>
-        {detail ? <Text style={styles.menuDetail}>{detail}</Text> : null}
-      </View>
-      <Ionicons color={colors.muted} name="chevron-forward" size={18} />
+    <PressableScale accessibilityRole="button" onPress={onPress}>
+      <SettingsRow accessory={<Ionicons color={colors.muted} name="chevron-forward" size={18} />} detail={detail} icon={icon} label={label} />
     </PressableScale>
   );
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  menuCopy: { flex: 1, gap: 2 },
-  menuDetail: { color: colors.muted, fontSize: 12 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.surface, fontSize: 20, fontWeight: '800' },
-  headerCopy: { flex: 1, gap: 3 },
-  subtitle: { color: colors.muted, fontSize: 13 },
+  avatarText: { ...typeScale.title2, color: colors.surface, fontWeight: '800' },
+  headerCopy: { flex: 1, gap: 4 },
+  subtitle: { ...typeScale.subhead, color: colors.muted },
   proCard: { backgroundColor: colors.surface, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  proIcon: { width: 46, height: 46, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  proCopy: { flex: 1, gap: 4 },
-  proTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  proText: { color: colors.text, opacity: 0.7, fontSize: 12, lineHeight: 16 },
-  tryPill: { backgroundColor: colors.text, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 6 },
-  tryText: { color: colors.surface, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
-  section: { gap: 13 },
+  proIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  proCopy: { flex: 1, gap: 2 },
+  proTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
+  proText: { ...typeScale.footnote, color: colors.muted },
+  tryPill: { backgroundColor: colors.text, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 6 },
+  tryText: { ...typeScale.caption, color: colors.surface, fontWeight: '700' },
+  // Section headers sit 32 pt below the previous block (20 pt screen gap + 12) and 12 pt above their card.
+  section: { gap: 12, marginTop: 12 },
   planCard: { padding: 8 },
   planGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  planStat: { width: '50%', padding: 14, gap: 4 },
-  planStatLabel: { color: colors.muted, fontSize: 12 },
-  planStatValue: { color: colors.text, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  planStat: { width: '50%', paddingHorizontal: 12, paddingVertical: 12, gap: 2 },
+  planStatLabel: { ...typeScale.footnote, color: colors.muted },
+  planStatValue: { ...typeScale.headline, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   listCard: { padding: 8 },
-  toggleRow: { minHeight: 78, padding: 9, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  disabledRow: { opacity: 0.55 },
-  languageChoice: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 16 },
-  languageOption: { minHeight: 44, flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  languageChoice: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12 },
+  languageOption: { minHeight: 44, flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 10, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   languageOptionActive: { borderColor: colors.text, backgroundColor: colors.text },
-  languageLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  languageLabel: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   languageLabelActive: { color: colors.surface },
-  menuRow: { minHeight: 58, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  rowIcon: { width: 40, height: 40, borderRadius: 15, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-  rowCopy: { flex: 1, gap: 3 },
-  rowLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  rowDetail: { color: colors.muted, fontSize: 12, lineHeight: 16 },
-  inlineError: { color: colors.attentionText, fontSize: 12, paddingHorizontal: 9, paddingBottom: 9 },
-  menuLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: colors.border, marginLeft: 60 },
-  wellnessNote: { flexDirection: 'row', gap: 9, paddingHorizontal: 8 },
-  wellnessText: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 17 },
-  version: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  inlineError: { ...typeScale.footnote, color: colors.attentionText, paddingHorizontal: 12, paddingBottom: 12, marginLeft: 48 },
+  wellnessNote: { flexDirection: 'row', gap: 8, paddingHorizontal: 4, marginTop: 12 },
+  wellnessText: { ...typeScale.footnote, flex: 1, color: colors.muted },
+  version: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
 });

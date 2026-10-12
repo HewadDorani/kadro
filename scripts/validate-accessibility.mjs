@@ -6,6 +6,7 @@
  * view and is not read as part of the control. App Review checks this.
  */
 import assert from 'node:assert/strict';
+import ts from 'typescript';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -93,10 +94,26 @@ for (const file of files) {
 // Captions at 9-11 pt were unreadable over the camera and on the paywall.
 const FONT_FLOOR = 12;
 const themeSource = await readFile(resolve(projectRoot, 'src/constants/theme.ts'), 'utf8');
-const typeScale = Object.fromEntries([...themeSource.match(/export const typeScale = \{([^}]*)\}/)[1].matchAll(/(\w+): (\d+(?:\.\d+)?)/g)]
-  .map(([, name, value]) => [name, Number(value)]));
-for (const [name, size] of Object.entries(typeScale)) {
-  if (size < FONT_FLOOR) failures.push(`typeScale.${name} is ${size} pt, below the ${FONT_FLOOR} pt floor`);
+const typeScaleBody = themeSource.match(/export const typeScale = \{([\s\S]*?)\n\} as const/)?.[1] ?? '';
+const typeScale = Object.fromEntries([...typeScaleBody.matchAll(/^\s*(\w+): \{([^}]*)\}/gm)].map(([, name, body]) => [name, {
+  fontSize: Number(body.match(/fontSize: (\d+(?:\.\d+)?)/)?.[1]),
+  lineHeight: Number(body.match(/lineHeight: (\d+(?:\.\d+)?)/)?.[1]),
+  letterSpacing: body.match(/letterSpacing: (-?\d+(?:\.\d+)?)/)?.[1],
+}]));
+assert.ok(Object.keys(typeScale).length >= 10, 'theme.ts defines the typeScale text styles');
+for (const [name, token] of Object.entries(typeScale)) {
+  if (!(token.fontSize >= FONT_FLOOR)) failures.push(`typeScale.${name} is ${token.fontSize} pt, below the ${FONT_FLOOR} pt floor`);
+  // A token without a line box is how paragraphs ended up cramped: every step
+  // carries its own lineHeight, 1.15-1.25x for headings and 1.3-1.45x for text.
+  const ratio = token.lineHeight / token.fontSize;
+  if (!(ratio >= 1.15 && ratio <= 1.5)) failures.push(`typeScale.${name} needs an explicit lineHeight of 1.15-1.5x its size (has ${token.lineHeight})`);
+  if (token.letterSpacing === undefined) failures.push(`typeScale.${name} needs an explicit letterSpacing`);
+}
+for (const name of ['display', 'title1', 'title2', 'headline', 'body', 'callout', 'subhead', 'footnote', 'caption', 'eyebrow']) {
+  if (!typeScale[name]) failures.push(`typeScale.${name} is missing`);
+}
+for (const name of ['display', 'title1', 'title2']) {
+  if (typeScale[name] && !(Number(typeScale[name].letterSpacing) < 0)) failures.push(`typeScale.${name} headings track slightly tighter (negative letterSpacing)`);
 }
 const sourceFiles = await walk(resolve(projectRoot, 'src'), ['.ts', '.tsx']);
 for (const file of sourceFiles) {
@@ -104,7 +121,7 @@ for (const file of sourceFiles) {
   const label = relative(projectRoot, file);
   for (const match of source.matchAll(/fontSize\s*(?::|=)\s*\{?\s*["']?(\d+(?:\.\d+)?|typeScale\.\w+)/g)) {
     const raw = match[1];
-    const size = raw.startsWith('typeScale.') ? typeScale[raw.slice('typeScale.'.length)] : Number(raw);
+    const size = raw.startsWith('typeScale.') ? typeScale[raw.slice('typeScale.'.length)]?.fontSize : Number(raw);
     if (!(size >= FONT_FLOOR)) {
       failures.push(`${label}:${source.slice(0, match.index).split('\n').length} fontSize ${raw} is below the ${FONT_FLOOR} pt floor`);
     }
@@ -117,8 +134,55 @@ for (const file of sourceFiles) {
   }
 }
 
+// Line boxes: every text style that sets a fontSize also sets a lineHeight, or
+// takes both from a typeScale step. Without one, multi-line copy sat on the
+// font's default line box and read as squeezed on a real iPhone. Styles that
+// belong to a TextInput are exempt: iOS misplaces single-line input text when
+// a lineHeight is set.
+let textStyles = 0;
+for (const file of sourceFiles.filter((path) => path.endsWith('.tsx'))) {
+  const source = await readFile(file, 'utf8');
+  const label = relative(projectRoot, file);
+  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const inputStyleNames = new Set();
+  const inputObjects = new Set();
+  const collectInputs = (node) => {
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && /TextInput$/.test(node.tagName.getText(sf))) {
+      for (const attribute of node.attributes.properties) {
+        if (!ts.isJsxAttribute(attribute) || attribute.name.getText(sf) !== 'style' || !attribute.initializer) continue;
+        const walkStyle = (child) => {
+          if (ts.isPropertyAccessExpression(child) && child.expression.getText(sf) === 'styles') inputStyleNames.add(child.name.text);
+          if (ts.isObjectLiteralExpression(child)) inputObjects.add(child.pos);
+          ts.forEachChild(child, walkStyle);
+        };
+        walkStyle(attribute.initializer);
+      }
+    }
+    ts.forEachChild(node, collectInputs);
+  };
+  collectInputs(sf);
+  const check = (node) => {
+    if (ts.isObjectLiteralExpression(node)) {
+      const names = node.properties.map((property) => property.name?.getText(sf));
+      const tokens = node.properties.filter(ts.isSpreadAssignment).map((spread) => spread.expression.getText(sf)).filter((text) => text.startsWith('typeScale.'));
+      for (const token of tokens) {
+        if (!typeScale[token.slice('typeScale.'.length)]) failures.push(`${label}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1} ${token} is not a typeScale step`);
+      }
+      if (names.includes('fontSize') || tokens.length) textStyles += 1;
+      const key = ts.isPropertyAssignment(node.parent) ? node.parent.name.getText(sf) : null;
+      const input = (key && inputStyleNames.has(key)) || inputObjects.has(node.pos);
+      if (names.includes('fontSize') && !names.includes('lineHeight') && !tokens.length && !input) {
+        failures.push(`${label}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1} ${key ?? 'inline style'} sets fontSize without a lineHeight; spread a typeScale step`);
+      }
+    }
+    ts.forEachChild(node, check);
+  };
+  check(sf);
+}
+assert.ok(textStyles > 300, `expected the app's text styles to be found (saw ${textStyles})`);
+
 if (failures.length) {
   throw new Error(`Accessibility validation failed:\n- ${failures.join('\n- ')}`);
 }
 
-console.log(`Validated ${files.length} screens: controls announce labels, every radio exposes its checked state, no text is below ${FONT_FLOOR} pt and amber text meets contrast.`);
+console.log(`Validated ${files.length} screens: controls announce labels, every radio exposes its checked state, no text is below ${FONT_FLOOR} pt, ${textStyles} text styles carry a line height and amber text meets contrast.`);

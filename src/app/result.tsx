@@ -10,7 +10,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { mealPhotoPlaceholder } from '@/utils/format';
 import { Card, ConfidenceBadge, Eyebrow, MealPhoto, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
-import { radii } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { projectMealForDay } from '@/services/mockNutrition';
@@ -222,12 +222,12 @@ export default function ResultScreen() {
         ) : <View style={styles.iconSpacer} />}
       </View>
 
-      {saveStatus === 'failed' ? <Card>
-        <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{t.result.saveFailed}</Text>
+      {saveStatus === 'failed' ? <Card style={{ gap: 12 }}>
+        <Text accessibilityRole="alert" style={{ ...typeScale.subhead, color: colors.attentionText }}>{t.result.saveFailed}</Text>
         <PrimaryButton label={t.result.retrySave} onPress={() => void saveCurrentMeal()} />
       </Card> : null}
-      {demo ? <Text accessibilityLiveRegion="polite" style={{ color: colors.muted }}>{t.result.demoNotSaved}</Text>
-        : saveStatus === 'saving' ? <Text accessibilityLiveRegion="polite" style={{ color: colors.muted }}>{t.common.saving}</Text> : null}
+      {demo ? <Text accessibilityLiveRegion="polite" style={{ ...typeScale.footnote, color: colors.muted }}>{t.result.demoNotSaved}</Text>
+        : saveStatus === 'saving' ? <Text accessibilityLiveRegion="polite" style={{ ...typeScale.footnote, color: colors.muted }}>{t.common.saving}</Text> : null}
 
       {/* A photo is worth showing; a typed sentence is already the title below. */}
       {photoUri ? <MealPhoto height={270} placeholder={mealPhotoPlaceholder(scanMode)} uri={photoUri} /> : null}
@@ -241,7 +241,7 @@ export default function ResultScreen() {
           <Animated.View style={[styles.calorieBlock, { width: calorieSize, height: calorieSize, transform: [{ scale: ringSettle.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
             <ImpactRing size={calorieSize} total={scannedMeal.calories} value={displayedCalories} />
             <View style={styles.calorieCenter}>
-              <Text style={styles.calories}>~{formatNumber(displayedCalories, locale)}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.calories}>~{formatNumber(displayedCalories, locale)}</Text>
               <Text style={styles.calorieLabel}>{t.result.estimated}</Text>
             </View>
           </Animated.View>
@@ -290,12 +290,12 @@ export default function ResultScreen() {
         </View>
         <View style={styles.remainingRow}>
           <View>
-            <Text style={styles.remainingValue}>{formatNumber(overBudget ? overBy : displayedRemaining, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.remainingValue}>{formatNumber(overBudget ? overBy : displayedRemaining, locale)}</Text>
             <Text style={styles.remainingLabel}>{overBudget ? t.ring.over : t.ring.left}</Text>
           </View>
           <View style={styles.remainingDivider} />
           <View>
-            <Text style={styles.remainingValue}>{projected.protein} g</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.remainingValue}>{projected.protein} g</Text>
             <Text style={styles.remainingLabel}>{t.result.proteinLeft}</Text>
           </View>
         </View>
@@ -404,57 +404,57 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   iconSpacer: { width: 44, height: 44 },
-  topTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   resultHeading: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleRowLarge: { flexDirection: 'column' },
   mealCopy: { flex: 1, gap: 10 },
   mealCopyLarge: { flex: 0, width: '100%' },
-  mealTitle: { color: colors.text, fontSize: 29, lineHeight: 34, fontWeight: '700', letterSpacing: -0.8 },
-  mealTitleLong: { fontSize: 22, lineHeight: 27, letterSpacing: -0.4 },
+  mealTitle: { ...typeScale.title1, color: colors.text, fontWeight: '700' },
+  mealTitleLong: { ...typeScale.title2 },
   calorieBlock: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
   impactRing: { position: 'absolute', top: 0, left: 0 },
   calorieCenter: { maxWidth: '100%', alignItems: 'center' },
   calories: { color: colors.text, fontSize: 25, lineHeight: 30, fontWeight: '700', letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  calorieLabel: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  calorieLabel: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
   macros: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, paddingVertical: 15 },
   macroResult: { flex: 1, alignItems: 'center', gap: 4 },
-  macroValue: { color: colors.text, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  macroUnit: { fontSize: 12, fontWeight: '600' },
-  macroLabel: { color: colors.muted, fontSize: 12 },
+  macroValue: { ...typeScale.headline, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  macroUnit: { ...typeScale.caption, fontWeight: '600' },
+  macroLabel: { ...typeScale.caption, color: colors.muted },
   section: { gap: 13 },
-  edit: { color: colors.accentText, fontSize: 13, fontWeight: '700' },
+  edit: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
   ingredientsCard: { padding: 8 },
   ingredientRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 10 },
   ingredientCheck: { width: 28, height: 28, borderRadius: 10, backgroundColor: colors.successSoft, alignItems: 'center', justifyContent: 'center' },
-  ingredientName: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '600' },
+  ingredientName: { ...typeScale.footnote, flex: 1, color: colors.text, fontWeight: '600' },
   ingredientMeta: { alignItems: 'flex-end', gap: 2 },
-  ingredientAmount: { color: colors.muted, fontSize: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  ingredientSource: { color: colors.muted, fontSize: 12 },
+  ingredientAmount: { ...typeScale.caption, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  ingredientSource: { ...typeScale.caption, color: colors.muted },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 46 },
   dayCard: { backgroundColor: colors.camera, borderColor: colors.camera, gap: 19 },
   dayHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   dayIcon: { width: 44, height: 44, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   dayHeading: { flex: 1, gap: 4 },
-  onTrack: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  onTrack: { color: colors.white, fontSize: 18, lineHeight: 22, fontWeight: '700' },
   remainingRow: { flexDirection: 'row', alignItems: 'center' },
-  remainingValue: { color: colors.white, fontSize: 25, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  remainingLabel: { color: 'rgba(255,255,255,0.54)', fontSize: 12, marginTop: 3 },
+  remainingValue: { color: colors.white, fontSize: 25, lineHeight: 31, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  remainingLabel: { ...typeScale.caption, color: 'rgba(255,255,255,0.54)', marginTop: 3 },
   remainingDivider: { width: 1, height: 42, backgroundColor: 'rgba(255,255,255,0.13)', marginHorizontal: 28 },
   nextCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 18 },
   nextTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   nextBadge: { width: 44, height: 44, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   nextCopy: { flex: 1, gap: 4 },
-  nextTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  nextTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   aimRow: { flexDirection: 'row' },
   aimBlock: { flex: 1, gap: 4 },
-  aimValue: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  aimLabel: { color: colors.muted, fontSize: 12 },
+  aimValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  aimLabel: { ...typeScale.caption, color: colors.muted },
   reminderCard: { gap: 12 },
   reminderTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   reminderIcon: { width: 42, height: 42, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   reminderCopy: { flex: 1, minWidth: 0, gap: 3 },
-  reminderTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  reminderText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  estimateNote: { color: colors.muted, fontSize: 12, lineHeight: 16, textAlign: 'center', paddingHorizontal: 18 },
+  reminderTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
+  reminderText: { ...typeScale.footnote, color: colors.muted },
+  estimateNote: { ...typeScale.caption, color: colors.muted, textAlign: 'center', paddingHorizontal: 18 },
 });
