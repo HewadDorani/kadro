@@ -2,5 +2,6 @@
   "CFBundleDisplayName": "Kandro",
   "NSCameraUsageDescription": "Kandro nutzt die Kamera, um deine Mahlzeit zu fotografieren und daraus Nährwerte zu schätzen. Das Originalfoto wird nach der Analyse verworfen und nicht gespeichert.",
   "NSPhotoLibraryUsageDescription": "Kandro nutzt das von dir ausgewählte Mahlzeitenfoto, um dessen Nährwerte zu schätzen.",
-  "NSMicrophoneUsageDescription": "Kandro nutzt das Mikrofon nur, während du deine Mahlzeit einsprichst. Es wird keine Aufnahme gespeichert."
+  "NSMicrophoneUsageDescription": "Kandro nutzt das Mikrofon nur, während du deine Mahlzeit einsprichst. Es wird keine Aufnahme gespeichert.",
+  "NSSpeechRecognitionUsageDescription": "Kandro wandelt deine gesprochene Mahlzeit mit Apples Spracherkennung in Text um. Es wird keine Aufnahme gespeichert."
 }

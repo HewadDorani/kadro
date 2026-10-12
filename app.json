@@ -28,6 +28,7 @@
         "NSCameraUsageDescription": "Kandro uses the camera to photograph your meal and estimate nutrition. The original photo is discarded after analysis and is not stored.",
         "NSPhotoLibraryUsageDescription": "Kandro uses the meal photo you choose to estimate its nutrition.",
         "NSMicrophoneUsageDescription": "Kandro uses the microphone only while you dictate a meal. Audio is not stored.",
+        "NSSpeechRecognitionUsageDescription": "Kandro turns your spoken meal into text with Apple speech recognition. No recording is stored.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false
         },
@@ -71,7 +72,7 @@
         "expo-speech-recognition",
         {
           "microphonePermission": "Kandro uses the microphone only while you dictate a meal. Audio is not stored.",
-          "speechRecognitionPermission": "Kandro wandelt deine gesprochene Mahlzeit mit Apples Spracherkennung in Text um. Es wird keine Aufnahme gespeichert.",
+          "speechRecognitionPermission": "Kandro turns your spoken meal into text with Apple speech recognition. No recording is stored.",
           "androidSpeechServicePackages": [
             "com.google.android.googlequicksearchbox"
           ]

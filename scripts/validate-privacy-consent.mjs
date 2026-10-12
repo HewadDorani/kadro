@@ -321,7 +321,7 @@ await compileModsAsync(nativeConfig.exp, {
 });
 const generatedPlist = nativeConfig.exp._internal?.modResults?.ios?.infoPlist;
 assert.ok(generatedPlist, 'Expo must execute the iOS InfoPlist mods');
-for (const key of ['NSPhotoLibraryUsageDescription', 'NSMicrophoneUsageDescription']) {
+for (const key of ['NSPhotoLibraryUsageDescription', 'NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDescription']) {
   assert.ok(typeof generatedPlist[key] === 'string' && generatedPlist[key].trim().length > 15,
     `${key} must survive the generated native plugin chain (Build 36 / ITMS-90683)`);
   assert.equal(generatedPlist[key], appJson.expo.ios.infoPlist[key], `${key}: native and declared purposes must agree`);
