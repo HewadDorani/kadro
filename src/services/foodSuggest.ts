@@ -65,6 +65,8 @@ const RAW_ALIASES: Record<string, readonly string[]> = {
   kase: ['M402500', 'M304600', 'M032100'], cheese: ['M402500', 'M304600', 'M032100'], gouda: ['M402500'],
   hahnchen: ['V416172', 'V416100'], hanchen: ['V416172', 'V416100'], huhn: ['V416172'], chicken: ['V416172', 'V416100'], hahnchenbrust: ['V416172', 'V416100'],
   hack: ['U010100'], hackfleisch: ['U010100'], schinken: ['W424000'], ham: ['W424000'], salami: ['W140000'],
+  brezel: ['B723000', 'X061410'], breze: ['B723000', 'X061410'], brezn: ['B723000', 'X061410'], laugenbrezel: ['B723000', 'X061410'], pretzel: ['B723000', 'X061410'], butterbrezel: ['X061410'],
+  wurst: ['W211200', 'W222172', 'W231100'], wurstchen: ['W211200'], wiener: ['W211200'], bratwurst: ['W222172', 'Y021312'], sausage: ['W211200', 'W222172'],
   wasser: ['N110000'], water: ['N110000'], tee: ['N630000', 'N610100'], tea: ['N630000', 'N610100'], kaffee: ['N410100'], coffee: ['N410100'],
   bier: ['P163000'], beer: ['P163000'], saft: ['F603600', 'F110600'], juice: ['F603600', 'F110600'],
   joghurt: ['M141300', 'M141200'], jogurt: ['M141300', 'M141200'], yogurt: ['M141300', 'M141200'], yoghurt: ['M141300', 'M141200'],
