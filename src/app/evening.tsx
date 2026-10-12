@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Eyebrow, PrimaryButton, Screen } from '@/components/ui';
-import { radii, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import {
   enableEveningCheckIn,
@@ -96,12 +96,12 @@ export default function EveningScreen() {
 
         <View style={styles.numbersRow}>
           <View style={styles.numberBlock}>
-            <Text style={styles.number}>{formatNumber(consumed.calories, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.number}>{formatNumber(consumed.calories, locale)}</Text>
             <Text style={styles.numberLabel}>{t.evening.eatenLabel}</Text>
           </View>
           <View style={styles.numberDivider} />
           <View style={styles.numberBlock}>
-            <Text style={styles.number}>{consumed.protein} g</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.number}>{consumed.protein} g</Text>
             <Text style={styles.numberLabel}>{t.evening.proteinShare(proteinShare)}</Text>
           </View>
         </View>

@@ -10,7 +10,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { mealPhotoPlaceholder } from '@/utils/format';
 import { Card, ConfidenceBadge, Eyebrow, MealPhoto, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
-import { radii, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { projectMealForDay } from '@/services/mockNutrition';
@@ -222,12 +222,12 @@ export default function ResultScreen() {
         ) : <View style={styles.iconSpacer} />}
       </View>
 
-      {saveStatus === 'failed' ? <Card>
-        <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{t.result.saveFailed}</Text>
+      {saveStatus === 'failed' ? <Card style={{ gap: 12 }}>
+        <Text accessibilityRole="alert" style={{ ...typeScale.subhead, color: colors.attentionText }}>{t.result.saveFailed}</Text>
         <PrimaryButton label={t.result.retrySave} onPress={() => void saveCurrentMeal()} />
       </Card> : null}
-      {demo ? <Text accessibilityLiveRegion="polite" style={{ color: colors.muted }}>{t.result.demoNotSaved}</Text>
-        : saveStatus === 'saving' ? <Text accessibilityLiveRegion="polite" style={{ color: colors.muted }}>{t.common.saving}</Text> : null}
+      {demo ? <Text accessibilityLiveRegion="polite" style={{ ...typeScale.footnote, color: colors.muted }}>{t.result.demoNotSaved}</Text>
+        : saveStatus === 'saving' ? <Text accessibilityLiveRegion="polite" style={{ ...typeScale.footnote, color: colors.muted }}>{t.common.saving}</Text> : null}
 
       {/* A photo is worth showing; a typed sentence is already the title below. */}
       {photoUri ? <MealPhoto height={270} placeholder={mealPhotoPlaceholder(scanMode)} uri={photoUri} /> : null}
@@ -241,7 +241,7 @@ export default function ResultScreen() {
           <Animated.View style={[styles.calorieBlock, { width: calorieSize, height: calorieSize, transform: [{ scale: ringSettle.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) }] }]}>
             <ImpactRing size={calorieSize} total={scannedMeal.calories} value={displayedCalories} />
             <View style={styles.calorieCenter}>
-              <Text style={styles.calories}>~{formatNumber(displayedCalories, locale)}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.calories}>~{formatNumber(displayedCalories, locale)}</Text>
               <Text style={styles.calorieLabel}>{t.result.estimated}</Text>
             </View>
           </Animated.View>
@@ -290,12 +290,12 @@ export default function ResultScreen() {
         </View>
         <View style={styles.remainingRow}>
           <View>
-            <Text style={styles.remainingValue}>{formatNumber(overBudget ? overBy : displayedRemaining, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.remainingValue}>{formatNumber(overBudget ? overBy : displayedRemaining, locale)}</Text>
             <Text style={styles.remainingLabel}>{overBudget ? t.ring.over : t.ring.left}</Text>
           </View>
           <View style={styles.remainingDivider} />
           <View>
-            <Text style={styles.remainingValue}>{projected.protein} g</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.remainingValue}>{projected.protein} g</Text>
             <Text style={styles.remainingLabel}>{t.result.proteinLeft}</Text>
           </View>
         </View>
@@ -448,7 +448,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   nextTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   aimRow: { flexDirection: 'row' },
   aimBlock: { flex: 1, gap: 4 },
-  aimValue: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  aimValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   aimLabel: { ...typeScale.caption, color: colors.muted },
   reminderCard: { gap: 12 },
   reminderTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },

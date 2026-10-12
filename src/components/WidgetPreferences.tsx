@@ -18,7 +18,7 @@ export function WidgetPreferences() {
   const footnote = { ...typeScale.footnote, color: colors.muted, paddingHorizontal: 12 };
   return <Card style={{ padding: 8 }}>
     <SettingsRow detail={t.captureExtras.widgetsHelp} icon="apps-outline" label={t.captureExtras.widgetsTitle} />
-    <ListDivider />
+    <ListDivider inset={false} />
     <SettingsRow
       accessory={<Switch accessibilityLabel={t.captureExtras.widgetNumbers} disabled={busy || !widgetsAvailable} ios_backgroundColor={colors.border} thumbColor={colors.surface} trackColor={{ false: colors.border, true: colors.accentText }} value={enabled} onValueChange={value => { setBusy(true); setError(false); void setWidgetSharing(value).then(() => setEnabled(value)).catch(() => { setEnabled(false); setError(true); }).finally(() => setBusy(false)); }} />}
       disabled={!widgetsAvailable}

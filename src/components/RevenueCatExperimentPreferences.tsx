@@ -20,18 +20,20 @@ export function RevenueCatExperimentPreferences() {
     : !snapshot.eligible ? copy.ineligible
     : !snapshot.consent ? copy.off
     : snapshot.status === 'accepted' ? copy.active : copy.paused;
-  return <Card>
-    <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 20, lineHeight: 25, fontWeight: '700' }}>{copy.title}</Text>
-    <Text style={{ ...typeScale.callout, color: colors.muted }}>{copy.help}</Text>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 12 }}>
-      <Text style={{ ...typeScale.body, flex: 1, color: colors.text }}>{copy.label}</Text>
+  return <Card style={{ gap: 12 }}>
+    <View style={{ gap: 6 }}>
+      <Text accessibilityRole="header" style={{ ...typeScale.headline, color: colors.text, fontWeight: '700' }}>{copy.title}</Text>
+      <Text style={{ ...typeScale.subhead, color: colors.muted }}>{copy.help}</Text>
+    </View>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 }}>
+      <Text style={{ ...typeScale.label, flex: 1, color: colors.text }}>{copy.label}</Text>
       <Switch accessibilityLabel={copy.label} disabled={busy || (!snapshot.eligible && !snapshot.consent)} value={snapshot.consent} onValueChange={enabled => {
         setBusy(true); setError(false);
         void setRevenueCatExperimentMeasurementEnabled(enabled).catch(() => setError(true)).finally(() => setBusy(false));
       }} />
     </View>
-    <Text style={{ ...typeScale.callout, color: colors.muted }}>{detail}</Text>
-    {error || snapshot.status === 'error' ? <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{copy.error}</Text> : null}
-    <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: colors.accentText }}>{copy.privacyLink}</Text></Pressable>
+    <Text style={{ ...typeScale.footnote, color: colors.muted }}>{detail}</Text>
+    {error || snapshot.status === 'error' ? <Text accessibilityRole="alert" style={{ ...typeScale.footnote, color: colors.attentionText }}>{copy.error}</Text> : null}
+    <Pressable accessibilityRole="link" onPress={() => router.push('/privacy')} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ ...typeScale.subhead, color: colors.accentText, fontWeight: '600' }}>{copy.privacyLink}</Text></Pressable>
   </Card>;
 }

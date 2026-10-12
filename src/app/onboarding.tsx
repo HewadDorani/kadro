@@ -14,7 +14,7 @@ import { BUILDING_MS, PlanBuilder } from '@/components/PlanBuilder';
 import { FIRST_RUN_STEPS, MINIMUM_AGE, ageFromBirthYear, birthYearNeedsBirthday, normalizePersonalGoal, onboardingSteps, personalGoalError, parsePersonalGoalWeight, type OnboardingStep } from '@/services/personalGoal';
 import { localDateKey } from '@/utils/date';
 import { PrimaryButton, ProgressBar } from '@/components/ui';
-import { radii, spacing, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, spacing, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { BIOLOGICAL_SEXES, caloriePlan, dailyGoalOffset, calculateDailyTargets, effectiveGoal, estimatedPace, isRateLimited, isTeenProfile, isUnderweight, lowestHealthyWeightKg, weeklyRateLabel } from '@/services/personalization';
 import { clearOnboardingDraft, loadOnboardingDraft, saveOnboardingDraft } from '@/services/onboardingDraft';
@@ -1044,8 +1044,8 @@ function NumberStep({ editable = false, accessibilityUnit, format, label, layout
       <View style={styles.numberCenter}>
         <View style={styles.numberRow}>
           {editable ? <Pressable style={styles.numberValue} accessibilityRole="button" accessibilityLabel={`${t.onboarding.editWeight}: ${display} ${accessibilityUnit ?? unit}`} onPress={() => { stop(); setDraft(formatNumber(value, locale)); setEditingNumber(true); }}>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.number, numberSize(display)]}>{display}</Text>
-          </Pressable> : <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.number, styles.numberValue, numberSize(display)]}>{display}</Text>}
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} adjustsFontSizeToFit numberOfLines={1} style={[styles.number, numberSize(display)]}>{display}</Text>
+          </Pressable> : <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} adjustsFontSizeToFit numberOfLines={1} style={[styles.number, styles.numberValue, numberSize(display)]}>{display}</Text>}
           {unit ? <Text style={styles.numberUnit}>{unit}</Text> : null}
         </View>
       </View>
@@ -1105,7 +1105,7 @@ function StartingPlan({ limited, profile, targets }: { limited: boolean; profile
   return (
     <View style={styles.startingCard}>
       <Text style={styles.cardEyebrow}>{t.onboarding.dailyGoal}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={styles.calories}>{new Intl.NumberFormat(locale).format(targets.calories)}</Text>
+      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} adjustsFontSizeToFit numberOfLines={1} style={styles.calories}>{new Intl.NumberFormat(locale).format(targets.calories)}</Text>
       <Text style={styles.caloriesLabel}>{t.onboarding.kilocalories}</Text>
       {!isTeenProfile(profile) ? (
         <View style={styles.pacePill}>
@@ -1246,7 +1246,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   rateCard: { flex: 1, minHeight: 92, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 14, gap: 4 },
   rateCardActive: { borderColor: colors.accentText, backgroundColor: colors.neutralSoft },
   rateRow: { flexDirection: 'row', gap: 10 },
-  rateValue: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  rateValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   rateDetail: { ...typeScale.caption, color: colors.muted },
   macroRow: { width: '100%', flexDirection: 'row', gap: 8 },
   macroTile: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: 16, backgroundColor: colors.neutralSoft },
@@ -1270,7 +1270,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   buildingStep: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   buildingStepHidden: { opacity: 0 },
   buildingStepLabel: { ...typeScale.footnote, flex: 1, color: colors.muted },
-  buildingStepValue: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
+  buildingStepValue: { ...typeScale.subhead, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   buildingTitle: { color: colors.text, fontSize: 20, lineHeight: 25, fontWeight: '700', textAlign: 'center' },
   buildingText: { ...typeScale.subhead, color: colors.muted, textAlign: 'center' },
   startingCard: { borderRadius: radii.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center' },
@@ -1280,7 +1280,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   divider: { width: '100%', height: 1, backgroundColor: colors.border, marginVertical: 22 },
   planStats: { width: '100%', flexDirection: 'row' },
   planStat: { flex: 1, minWidth: 0, paddingHorizontal: 4, alignItems: 'center', gap: 5 },
-  planStatValue: { ...typeScale.subhead, minHeight: 38, color: colors.text, fontWeight: '700', textAlign: 'center' },
+  planStatValue: { ...typeScale.subhead, minHeight: 38, color: colors.text, fontWeight: '700', textAlign: 'center', fontVariant: ['tabular-nums'] },
   planStatLabel: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
   adaptsRow: { marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.neutralSoft, borderRadius: radii.pill, paddingHorizontal: 13, paddingVertical: 9 },
   adaptsText: { ...typeScale.caption, flex: 1, color: colors.accentText, fontWeight: '700' },

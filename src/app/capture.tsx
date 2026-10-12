@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { Screen, Card, PrimaryButton } from '@/components/ui';
 import { useApp } from '@/context/AppContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -32,5 +32,5 @@ export default function CaptureEntry() {
     else if (app.analysisStatus !== 'idle') router.replace('/analyzing');
     else router.replace({ pathname: '/(tabs)/scan', params: { mode: app.descriptionInput ? 'description' : 'photo' } });
   };
-  return <Screen><Card><Text accessibilityRole="header" style={{ color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ ...typeScale.body, color: colors.muted }}>{t.captureExtras.draftText}</Text><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
+  return <Screen><Card style={{ gap: 16 }}><View style={{ gap: 6 }}><Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ ...typeScale.body, color: colors.muted }}>{t.captureExtras.draftText}</Text></View><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
 }

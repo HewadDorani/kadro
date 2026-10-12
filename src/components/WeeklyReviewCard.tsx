@@ -65,21 +65,24 @@ export function WeeklyReviewCard() {
   const { current, previous, proteinChangePercent } = review;
   const number = (value: number) => value.toLocaleString(locale);
   const text = { ...typeScale.callout, color: colors.muted };
-  return <Card style={{ gap: 10 }}>
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+  const showWeek = pro || access?.full;
+  return <Card style={{ gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 }}>
       <IconCircle name="calendar-clear-outline" size={40} tone="neutral" />
-      <Text accessibilityRole="header" style={{ ...typeScale.title2, flex: 1, color: colors.text, fontWeight: '700' }}>{copy.title}</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{copy.title}</Text>
+        {showWeek ? <Text style={{ ...typeScale.footnote, color: colors.muted, fontVariant: ['tabular-nums'] }}>{formatDateParts(current.from, { day: 'numeric', month: 'short' }, locale)} – {formatDateParts(current.to, { day: 'numeric', month: 'short' }, locale)}</Text> : null}
+      </View>
     </View>
-    {pro || access?.full ? <>
-      <Text style={text}>{formatDateParts(current.from, { day: 'numeric', month: 'short' }, locale)} – {formatDateParts(current.to, { day: 'numeric', month: 'short' }, locale)}</Text>
-      <Text style={{ color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '600' }}>{copy.loggedDays(current.loggedDays)}</Text>
+    {showWeek ? <>
+      <Text style={{ ...typeScale.headline, color: colors.text, fontVariant: ['tabular-nums'] }}>{copy.loggedDays(current.loggedDays)}</Text>
       {current.loggedDays ? <View style={{ gap: 8 }}>
         <Text style={text}>{copy.averages(number(current.averageCalories!), number(current.averageProtein!))}</Text>
         {current.daysNearCurrentTarget !== null ? <Text style={text}>{copy.nearTarget(current.daysNearCurrentTarget, current.loggedDays, number(targets.calories))}</Text> : null}
         <Text style={text}>{proteinChangePercent !== null
           ? copy.proteinComparison(`${proteinChangePercent > 0 ? '+' : ''}${number(proteinChangePercent)}%`, current.loggedDays, previous.loggedDays)
           : copy.comparisonPending}</Text>
-        <Text style={text}>{copy.dataNote}</Text>
+        <Text style={{ ...text, ...typeScale.footnote }}>{copy.dataNote}</Text>
       </View> : <Text style={text}>{copy.empty}</Text>}
       {!pro && current.loggedDays ? <Text style={{ ...text, ...typeScale.footnote }}>{copy.freeNote}</Text> : null}
     </> : <>

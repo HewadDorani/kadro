@@ -75,9 +75,9 @@ export default function SavedMeals() {
     ))}
 
     <SectionTitle>{t.access.allSavedMeals}</SectionTitle>
-    {!mealHistory.length ? <Text style={{ color: colors.muted }}>{t.access.emptyHistory}</Text> : null}
+    {!mealHistory.length ? <Text style={{ ...typeScale.subhead, color: colors.muted }}>{t.access.emptyHistory}</Text> : null}
     {mealHistory.map(meal => <Pressable key={meal.id} accessibilityRole="button" accessibilityHint={t.common.mealHint} onPress={() => setSelected(meal.id)}>
-      <Card><Text style={{ ...typeScale.headline, color: colors.text, fontWeight: '600' }}>{meal.title}</Text><Text style={{ color: colors.muted }}>{meal.date}</Text></Card>
+      <Card style={{ gap: 2 }}><Text style={{ ...typeScale.headline, color: colors.text, fontWeight: '600' }}>{meal.title}</Text><Text style={{ ...typeScale.footnote, color: colors.muted, fontVariant: ['tabular-nums'] }}>{meal.date}</Text></Card>
     </Pressable>)}
     <MealDetailSheet meal={mealHistory.find(meal => meal.id === selected) ?? null} onClose={() => setSelected(null)} />
   </Screen>;

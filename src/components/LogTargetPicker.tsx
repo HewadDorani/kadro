@@ -121,7 +121,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   rowPressed: { backgroundColor: colors.neutralSoft },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
   rowLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '600' },
-  rowValue: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  rowValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   rowAction: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
   scrim: { flex: 1, backgroundColor: 'rgba(20,21,15,0.42)' },
   sheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 20, paddingTop: 20, gap: 12 },

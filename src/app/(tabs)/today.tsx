@@ -531,7 +531,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   repeatIconFavorite: { backgroundColor: colors.accent },
   repeatSkeleton: { marginTop: 6 },
   repeatTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '800' },
+  repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '800', fontVariant: ['tabular-nums'] },
   repeatYesterday: { ...typeScale.caption, color: colors.text, fontWeight: '700', marginTop: 6 },
   repeatTitle: { ...typeScale.footnote, color: colors.text, fontWeight: '600', marginTop: 6 },
   repeatMacros: { ...typeScale.caption, color: colors.muted, marginTop: 4, fontVariant: ['tabular-nums'] },

@@ -396,7 +396,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   ingredientAction: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', borderRadius: 12, backgroundColor: colors.neutralSoft },
   actionText: { ...typeScale.footnote, color: colors.accentText, fontWeight: '600', flexShrink: 1 },
   amountField: { minHeight: 60, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.neutralSoft, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  amountFieldValue: { color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  amountFieldValue: { color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '700', fontVariant: ['tabular-nums'] },
   portionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   portionTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   portionSubtitle: { ...typeScale.caption, color: colors.muted, marginTop: 4 },
@@ -426,6 +426,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   estimateLabel: { ...typeScale.caption, color: 'rgba(255,255,255,0.58)', fontWeight: '800', letterSpacing: 0.9 },
   estimateValue: { ...typeScale.title2, color: colors.white, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] },
   macroSummary: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: '100%', alignItems: 'center', gap: 6 },
-  macroSummaryText: { ...typeScale.caption, color: colors.accent, fontWeight: '700' },
+  macroSummaryText: { ...typeScale.caption, color: colors.accent, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' },
 });

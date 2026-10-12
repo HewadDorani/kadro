@@ -70,7 +70,7 @@ export function ManualFoodForm({ initialName, onCancel, onConfirm }: {
           style={{ flex: 1, minWidth: 0, width: '100%', color: colors.text, fontSize: 17 }}
           value={value}
         />
-        {unit ? <Text style={{ color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
+        {unit ? <Text style={{ ...typeScale.callout, color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
       </View>
     </View>
   );
@@ -89,7 +89,7 @@ export function ManualFoodForm({ initialName, onCancel, onConfirm }: {
         {field(t.common.carbs, carbs, setCarbs, 'g')}
         {field(t.common.fat, fat, setFat, 'g')}
       </View>
-      {error ? <Text accessibilityRole="alert" style={{ color: colors.attentionText }}>{copy.manualInvalid}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={{ ...typeScale.subhead, color: colors.attentionText }}>{copy.manualInvalid}</Text> : null}
       <PrimaryButton icon="checkmark" label={copy.manualSave} onPress={save} />
       <PrimaryButton variant="ghost" label={t.common.cancel} onPress={onCancel} />
     </View>

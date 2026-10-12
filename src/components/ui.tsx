@@ -248,10 +248,13 @@ export function SettingsRow({
   );
 }
 
-/** Hairline between rows of a grouped card; inset to the text column when rows carry icons. */
+/**
+ * Hairline between rows of a grouped card. It starts where the row text
+ * starts: at the text column after an icon, or at the row padding without one.
+ */
 export function ListDivider({ inset = true }: { inset?: boolean }) {
   const styles = useThemedStyles(makeStyles);
-  return <View style={[styles.listDivider, inset && styles.listDividerInset]} />;
+  return <View style={[styles.listDivider, inset ? styles.listDividerInset : styles.listDividerFlush]} />;
 }
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
@@ -593,6 +596,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   listDividerInset: {
     marginLeft: 60,
+  },
+  listDividerFlush: {
+    marginHorizontal: 12,
   },
   macroCard: {
     flex: 1,

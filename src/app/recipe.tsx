@@ -11,7 +11,7 @@ import { recipeTitle } from '@/services/recommendations';
 import { getRecipe } from '@/services/recipes';
 import { recipePortion } from '@/utils/mealSuggestions';
 import { formatNumber } from '@/utils/format';
-import { typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 export default function RecipeScreen() {
   const { colors } = useTheme();
@@ -59,7 +59,7 @@ export default function RecipeScreen() {
 
       <Card style={styles.macroCard}>
         <View style={styles.macroRow}>
-          <Text style={styles.macroValue}>{formatNumber(recipe.nutrition.calories, locale)}</Text>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.macroValue}>{formatNumber(recipe.nutrition.calories, locale)}</Text>
           <Text style={styles.macroUnit}>kcal</Text>
         </View>
         <Text style={styles.macroDetail}>
@@ -112,7 +112,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   missing: { ...typeScale.subhead, color: colors.muted },
   macroCard: { gap: 4 },
   macroRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  macroValue: { ...typeScale.display, color: colors.text, fontWeight: '700' },
+  macroValue: { ...typeScale.display, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   macroUnit: { ...typeScale.callout, color: colors.muted, fontWeight: '600' },
   macroDetail: { ...typeScale.footnote, color: colors.muted },
   section: { gap: 10 },
@@ -121,7 +121,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   ingredientRow: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, gap: 12 },
   ingredientName: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   ingredientState: { ...typeScale.footnote, color: colors.muted },
-  ingredientAmount: { ...typeScale.subhead, color: colors.muted, fontWeight: '700' },
+  ingredientAmount: { ...typeScale.subhead, color: colors.muted, fontWeight: '700', fontVariant: ['tabular-nums'] },
   divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 12 },
   note: { ...typeScale.caption, color: colors.muted },
   stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },

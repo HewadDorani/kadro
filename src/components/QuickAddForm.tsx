@@ -77,7 +77,7 @@ export function QuickAddForm({ initialName, onCancel, onConfirm }: {
           style={{ flex: 1, minWidth: 0, width: '100%', color: colors.text, fontSize: 17 }}
           value={value}
         />
-        {unit ? <Text style={{ color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
+        {unit ? <Text style={{ ...typeScale.callout, color: colors.muted, marginLeft: 4 }}>{unit}</Text> : null}
       </View>
     </View>
   );

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
 import { Card, EmptyIllustration, Eyebrow, IconCircle, PageTitle, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
-import { radii, typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { formatNumber } from '@/utils/format';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -106,7 +106,7 @@ export default function ProgressScreen() {
       <Card style={styles.consistencyHero}>
         <Text style={styles.heroLabel}>{t.progress.weekTitle}</Text>
         <View style={styles.heroValueRow}>
-          <Text style={[styles.heroValue, !loggedCalorieDays.length && styles.heroValueEmpty]}>{loggedCalorieDays.length ? formatNumber(averageCalories, locale) : '0'}</Text>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.heroValue, !loggedCalorieDays.length && styles.heroValueEmpty]}>{loggedCalorieDays.length ? formatNumber(averageCalories, locale) : '0'}</Text>
           <Text style={styles.heroOf}>{t.progress.caloriesAverage(formatNumber(Math.round(targets.calories), locale))}</Text>
         </View>
         {loggedCalorieDays.length ? (
@@ -142,7 +142,7 @@ export default function ProgressScreen() {
         <View style={styles.weightTop}>
           <View>
             <Text style={styles.cardLabel}>{visibleWeights.length ? t.progress.currentWeight : t.progress.profileWeight}</Text>
-            <Text style={styles.currentWeight}>{formatWeight(currentWeight, units, locale)}</Text>
+            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.currentWeight}>{formatWeight(currentWeight, units, locale)}</Text>
           </View>
           {visibleWeights.length > 1 ? (
             <View style={styles.changePill}>
@@ -176,12 +176,12 @@ export default function ProgressScreen() {
         <View style={styles.heroValueRow}>
           {showsScore ? (
             <>
-              <Text style={styles.heroValue}>{reachedCount}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.heroValue}>{reachedCount}</Text>
               <Text style={styles.heroOf}>{t.progress.outOfTracked(trackedDays)}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.heroValue}>{trackedDays > 0 ? averageProtein : targets.protein}</Text>
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.heroValue}>{trackedDays > 0 ? averageProtein : targets.protein}</Text>
               <Text style={styles.heroOf}>{trackedDays > 0 ? t.progress.goalSuffix(targets.protein) : t.progress.perDayGoal}</Text>
             </>
           )}

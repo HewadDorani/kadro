@@ -11,7 +11,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { explainTargets } from '@/services/personalization';
 import type { UserProfile } from '@/types/nutrition';
 import { formatNumber } from '@/utils/format';
-import { typeScale } from '@/constants/theme';
+import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
 
 /** Long enough to watch the number settle, short enough not to be a wait. */
 export const BUILDING_MS = 3400;
@@ -150,7 +150,7 @@ export function PlanBuilder({ profile, showcase = false }: { profile: UserProfil
           </Svg>
         </Animated.View>
         <View style={styles.centre}>
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.value}>
+          <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} adjustsFontSizeToFit numberOfLines={1} style={styles.value}>
             {formatNumber(frame.value, locale)}
           </Text>
           <Text style={styles.unit}>{current?.unit === 'g' ? t.onboarding.proteinUnit : t.onboarding.kilocalories}</Text>
