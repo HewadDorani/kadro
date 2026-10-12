@@ -39,8 +39,12 @@ for (const [language, clause, dataClause] of [
  for (const rule of [/OpenRouter/, /Microsoft Azure/, /Data Privacy Framework/, language === 'de' ? /Art\. 46 Abs\. 2 lit\. c DSGVO/ : /Art\. 46\(2\)\(c\) GDPR/]) {
   assert.match(transfers, rule, `${language}: transfer disclosure must mention ${rule}`);
  }
- assert.match(privacy, /OWNER MUST VERIFY: OpenRouter DPF certification\/SCC in their DPA before release/,
-  `${language}: keep the owner verification note next to the transfer paragraph`);
+ // Verified 2026-10-10: OpenRouter is not DPF-certified and relies on SCCs; the
+ // user-facing text must say so, and the source note stays next to it.
+ assert.match(privacy, /Verified 2026-10-10: OpenRouter's privacy policy \(Section 9\) relies on SCCs/,
+  `${language}: keep the verification note next to the transfer paragraph`);
+ assert.match(transfers, language === 'de' ? /OpenRouter ist nicht nach dem Data Privacy Framework zertifiziert; für OpenRouter gelten die EU-Standardvertragsklauseln/ : /OpenRouter is not certified under the Data Privacy Framework; the EU Standard Contractual Clauses apply to OpenRouter/,
+  `${language}: name the SCCs as OpenRouter's transfer basis`);
  // Hard paywall after the first scan (owner decision 10.10.2026): new
  // accounts get one free sample analysis, a confirmed trial counts as Pro,
  // existing accounts keep the legacy scope, and the free-meal record is disclosed.
