@@ -403,7 +403,6 @@ export const en: typeof de = {
     voiceDeniedTitle: 'Microphone is off',
     voiceDeniedBody: 'Allow microphone and speech recognition in Settings to speak your meal.',
     voiceOpenSettings: 'Open Settings',
-    brandSearchHint: 'For example Barilla, Heinz, Tesco',
     searchMore: 'Show more results',
     searchCount: (shown: number, total: number) => `${shown} of ${total} results`,
 
@@ -489,6 +488,11 @@ export const en: typeof de = {
     quickAddName: 'Label (optional)', quickAddDefaultName: 'Quick entry', quickAddCalories: 'Calories', quickAddProtein: 'Protein (optional)',
     quickAddInvalid: 'Please enter 1 to 5000 kcal. Protein cannot supply more energy than the total calories.', quickAddSave: 'Add', quickAddSource: 'Quick entry',
     labelScanCta: 'Photograph the nutrition label', labelScanHint: 'Product missing? You check every value afterwards.',
+    // Search sections: generic foods and branded products (shown in parallel).
+    sectionFoods: 'Foods', sectionProducts: 'Products & brands',
+    productsSearching: 'Searching products …', productsEmpty: 'No product found – just photograph the nutrition label.',
+    productsUnavailable: 'Product search is unavailable right now. The foods can still be selected.',
+    productPackage: (grams: string) => `Pack ${grams} g`,
   },
   analyzing: {
     phasePreparing: 'Preparing your photo …',
@@ -909,7 +913,6 @@ export const en: typeof de = {
     retryAfterSeconds: "Try again in {seconds} seconds.",
     searchPartial: "Some additional sources are unavailable. The results shown can still be selected.",
     searchCatalogue: "Catalog results. Submit to also search for branded products.",
-    searchSubmit: "Search brands & products",
 
     retakeWholePlate: 'Please photograph the whole plate again.',
     crashTitle: 'Something went wrong.',

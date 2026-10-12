@@ -471,6 +471,12 @@ export type FoodSearchResult = {
   lastGrams?: number;
   /** Barcode an own product ("Mein Produkt") is linked to; used to drop duplicates. */
   barcode?: string;
+  /** Official database label when `name` is the everyday name (BLS), shown small below it. */
+  officialName?: string;
+  /** Branded product: name without the brand, the brand, and the net package weight. */
+  productName?: string;
+  brand?: string;
+  packageG?: number;
 };
 
 /**
@@ -503,6 +509,107 @@ export async function searchFoods(query: string, options: { catalogueOnly?: bool
     searchStatus: {value:payload.searchStatus},
     retryAfter: {value:Number(payload.issues?.find(issue=>issue.retryAfter)?.retryAfter) || undefined},
   });
+}
+
+/**
+ * One branded product from the product search, in the shape the product
+ * database route answers with. Values are per 100 g as published by the
+ * source (Open Food Facts, directly or via Kandro's German product table).
+ */
+export type ProductHit = {
+  code: string;
+  name: string;
+  brand?: string | null;
+  stores?: string[] | null;
+  packageG?: number | null;
+  servingG?: number | null;
+  per100g: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number | null };
+  source: 'off' | 'productdb';
+};
+
+export type ProductSearchResults = {
+  /** Generic foods the server added (BLS/USDA); merged into the "Lebensmittel" list. */
+  generic: FoodSearchResult[];
+  /** Branded products for the "Produkte & Marken" list. */
+  products: FoodSearchResult[];
+  searchStatus?: 'complete' | 'partial' | 'catalogue';
+};
+
+const gramsOrNull = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 5000 ? Math.round(value * 10) / 10 : null;
+const isProductHit = (value: unknown): value is ProductHit => {
+  const hit = value as ProductHit | null;
+  return Boolean(hit) && typeof hit!.code === 'string' && typeof hit!.per100g === 'object' && hit!.per100g !== null && 'kcal' in hit!.per100g;
+};
+
+/** Maps a product hit to a loggable search result; null when it is not usable. */
+export function productHitToResult(hit: ProductHit): FoodSearchResult | null {
+  if (!isProductHit(hit) || !/^\d{7,14}$/.test(hit.code) || typeof hit.name !== 'string') return null;
+  const productName = hit.name.replace(/\s+/g, ' ').trim();
+  const brand = typeof hit.brand === 'string' && hit.brand.trim() && hit.brand.trim().length <= 60 ? hit.brand.replace(/\s+/g, ' ').trim() : undefined;
+  if (!productName) return null;
+  const { kcal, protein, carbs, fat, fiber } = hit.per100g;
+  const serving = gramsOrNull(hit.servingG);
+  const pack = gramsOrNull(hit.packageG);
+  const labels = getDictionary().labelScan;
+  const portions = [
+    ...(serving ? [{ label: labels.portionServing(serving), grams: serving }] : []),
+    ...(pack && pack !== serving ? [{ label: labels.portionPackage(pack), grams: pack }] : []),
+  ];
+  const result: FoodSearchResult = {
+    id: `off-${hit.code}`,
+    // The logged name keeps the brand, like a scanned barcode does.
+    name: brand && !productName.toLowerCase().includes(brand.toLowerCase()) ? `${productName} (${brand})` : productName,
+    productName,
+    ...(brand ? { brand } : {}),
+    ...(pack ? { packageG: pack } : {}),
+    per100g: { calories: kcal, protein, carbs, fat, ...(typeof fiber === 'number' ? { fiber } : {}) },
+    defaultGrams: serving ?? 100,
+    portions,
+    source: { provider: 'open-food-facts', referenceId: hit.code, label: `Open Food Facts ${hit.code}` },
+  };
+  return validSearchResult(result) ? result : null;
+}
+
+/** Older gateway rows name a product "Name (Brand)"; split that for display. */
+function withProductParts(result: FoodSearchResult): FoodSearchResult {
+  if (result.source.provider !== 'open-food-facts' || result.brand) return result;
+  const match = result.name.match(/^(.*\S)\s+\(([^()]{1,60})\)$/);
+  if (!match || !/[A-Za-zÄÖÜäöü]/.test(match[2]) || /^\d/.test(match[2])) return result;
+  return { ...result, productName: match[1], brand: match[2] };
+}
+
+/**
+ * Branded products for the search sheet. Runs on every debounced query, next
+ * to the on-device catalogue, so common words ("Donut", "Skyr") show real
+ * products too. `brands` is the store/own-brand hint ("lidl" → Milbona, …);
+ * servers that do not know it ignore it. Accepts the product route's
+ * `products: ProductHit[]` and the older `results: FoodSearchResult[]` rows.
+ */
+export async function searchProducts(query: string, options: { brands?: readonly string[] } = {}): Promise<ProductSearchResults> {
+  const term = query.trim();
+  if (term.length < 2) return { generic: [], products: [] };
+  const brands = (options.brands ?? []).map(brand => brand.trim()).filter(brand => brand && brand.length <= 40 && !brand.includes(',')).slice(0, 30);
+  const response = await gatewayFetch(
+    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}&scope=products${brands.length ? `&brands=${encodeURIComponent(brands.join(','))}` : ''}`,
+  );
+  const payload = (await response.json().catch(() => null)) as
+    { results?: unknown[]; products?: unknown[]; searchStatus?: ProductSearchResults['searchStatus']; code?: string; message?: string } | null;
+  if (!response.ok) throw gatewayError(response, payload?.code, payload?.message);
+  if (!payload || (payload.results !== undefined && !Array.isArray(payload.results)) || (payload.products !== undefined && !Array.isArray(payload.products))
+    || (payload.searchStatus !== undefined && !['complete', 'partial', 'catalogue'].includes(payload.searchStatus))) {
+    throw new MealAnalysisError('invalid-response', getDictionary().errors.gatewayInvalidResponse);
+  }
+  const generic: FoodSearchResult[] = [];
+  const products: FoodSearchResult[] = [];
+  const seen = new Set<string>();
+  for (const row of [...(payload.products ?? []), ...(payload.results ?? [])].slice(0, 80)) {
+    // A single malformed row is skipped; it must not hide the others.
+    const result = isProductHit(row) ? productHitToResult(row) : validSearchResult(row as FoodSearchResult) ? withProductParts(row as FoodSearchResult) : null;
+    if (!result || seen.has(result.id)) continue;
+    seen.add(result.id);
+    (result.source.provider === 'open-food-facts' ? products : generic).push(result);
+  }
+  return { generic, products, searchStatus: payload.searchStatus };
 }
 
 /** A branded drink can be corrected with the digits on its actual label. */
