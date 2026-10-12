@@ -171,5 +171,8 @@ assert.ok(!(await local.loadDeletedMealIds()).includes('ordered'));
   assert.equal(transaction.user, undefined);
   assert.equal(transaction.transaction, '/meal');
   assert.deepEqual(transaction.request, { url: 'https://a/b' });
+  assert.equal(sentryOptions.beforeSend({ contexts: { device: { simulator: true } }, exception: {} }), null, 'simulator events are dropped');
+  const deviceEvent = sentryOptions.beforeSend({ contexts: { device: { simulator: false } }, user: { id: 'u' }, exception: {} });
+  assert.ok(deviceEvent && deviceEvent.user === undefined, 'device events are kept without user');
 }
 console.log('Cloud ordering passed: delayed earlier writes cannot overtake a correction or resurrect a deleted meal.');

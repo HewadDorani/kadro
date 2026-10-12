@@ -32,6 +32,8 @@ if (crashReportingEnabled) {
       return breadcrumb;
     },
     beforeSend(event) {
+      // Simulator and QA runs are not user crashes; the native SDK marks them.
+      if (event.contexts?.device?.simulator === true) return null;
       delete event.user;
       if (event.request) delete event.request.data;
       if (event.extra) for (const key of Object.keys(event.extra)) if (SENSITIVE.test(key)) delete event.extra[key];
