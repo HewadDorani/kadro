@@ -15,6 +15,7 @@ function load(path, dependencies = {}) {
     if (id.endsWith('bls-search.mjs')) return catalog;
     if (id.endsWith('food-synonyms.mjs')) return synonyms;
     if (id.endsWith('bls-reference.mjs')) return references;
+    if (id.endsWith('.json') && id.startsWith('../data/')) return JSON.parse(read(`src/data/${id.slice(8)}`));
     assert.ok(id in dependencies, `Unmocked dependency: ${id}`); return dependencies[id];
   }, module, module.exports);
   return module.exports;
