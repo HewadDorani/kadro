@@ -53,6 +53,25 @@ serving and nutrients per 100 g of roughly 300 products sold in Germany).
 - Product data, store listings and recipes can change; the extract records
   its fetch date and is refreshed by rerunning the build script.
 
+Product search and barcode lookups first query a server-side product index,
+`public.products_de`: products sold in Germany from the Open Food Facts
+database export (name, brands, stores tags, package and serving size,
+nutrients per 100 g or per 100 ml, main category, Nutri-Score, scan count).
+It is built by `scripts/build-products-de.py` (filters, plausibility checks
+and normalisation) and loaded by `scripts/load-products-de.mjs`; live Open
+Food Facts answers whatever it does not contain.
+
+- `products_de` is a derivative database of Open Food Facts under the ODbL
+  1.0 (share-alike); contents under the Database Contents License 1.0. It
+  holds no user data.
+- Search and barcode results shown in the app are Produced Works: each keeps
+  "Open Food Facts <barcode>" as its source.
+- Because the index is publicly used through the app, we offer the derivative
+  database under the ODbL: the build script above is the method that recreates
+  it from the public export, and the built file (`products-de.ndjson.gz`) is
+  provided on request or published alongside the supermarket extract
+  (`https://getkandro.com/data/`) whenever it is rebuilt.
+
 ## Demo meal photo
 
 The bundled demo meal photo is by Markus Winkler and is used under the Unsplash

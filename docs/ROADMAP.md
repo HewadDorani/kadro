@@ -9,6 +9,13 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-10-12 – Deutscher Produktindex `products_de` (Branch `wip3/productdb`, nicht deployt)
+
+- Build (2026-10-12, OFF Parquet-Export): 228.540 in Deutschland verkaufte Produkte (21.788 davon pro 100 ml), 14,4 MB gzip; 25 % mit Store-Tag. Verworfen: 19.651 ohne vollständige Nährwerte, 5.636 Atwater-unplausibel, 6.064 ohne Namen u. a.
+- `search_products_de` lokal (Postgres 17, voller Datensatz): 7–43 ms je Suche; „lidl skyr“ → Milbona, „ja gouda“ → ja!, „k-classic joghurt“ → K-Classic.
+- `/v1/search` fragt zuerst den Index (`scope=products` immer), Live-OFF nur bei < 3 Treffern/Fehler; Barcode erst Index, dann OFF. Index-Treffer verbrauchen kein OFF-Kontingent.
+- Offen (Lead): Migration `20261012120000_products_de.sql` anwenden, Daten laden (`scripts/load-products-de.mjs`), `nutrition` deployen; ODbL-Export des Builds veröffentlichen oder auf Anfrage bereitstellen.
+
 ## 2026-10-10 – Harte Paywall nach dem ersten Scan (Branch `wip2/hardwall`, nicht ausgeliefert)
 
 Eigentümerentscheidung 10.10.2026: Umsatz pro Installation. Ersetzt für **neue** Installationen die weiche Paywall aus dem pausierten Test vom 09.10.; bestehende Installationen behalten ihren Umfang.

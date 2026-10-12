@@ -78,7 +78,15 @@ assert.match(searchFn, /searchBlsCatalog\(term, language, 60\)/, 'the gateway mu
 // but a hit that merely starts with the same letters is not an everyday food.
 // "pho" prefix-matches the phosphate in a curing salt, and letting that end
 // the search hid every product Open Food Facts has behind four letters.
-assert.match(searchFn, /if \(catalogueOnly \|\| \(results\.length && catalogueAnswered\)\) \{\s*appendWeak\(\); return finish\(\)/,
+assert.match(searchFn, /if \(catalogueOnly\) \{\s*appendWeak\(\); return finish\(\)/,
+  'the catalogue-only scope must finish without any further lookup');
+// A real match may add the German product index (one database query, no
+// provider, no quota) but must still finish without a provider round trip.
+const answered = searchFn.slice(searchFn.indexOf('if (results.length && catalogueAnswered) {'), searchFn.indexOf("if (language === 'de')"));
+assert.ok(answered.length > 50, 'could not locate the catalogue-answered branch');
+assert.match(answered, /searchProductIndex\(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE\)/, 'packs on the shelf follow a real catalogue match');
+assert.match(answered, /appendWeak\(\); return finish\(\)/, 'a real catalogue match must finish');
+assert.doesNotMatch(answered, /claimProvider|searchOpenFoodFacts|searchUsdaFoods/,
   'a real catalogue match must finish without a provider round trip');
 assert.match(searchFn, /const catalogueAnswered = catalogue\.some\(\(food\) => food\.strong\)/,
   'the gateway must tell a real match from a prefix coincidence');
@@ -97,10 +105,14 @@ console.log('Validated 7,140 bilingual BLS foods and everyday German, American, 
 
 // Execute both shipped handlers. A broad query must expose alternatives beyond
 // the old 15-row cutoff without changing the first results or their sources.
+// The hosted search also consults the German product index; without a
+// database client it answers null, exactly like an unapplied migration.
 const compileSearch = (code) => new Function(
   'searchBlsCatalog', 'getBlsReferenceByCode', 'normalizeSearchTerm', 'isUsableSearchTerm', 'isSearchQuery',
+  'searchProductIndex', 'productIndexResult', 'PRODUCT_INDEX_LIMIT', 'PRODUCT_INDEX_MIN_HITS', 'PRODUCT_INDEX_AFTER_CATALOGUE', 'PRODUCT_INDEX_AFTER_CATALOGUE_POSITION', 'publicProductHit',
   ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText + '; return searchFoods;',
-)(searchBlsCatalog, getBlsReferenceByCode, normalizeSearchTerm, isUsableSearchTerm, isSearchQuery);
+)(searchBlsCatalog, getBlsReferenceByCode, normalizeSearchTerm, isUsableSearchTerm, isSearchQuery,
+  async (admin) => { assert.equal(admin, undefined); return null; }, () => null, 20, 3, 8, 10, (hit) => hit);
 const localSearch = compileSearch(localGateway.slice(localGateway.indexOf('function searchFoods'), localGateway.indexOf('function localizedProductName')));
 const hostedSearch = compileSearch(searchFn);
 for (const [query, language] of [['Brot', 'de'], ['Reis', 'de'], ['bread', 'en'], ['rice', 'en']]) {
