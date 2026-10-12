@@ -25,7 +25,7 @@ the per-100 values are per 100 g or per 100 ml — ml is never treated as g),
 package_g, package_ml, serving_g, kcal, protein, carbs, sugars, fat, sat_fat,
 fiber, salt (per 100 g or ml), category, nutriscore, popularity, last_modified.
 """
-import argparse, collections, gzip, json, math, os, pathlib, re, sys, time
+import argparse, collections, gzip, html, json, math, os, pathlib, re, sys, time
 
 DEFAULT_SOURCE = 'https://huggingface.co/datasets/openfoodfacts/product-database/resolve/main/food.parquet'
 COUNTRY_SETS = {'de': ['en:germany'], 'dach': ['en:germany', 'en:austria', 'en:switzerland']}
@@ -166,8 +166,19 @@ def extract(source, raw_path):
     print(f'extract: {raw_path} in {time.time() - started:.0f}s', file=sys.stderr)
 
 
+def unescape_html(value):
+    # Open Food Facts stores some names HTML-escaped, a few several times over.
+    text = str(value or '')
+    for _ in range(4):
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
+
+
 def clean_text(value, limit):
-    text = re.sub(r'\s+', ' ', str(value or '')).strip()
+    text = re.sub(r'\s+', ' ', unescape_html(value)).strip()
     return text if 2 <= len(text) <= limit else None
 
 
@@ -216,7 +227,7 @@ def serving_grams(row):
 
 def split_brands(raw):
     out, seen = [], set()
-    for part in str(raw or '').split(','):
+    for part in unescape_html(raw).split(','):
         brand = re.sub(r'\s+', ' ', part).strip()
         key = brand.lower()
         if brand and len(brand) <= 60 and key not in seen:

@@ -542,10 +542,22 @@ const isProductHit = (value: unknown): value is ProductHit => {
 };
 
 /** Maps a product hit to a loggable search result; null when it is not usable. */
+// Open Food Facts keeps some names HTML-escaped ("&quot;", "&amp;"), a few twice.
+const HTML_ENTITIES: Record<string, string> = { '&quot;': '"', '&#39;': "'", '&apos;': "'", '&lt;': '<', '&gt;': '>', '&nbsp;': ' ', '&amp;': '&' };
+export function decodeEntities(value: string) {
+  let text = value;
+  for (let i = 0; i < 3; i += 1) {
+    const next = text.replace(/&(?:quot|#39|apos|lt|gt|nbsp|amp);/g, (entity) => HTML_ENTITIES[entity]);
+    if (next === text) break;
+    text = next;
+  }
+  return text;
+}
+
 export function productHitToResult(hit: ProductHit): FoodSearchResult | null {
   if (!isProductHit(hit) || !/^\d{7,14}$/.test(hit.code) || typeof hit.name !== 'string') return null;
-  const productName = hit.name.replace(/\s+/g, ' ').trim();
-  const brand = typeof hit.brand === 'string' && hit.brand.trim() && hit.brand.trim().length <= 60 ? hit.brand.replace(/\s+/g, ' ').trim() : undefined;
+  const productName = decodeEntities(hit.name).replace(/\s+/g, ' ').trim();
+  const brand = typeof hit.brand === 'string' && hit.brand.trim() && hit.brand.trim().length <= 60 ? decodeEntities(hit.brand).replace(/\s+/g, ' ').trim() : undefined;
   if (!productName) return null;
   const { kcal, protein, carbs, fat, fiber } = hit.per100g;
   const serving = gramsOrNull(hit.servingG);

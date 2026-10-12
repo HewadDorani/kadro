@@ -156,6 +156,9 @@ await test('product route shape (ProductHit) maps to a loggable branded result',
   assert.deepEqual(product.portions, [{ label: '1 Portion (70 g)', grams: 70 }, { label: '1 Packung (280 g)', grams: 280 }]);
   assert.deepEqual(product.source, { provider: 'open-food-facts', referenceId: '0000000000017', label: 'Open Food Facts 0000000000017' });
   assert.equal(client.productHitToResult({ ...hit, servingG: null, packageG: null }).defaultGrams, 100);
+  const escaped = client.productHitToResult({ ...hit, name: 'Oven &amp;amp; Airfryer', brand: '&quot;the Simpsons&quot;' });
+  assert.equal(escaped.productName, 'Oven & Airfryer', 'HTML entities in product names are decoded, also when double-escaped');
+  assert.equal(escaped.brand, '"the Simpsons"', 'HTML entities in brands are decoded');
 });
 
 await test('older gateway rows still work: generic and Open Food Facts rows are split, brand parsed', async () => {
