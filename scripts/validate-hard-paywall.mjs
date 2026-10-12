@@ -197,7 +197,7 @@ check('first-scan: "Deine kostenlose Probe-Analyse", Später → hard paywall, l
     const Guard = compile('src/components/AppRouteGuard.tsx', {
       react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, 'expo-apple-authentication': { isAvailableAsync: async () => false },
       'expo-router': { usePathname: () => path, useSegments: () => [path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
-      '@/components/KandroMark': { KandroMark: 'Brand' }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
+      '@/components/KandroMark': { KandroMark: 'Brand' }, '@/constants/theme': { typeScale: {} }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
       '@/context/AccessContext': { useAccess: () => ({ ready: true, enrollmentPending: false, entryPaywall: false, ...access }) }, '@/services/accessPolicy': policy,
       '@/hooks/useReminderOnboarding': { useReminderOnboarding: () => false }, '@/hooks/useFirstRun': { useFirstRun: () => stage }, '@/services/firstRun': { firstRunRedirect: firstRun.firstRunRedirect },
       '@/context/AppContext': { useApp: () => ({ appleReauthenticationRequired: false, analysisStatus: 'ready', detectedItems: [{}], hydrationReady: true, localStorageError: false, mealHistory: [{ id: 'm1' }], profile: { completedAt: '2026-10-10' }, retryAccountRecovery: async () => {}, syncMode: 'cloud', wellnessConsentGranted: true }) },

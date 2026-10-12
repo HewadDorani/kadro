@@ -11,7 +11,7 @@ import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native
 
 import { AccountLinkCard } from '@/components/AccountLinkCard';
 import { Card, Eyebrow, PageTitle, PressableScale, Screen, SectionTitle } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { lastMealSavedAt } from '@/services/consistency';
@@ -370,42 +370,42 @@ function MenuRow({ detail, icon, label, onPress }: { detail?: string; icon: keyo
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   menuCopy: { flex: 1, gap: 2 },
-  menuDetail: { color: colors.muted, fontSize: 12 },
+  menuDetail: { ...typeScale.caption, color: colors.muted },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: colors.surface, fontSize: 20, fontWeight: '800' },
+  avatarText: { color: colors.surface, fontSize: 20, lineHeight: 25, fontWeight: '800' },
   headerCopy: { flex: 1, gap: 3 },
-  subtitle: { color: colors.muted, fontSize: 13 },
+  subtitle: { ...typeScale.footnote, color: colors.muted },
   proCard: { backgroundColor: colors.surface, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   proIcon: { width: 46, height: 46, borderRadius: 17, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   proCopy: { flex: 1, gap: 4 },
-  proTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  proText: { color: colors.text, opacity: 0.7, fontSize: 12, lineHeight: 16 },
+  proTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
+  proText: { ...typeScale.caption, color: colors.text, opacity: 0.7 },
   tryPill: { backgroundColor: colors.text, borderRadius: radii.pill, paddingHorizontal: 9, paddingVertical: 6 },
-  tryText: { color: colors.surface, fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
+  tryText: { ...typeScale.caption, color: colors.surface, fontWeight: '800', letterSpacing: 0.3 },
   section: { gap: 13 },
   planCard: { padding: 8 },
   planGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   planStat: { width: '50%', padding: 14, gap: 4 },
-  planStatLabel: { color: colors.muted, fontSize: 12 },
-  planStatValue: { color: colors.text, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  planStatLabel: { ...typeScale.caption, color: colors.muted },
+  planStatValue: { color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
   listCard: { padding: 8 },
   toggleRow: { minHeight: 78, padding: 9, flexDirection: 'row', alignItems: 'center', gap: 11 },
   disabledRow: { opacity: 0.55 },
   languageChoice: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 16 },
   languageOption: { minHeight: 44, flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   languageOptionActive: { borderColor: colors.text, backgroundColor: colors.text },
-  languageLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  languageLabel: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   languageLabelActive: { color: colors.surface },
   menuRow: { minHeight: 58, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 11 },
   rowIcon: { width: 40, height: 40, borderRadius: 15, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, gap: 3 },
-  rowLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  rowDetail: { color: colors.muted, fontSize: 12, lineHeight: 16 },
-  inlineError: { color: colors.attentionText, fontSize: 12, paddingHorizontal: 9, paddingBottom: 9 },
-  menuLabel: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  rowLabel: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
+  rowDetail: { ...typeScale.caption, color: colors.muted },
+  inlineError: { ...typeScale.caption, color: colors.attentionText, paddingHorizontal: 9, paddingBottom: 9 },
+  menuLabel: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   divider: { height: 1, backgroundColor: colors.border, marginLeft: 60 },
   wellnessNote: { flexDirection: 'row', gap: 9, paddingHorizontal: 8 },
-  wellnessText: { flex: 1, color: colors.muted, fontSize: 12, lineHeight: 17 },
-  version: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  wellnessText: { ...typeScale.footnote, flex: 1, color: colors.muted },
+  version: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
 });

@@ -261,7 +261,7 @@ await test('barcode scans check the own product first; unknown barcodes offer th
 await test('quick add: kcal 1–5000, protein optional and never more energy than the total', () => {
   const quick = load('src/components/QuickAddForm.tsx', {
     react: { useState: (v) => [v, () => {}] }, 'react/jsx-runtime': { jsx: () => null, jsxs: () => null }, 'react-native': {},
-    '@/components/ui': {}, '@/context/ThemeContext': {}, '@/i18n/LanguageProvider': {}, '@/utils/requestId': requestId,
+    '@/components/ui': {}, '@/constants/theme': { typeScale: {} }, '@/context/ThemeContext': {}, '@/i18n/LanguageProvider': {}, '@/utils/requestId': requestId,
   });
   const labels = { defaultName: 'Schnelleintrag', source: 'Schnell eingetragen', portion: '1 Portion' };
   const food = quick.quickAddFood({ name: '', kcal: '450', protein: '25,5' }, labels);

@@ -437,6 +437,7 @@ function routeFixture() {
   const Component = compile('src/components/AppRouteGuard.tsx', {
     react: { useState: (...a) => f.h.useState(...a), useEffect: (...a) => f.h.useEffect(...a), useRef: (...a) => f.h.useRef(...a) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
+    '@/constants/theme': { typeScale: {} },
     'expo-apple-authentication': { isAvailableAsync: async () => true, AppleAuthenticationButton: 'AppleButton', AppleAuthenticationButtonType: { SIGN_IN: 'sign-in' }, AppleAuthenticationButtonStyle: { BLACK: 'black' } },
     'expo-router': { usePathname: () => '/profile', useSegments: () => ['(tabs)'], useRouter: () => ({ replace: destination => f.calls.push(['redirect', destination]) }) },
     '@/components/KandroMark': { KandroMark: 'Brand' }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },

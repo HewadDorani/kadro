@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { withFavorites } from '@/services/repeatMeals';
 import { formatNumber } from '@/utils/format';
+import { typeScale } from '@/constants/theme';
 
 /**
  * Favourites first ("Alle Favoriten" on Today), then every saved meal.
@@ -42,14 +43,14 @@ export default function SavedMeals() {
 
   return <Screen>
     <PrimaryButton variant="ghost" label={t.common.back} onPress={() => router.canGoBack() ? router.back() : router.replace('/account-help' as never)} />
-    <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 28, fontWeight: '700' }}>{t.access.favoritesTitle}</Text>
-    {!favorites.length ? <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{t.access.favoritesEmpty}</Text> : null}
+    <Text accessibilityRole="header" style={{ ...typeScale.title1, color: colors.text, fontWeight: '700' }}>{t.access.favoritesTitle}</Text>
+    {!favorites.length ? <Text style={{ ...typeScale.subhead, color: colors.muted }}>{t.access.favoritesEmpty}</Text> : null}
     {favorites.map(candidate => (
       <Card key={candidate.key} style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-            <Text numberOfLines={2} style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}>{candidate.title}</Text>
-            <Text style={{ color: colors.muted, fontSize: 13 }}>~{formatNumber(candidate.calories, locale)} kcal · {candidate.protein} g {t.common.protein}</Text>
+            <Text numberOfLines={2} style={{ ...typeScale.headline, color: colors.text, fontWeight: '600' }}>{candidate.title}</Text>
+            <Text style={{ ...typeScale.footnote, color: colors.muted }}>~{formatNumber(candidate.calories, locale)} kcal · {candidate.protein} g {t.common.protein}</Text>
           </View>
           <Pressable
             accessibilityLabel={t.mealSheet.favoriteRemove}
@@ -76,7 +77,7 @@ export default function SavedMeals() {
     <SectionTitle>{t.access.allSavedMeals}</SectionTitle>
     {!mealHistory.length ? <Text style={{ color: colors.muted }}>{t.access.emptyHistory}</Text> : null}
     {mealHistory.map(meal => <Pressable key={meal.id} accessibilityRole="button" accessibilityHint={t.common.mealHint} onPress={() => setSelected(meal.id)}>
-      <Card><Text style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}>{meal.title}</Text><Text style={{ color: colors.muted }}>{meal.date}</Text></Card>
+      <Card><Text style={{ ...typeScale.headline, color: colors.text, fontWeight: '600' }}>{meal.title}</Text><Text style={{ color: colors.muted }}>{meal.date}</Text></Card>
     </Pressable>)}
     <MealDetailSheet meal={mealHistory.find(meal => meal.id === selected) ?? null} onClose={() => setSelected(null)} />
   </Screen>;

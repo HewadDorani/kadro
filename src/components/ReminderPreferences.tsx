@@ -8,6 +8,7 @@ import { useAccess } from '@/context/AccessContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { selectionHaptic } from '@/services/haptics';
 import { getReminderPermission, getReminderSettings, MEAL_SLOTS, reminderSlots, updateReminder, type MealSlot, type ReminderOnboardingChoice, type ReminderPermission, type ReminderSettings, type SlotSetting } from '@/services/reminders';
+import { typeScale } from '@/constants/theme';
 
 const STEP_MINUTES = 15;
 const pad = (value: number) => String(value).padStart(2, '0');
@@ -93,9 +94,9 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
     {initialSetup ? <View style={{ width: 56, height: 56, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
       <Ionicons color={colors.onAccent} name="notifications" size={26} />
     </View> : null}
-    <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 } : { color: colors.text, fontSize: 22, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
-    <Text style={{ color: colors.muted, fontSize: 16, lineHeight: 23 }}>{singleSelection ? copy.reminderSingleText : copy.reminderText}</Text>
-    {access.ready && !access.canUse && !onDone ? <Text style={{ color: colors.muted, fontSize: 16 }}>{t.access.pausedReminder}</Text> : null}
+    <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 } : { ...typeScale.title2, color: colors.text, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
+    <Text style={{ ...typeScale.body, color: colors.muted }}>{singleSelection ? copy.reminderSingleText : copy.reminderText}</Text>
+    {access.ready && !access.canUse && !onDone ? <Text style={{ ...typeScale.body, color: colors.muted }}>{t.access.pausedReminder}</Text> : null}
     {slots ? <View style={{ gap: 10, marginTop: 8 }}>
       {MEAL_SLOTS.map(slot => {
         const value = slots[slot];
@@ -116,12 +117,12 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
             style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 }}
           >
             <Ionicons color={value.enabled ? colors.accentText : colors.muted} name={value.enabled ? 'checkmark-circle' : 'ellipse-outline'} size={24} />
-            <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={{ flex: 1, color: colors.text, fontSize: 16, fontWeight: '600' }}>{labels[slot]}</Text>
-            {!value.enabled ? <Text style={{ color: colors.muted, fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{time}</Text> : null}
+            <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={{ ...typeScale.label, flex: 1, color: colors.text, fontWeight: '600' }}>{labels[slot]}</Text>
+            {!value.enabled ? <Text style={{ ...typeScale.label, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{time}</Text> : null}
           </Pressable>
           {value.enabled ? <>
             {stepButton(-STEP_MINUTES, copy.earlier, 'remove')}
-            <Text accessibilityLiveRegion="polite" style={{ minWidth: 56, textAlign: 'center', color: colors.text, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{time}</Text>
+            <Text accessibilityLiveRegion="polite" style={{ minWidth: 56, textAlign: 'center', color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{time}</Text>
             {stepButton(STEP_MINUTES, copy.later, 'add')}
           </> : null}
         </View>;

@@ -86,11 +86,13 @@ for (const [label, dict] of [['German', dictDe], ['English', dictEn]]) {
   // conspicuous. They were nine point grey, which is the size something gets
   // when you would rather it were not read — and a reviewer reads it that way.
   const paywall = readFileSync(new URL('../src/app/paywall.tsx', import.meta.url), 'utf8');
+  // typeScale steps are text styles ({ fontSize, lineHeight, ... }); a style
+  // either spreads one or sets a raw fontSize.
   const typeScale = Object.fromEntries([...readFileSync(new URL('../src/constants/theme.ts', import.meta.url), 'utf8')
-    .match(/export const typeScale = \{([^}]*)\}/)[1].matchAll(/(\w+): (\d+)/g)].map(([, name, value]) => [name, Number(value)]));
+    .match(/export const typeScale = \{([\s\S]*?)\n\} as const/)[1].matchAll(/^\s*(\w+): \{ fontSize: (\d+)/gm)].map(([, name, value]) => [name, Number(value)]));
   for (const [style, minimum] of [['renewal', 12], ['legal', 12]]) {
-    const raw = paywall.match(new RegExp(`\\b${style}: \\{[^}]*fontSize: (\\d+|typeScale\\.\\w+)`))?.[1] ?? '0';
-    const size = raw.startsWith('typeScale.') ? typeScale[raw.slice('typeScale.'.length)] ?? 0 : Number(raw);
+    const raw = paywall.match(new RegExp(`\\b${style}: \\{[^}]*?(?:fontSize: (\\d+)|\\.\\.\\.typeScale\\.(\\w+))`));
+    const size = raw?.[1] ? Number(raw[1]) : typeScale[raw?.[2]] ?? 0;
     if (size < minimum) {
       failures.push(`paywall ${style} text is ${size}pt; App Review expects the renewal terms to be legible`);
     }

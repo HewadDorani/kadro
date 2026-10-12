@@ -10,6 +10,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { formatNumber } from '@/utils/format';
+import { typeScale } from '@/constants/theme';
 
 // Screen padding (2 x 20) plus hero card padding (2 x 20).
 const HORIZONTAL_CHROME = 80;
@@ -143,19 +144,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 2,
   },
   sideValue: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 21,
-    lineHeight: 26,
     fontWeight: '700',
-    letterSpacing: -0.4,
     fontVariant: ['tabular-nums'],
   },
   sideLabel: {
+    ...typeScale.eyebrow,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
   },
   svg: {
     position: 'absolute',
@@ -174,8 +171,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   label: {
+    ...typeScale.subhead,
     color: colors.muted,
-    fontSize: 14,
     fontWeight: '600',
     marginTop: 0,
   },
@@ -196,7 +193,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 4,
   },
   status: {
-    fontSize: 12,
+    ...typeScale.caption,
     fontWeight: '700',
   },
 });

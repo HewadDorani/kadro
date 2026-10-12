@@ -7,6 +7,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { clearCaptureIntent, getScanInputDraft, pendingCaptureIntent } from '@/services/captureIntents';
 import { isReminderOnboardingPending } from '@/services/reminders';
+import { typeScale } from '@/constants/theme';
 export default function CaptureEntry() {
   const router = useRouter();
   const app = useApp(); const { t } = useLanguage(); const { colors } = useTheme();
@@ -31,5 +32,5 @@ export default function CaptureEntry() {
     else if (app.analysisStatus !== 'idle') router.replace('/analyzing');
     else router.replace({ pathname: '/(tabs)/scan', params: { mode: app.descriptionInput ? 'description' : 'photo' } });
   };
-  return <Screen><Card><Text accessibilityRole="header" style={{ color: colors.text, fontSize: 24, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ color: colors.muted, fontSize: 16, lineHeight: 24 }}>{t.captureExtras.draftText}</Text><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
+  return <Screen><Card><Text accessibilityRole="header" style={{ color: colors.text, fontSize: 24, lineHeight: 30, fontWeight: '700' }}>{t.captureExtras.draftTitle}</Text><Text style={{ ...typeScale.body, color: colors.muted }}>{t.captureExtras.draftText}</Text><PrimaryButton label={t.captureExtras.continueDraft} onPress={continueDraft} /></Card></Screen>;
 }

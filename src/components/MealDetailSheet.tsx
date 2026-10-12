@@ -10,7 +10,7 @@ import { PrimaryButton } from '@/components/ui';
 import { PortionSheet } from '@/components/PortionSheet';
 import { itemNutritionPer100g } from '@/utils/portions';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { Meal, PortionFactor } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -287,33 +287,33 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: colors.border },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 4 },
   headerCopy: { flex: 1, minWidth: 0, gap: 3 },
-  type: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 22, lineHeight: 27, fontWeight: '700', letterSpacing: -0.5 },
+  type: { ...typeScale.caption, color: colors.muted, fontWeight: '700' },
+  title: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
   closeButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
   favoriteActive: { backgroundColor: colors.accent },
   macroRow: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: radii.card, paddingVertical: 13 },
   macro: { flex: 1, minWidth: 0, alignItems: 'center', gap: 3 },
-  macroValue: { color: colors.text, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  macroLabel: { color: colors.muted, fontSize: 12 },
+  macroValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  macroLabel: { ...typeScale.caption, color: colors.muted },
   body: { flexGrow: 0 },
   section: { gap: 8, marginBottom: 18 },
-  sectionLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  sectionHint: { color: colors.muted, fontSize: 12, lineHeight: 16 },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
+  sectionHint: { ...typeScale.caption, color: colors.muted },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
   itemCopy: { flex: 1, minWidth: 0 },
-  itemName: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  itemAmount: { color: colors.muted, fontSize: 12, fontVariant: ['tabular-nums'] },
-  sourceNote: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  itemName: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
+  itemAmount: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
+  sourceNote: { ...typeScale.caption, color: colors.muted, marginTop: 2 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: { minHeight: 44, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
   typeChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  typeChipText: { color: colors.text, fontSize: 12, fontWeight: '600' },
+  typeChipText: { ...typeScale.caption, color: colors.text, fontWeight: '600' },
   portionSelector: { flexDirection: 'row', borderRadius: radii.input, backgroundColor: colors.background, padding: 4, gap: 4 },
   portionChoice: { flex: 1, minWidth: 0, minHeight: 52, borderRadius: 11, alignItems: 'center', justifyContent: 'center', gap: 2 },
   portionActive: { backgroundColor: colors.accent },
-  portionLabel: { color: colors.muted, fontSize: 13, fontWeight: '700' },
+  portionLabel: { ...typeScale.footnote, color: colors.muted, fontWeight: '700' },
   portionActiveText: { color: colors.onAccent },
-  portionMultiplier: { color: colors.muted, fontSize: 12, fontVariant: ['tabular-nums'] },
+  portionMultiplier: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
   confirmBlock: { gap: 8 },
-  confirmText: { color: colors.text, fontSize: 14, fontWeight: '700', textAlign: 'center' },
+  confirmText: { ...typeScale.subhead, color: colors.text, fontWeight: '700', textAlign: 'center' },
 });

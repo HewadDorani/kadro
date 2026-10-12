@@ -6,6 +6,7 @@ import { KandroMark } from '@/components/KandroMark';
 import { useAccess } from '@/context/AccessContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { typeScale } from '@/constants/theme';
 
 /**
  * A fresh install that just finished onboarding is a first use by
@@ -39,10 +40,10 @@ export default function AccessSetup() {
       {/* The plan was already built and shown; this is only a short hand-over. */}
       <View style={{ alignItems: 'center', gap: 16 }}>
         <KandroMark size={56} />
-        <Text accessibilityRole="header" style={{ color: colors.text, fontSize: 22, lineHeight: 28, fontWeight: '700', textAlign: 'center' }}>{t.access.settingUp}</Text>
+        <Text accessibilityRole="header" style={{ ...typeScale.title2, color: colors.text, fontWeight: '700', textAlign: 'center' }}>{t.access.settingUp}</Text>
       </View>
       {error ? <View style={{ gap: 10 }}>
-        <Text accessibilityRole="alert" style={{ color: colors.attentionText, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>{t.access.verify}</Text>
+        <Text accessibilityRole="alert" style={{ ...typeScale.callout, color: colors.attentionText, textAlign: 'center' }}>{t.access.verify}</Text>
         <PrimaryButton disabled={busy} label={busy ? t.common.moment : t.access.identityContinue} onPress={() => void finish(true)} />
         <PrimaryButton disabled={busy} variant="ghost" label={t.access.identitySkip} onPress={() => void finish(false)} />
       </View> : null}

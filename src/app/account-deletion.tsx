@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, PrimaryButton, Screen } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { accountDeletionErrorMessage, deleteKandroAccount } from '@/services/accountDeletion';
@@ -127,17 +127,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   heading: { gap: 10 },
   title: { color: colors.text, fontSize: 31, lineHeight: 37, fontWeight: '700', letterSpacing: -0.8 },
-  copy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  copy: { ...typeScale.subhead, color: colors.muted },
   warningCard: { flexDirection: 'row', gap: 12, backgroundColor: colors.attentionSoft, borderColor: colors.attention },
   warningCopy: { flex: 1, gap: 7 },
-  warningTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  warningText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  link: { color: colors.accentText, fontSize: 12, fontWeight: '800', textDecorationLine: 'underline' },
+  warningTitle: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  warningText: { ...typeScale.footnote, color: colors.muted },
+  link: { ...typeScale.caption, color: colors.accentText, fontWeight: '800', textDecorationLine: 'underline' },
   confirmRow: { minHeight: 74, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 15, flexDirection: 'row', alignItems: 'center', gap: 12 },
   checkbox: { width: 24, height: 24, borderRadius: 8, borderWidth: 1, borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
   checkboxSelected: { backgroundColor: colors.accentDeep, borderColor: colors.accentDeep },
-  confirmText: { flex: 1, color: colors.text, fontSize: 13, lineHeight: 19 },
-  error: { color: colors.attentionText, fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  confirmText: { ...typeScale.footnote, flex: 1, color: colors.text },
+  error: { ...typeScale.footnote, color: colors.attentionText, textAlign: 'center' },
   success: { flex: 1, minHeight: 440, alignItems: 'center', justifyContent: 'center', gap: 14 },
   successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
 });

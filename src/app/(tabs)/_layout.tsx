@@ -9,7 +9,7 @@ import { AppIntroduction } from '@/components/AppIntroduction';
 import { KandroMark } from '@/components/KandroMark';
 import { TAB_BAR_CONTENT_HEIGHT } from '@/constants/layout';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { scanShadow } from '@/constants/theme';
+import { scanShadow, typeScale } from '@/constants/theme';
 import { selectionHaptic } from '@/services/haptics';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -129,7 +129,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     display: 'none',
   },
   label: {
-    fontSize: 12,
+    ...typeScale.caption,
     fontWeight: '700',
     marginTop: 2,
   },

@@ -24,7 +24,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
-import { radii, spacing } from '@/constants/theme';
+import { radii, spacing, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { TAB_BAR_CONTENT_HEIGHT } from '@/constants/layout';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -467,10 +467,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     opacity: 0.42,
   },
   buttonText: {
+    ...typeScale.label,
     flexShrink: 1,
     textAlign: 'center',
     color: colors.text,
-    fontSize: 16,
     fontWeight: '700',
   },
   buttonTextLight: {
@@ -480,21 +480,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.text,
   },
   eyebrow: {
+    ...typeScale.eyebrow,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
   },
   lightText: {
     color: 'rgba(255,255,255,0.72)',
   },
   pageTitle: {
+    ...typeScale.display,
     color: colors.text,
-    fontSize: 34,
-    lineHeight: 39,
     fontWeight: '700',
-    letterSpacing: -1.1,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -502,11 +498,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
+    ...typeScale.title2,
     color: colors.text,
-    fontSize: 22,
-    lineHeight: 28,
     fontWeight: '700',
-    letterSpacing: -0.5,
   },
   progressTrack: {
     width: '100%',
@@ -540,8 +534,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 4,
   },
   macroLabel: {
+    ...typeScale.caption,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '600',
   },
   macroValue: {
@@ -553,14 +547,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 8,
   },
   macroTarget: {
+    ...typeScale.caption,
     color: colors.muted,
-    fontSize: 12,
     marginBottom: 7,
     fontVariant: ['tabular-nums'],
   },
   macroUnit: {
+    ...typeScale.caption,
     color: colors.muted,
-    fontSize: 12,
     fontWeight: '600',
   },
   confidence: {
@@ -577,8 +571,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.attentionSoft,
   },
   confidenceText: {
+    ...typeScale.caption,
     color: colors.success,
-    fontSize: 12,
     fontWeight: '700',
   },
   confidenceTextUncertain: {
@@ -592,8 +586,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   photoPlaceholder: { backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center', padding: 24 },
   photoPlaceholderIcon: { width: 70, height: 70, borderRadius: 26, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  photoPlaceholderTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 13 },
-  photoPlaceholderText: { color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 5, maxWidth: 260 },
+  photoPlaceholderTitle: { color: colors.text, fontSize: 18, lineHeight: 22, fontWeight: '700', marginTop: 13 },
+  photoPlaceholderText: { ...typeScale.footnote, color: colors.muted, textAlign: 'center', marginTop: 5, maxWidth: 260 },
   photo: {
     width: '100%',
     height: '100%',
@@ -608,8 +602,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 6,
   },
   demoBadgeText: {
+    ...typeScale.caption,
     color: colors.white,
-    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
   },

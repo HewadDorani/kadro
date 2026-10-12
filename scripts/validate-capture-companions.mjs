@@ -353,6 +353,7 @@ function reminderPreferencesHarness({ onboarding = true } = {}) {
   const Component = compile('src/components/ReminderPreferences.tsx', {
     '@/services/presentation': { usePresentationBlock() {} },
     '@expo/vector-icons/Ionicons': 'Icon',
+    '@/constants/theme': { typeScale: {} },
     react: hooks, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { Text: 'Text', View: 'View', Pressable: 'Pressable', Linking: { openSettings: async () => {} }, AppState: { addEventListener: (_, fn) => { listeners.add(fn); return { remove: () => listeners.delete(fn) }; } } },
     '@/components/ui': { Card: 'Card', PrimaryButton: 'PrimaryButton' },

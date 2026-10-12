@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, PrimaryButton } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import {
   AccountLinkState,
@@ -416,25 +416,25 @@ function Feedback({ error, message }: { error: string | null; message: string | 
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   appleButton: { width: '100%', height: 54 },
-  orText: { color: colors.muted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  orText: { ...typeScale.footnote, color: colors.muted, fontWeight: '600', textAlign: 'center' },
   card: { gap: 14 },
   linkedCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  loadingText: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  loadingText: { ...typeScale.caption, color: colors.muted, textAlign: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   icon: { width: 42, height: 42, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, color: colors.text, fontSize: 17, fontWeight: '700' },
-  body: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  title: { ...typeScale.headline, flex: 1, color: colors.text, fontWeight: '700' },
+  body: { ...typeScale.footnote, color: colors.muted },
   form: { gap: 10 },
   input: { minHeight: 52, borderRadius: radii.button, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 15, paddingHorizontal: 15 },
   emailPill: { minHeight: 42, borderRadius: radii.pill, backgroundColor: colors.surface, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  emailText: { flex: 1, color: colors.text, fontSize: 12, fontWeight: '600' },
+  emailText: { ...typeScale.caption, flex: 1, color: colors.text, fontWeight: '600' },
   textButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   centerButton: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
-  textButtonLabel: { color: colors.accentText, fontSize: 12, fontWeight: '700' },
+  textButtonLabel: { ...typeScale.caption, color: colors.accentText, fontWeight: '700' },
   feedback: { borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   errorFeedback: { backgroundColor: colors.attentionSoft },
   successFeedback: { backgroundColor: colors.accentSoft },
-  feedbackText: { flex: 1, fontSize: 12, lineHeight: 16 },
+  feedbackText: { ...typeScale.caption, flex: 1 },
   errorText: { color: colors.attentionText },
   successText: { color: colors.success },
 });

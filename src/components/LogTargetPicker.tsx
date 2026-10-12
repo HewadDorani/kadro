@@ -6,7 +6,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/ui';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useLocalDay } from '@/hooks/useLocalDay';
 import { Meal } from '@/types/nutrition';
@@ -120,18 +120,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: { minHeight: 56, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   rowPressed: { backgroundColor: colors.neutralSoft },
   rowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  rowLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  rowValue: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  rowAction: { color: colors.accentText, fontSize: 13, fontWeight: '700' },
+  rowLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '600' },
+  rowValue: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  rowAction: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
   scrim: { flex: 1, backgroundColor: 'rgba(20,21,15,0.42)' },
   sheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 20, paddingTop: 20, gap: 12 },
-  title: { color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
-  sectionLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  title: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
   chipScroll: { marginHorizontal: -20, flexGrow: 0 },
   chipRow: { paddingHorizontal: 20, gap: 8 },
   slotRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { minHeight: 44, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
   chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  chipText: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
   chipTextActive: { color: colors.onAccent },
 });

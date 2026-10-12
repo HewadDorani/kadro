@@ -7,7 +7,7 @@ import { KandroMark } from '@/components/KandroMark';
 import { Screen } from '@/components/ui';
 import { FREE_SCAN_ALLOWANCE } from '@/constants/product';
 import type { ThemeColors } from '@/constants/theme';
-import { radii } from '@/constants/theme';
+import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import { useFirstRun } from '@/hooks/useFirstRun';
@@ -107,16 +107,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: { flexGrow: 1, gap: 14, paddingTop: 28 },
   mark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   title: { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 },
-  subtitle: { color: colors.muted, fontSize: 16, lineHeight: 23 },
+  subtitle: { ...typeScale.body, color: colors.muted },
   options: { gap: 12, marginTop: 10 },
   option: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 14 },
   pressed: { transform: [{ scale: 0.985 }] },
   optionIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   optionCopy: { flex: 1, minWidth: 0, gap: 3 },
-  optionTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  optionDetail: { color: colors.muted, fontSize: 13, lineHeight: 18 },
+  optionTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
+  optionDetail: { ...typeScale.footnote, color: colors.muted },
   allowance: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 4, paddingHorizontal: 4 },
-  allowanceText: { flex: 1, color: colors.muted, fontSize: 13, lineHeight: 18 },
+  allowanceText: { ...typeScale.footnote, flex: 1, color: colors.muted },
   later: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 6 },
-  laterText: { color: colors.muted, fontSize: 15, fontWeight: '600', textDecorationLine: 'underline' },
+  laterText: { ...typeScale.callout, color: colors.muted, fontWeight: '600', textDecorationLine: 'underline' },
 });
