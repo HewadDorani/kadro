@@ -72,8 +72,9 @@ for (const hit of searchBlsCatalog('reis', 'de', 5)) {
 // --- Only a real match may end the search -----------------------------------
 assert.match(gateway, /const catalogueAnswered = catalogue\.some\(\(food\) => food\.strong\)/,
   'the gateway no longer distinguishes a real match from a prefix one');
-assert.match(gateway, /if \(catalogueOnly \|\| \(results\.length && catalogueAnswered\)\)/,
+assert.match(gateway, /if \(results\.length && catalogueAnswered\) \{/,
   'any catalogue hit ends the search again, however weak');
+assert.doesNotMatch(gateway, /if \(results\.length\) \{\s*appendWeak/, 'any catalogue hit ends the search again, however weak');
 // And a weak row must not sit above whatever the network found.
 assert.match(gateway, /else weakRows\.push/, 'weak rows are mixed in with the real results again');
 const appends = (gateway.match(/appendWeak\(\);/g) ?? []).length;

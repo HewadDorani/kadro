@@ -53,6 +53,8 @@ for (const path of ['server/index.mjs', 'supabase/functions/nutrition/index.ts']
   // The hosted gateway reads the shared OFF cache first and tries v2, then v0,
   // through small helpers; run those actual helpers with a cold cache.
   const lookup = loadFunction(path, 'lookupBarcode', gateway ? {
+    // No product-index row: the lookup must reach Open Food Facts as before.
+    readProductIndex: async () => null,
     readOffCache: async () => null, writeOffCache: async () => {}, offBarcodeCandidates, ModelError: Error,
     fetchOffProduct: loadFunction(path, 'fetchOffProduct', {
       OFF_PRODUCT_FIELDS, ProviderQuotaError: class extends Error {},

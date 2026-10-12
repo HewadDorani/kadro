@@ -699,12 +699,21 @@ async function analyzeLabel(input: any, signal?: AbortSignal): Promise<Result> {
  * That is faster than a provider round trip and keeps the visible name in the
  * reader's language. USDA and Open Food Facts remain fallbacks for products
  * the reference catalogue does not contain.
+ *
+ * Packaged products come from the German product index (public.products_de,
+ * an Open Food Facts export): one ranked database query, no provider call and
+ * no provider quota. Live Open Food Facts is asked only when the index is
+ * unavailable, empty or finds fewer than PRODUCT_INDEX_MIN_HITS products.
  */
 async function searchFoods(
   query: string,
   language: string,
   claimProvider?: (route: ProviderRoute) => Promise<void>,
   catalogueOnly = false,
+  // deno-lint-ignore no-explicit-any
+  admin?: any,
+  brands: string[] = [],
+  productsOnly = false,
 ): Promise<Result> {
   const term = normalizeSearchTerm(query);
   if (!isSearchQuery(term)) {
@@ -720,7 +729,17 @@ async function searchFoods(
   };
   const finish = (): Result => {
     if (!results.length && issues.length) return {status: issues[0].code === 'provider_rate_limited' ? 429 : 503, body:{code:issues[0].code}, headers:issues[0].retryAfter ? {'Retry-After':issues[0].retryAfter} : undefined};
-    return {status:200,body:{query:term,results:results.slice(0,60),searchStatus:issues.length?'partial':catalogueOnly?'catalogue':'complete',issues}};
+    return {status:200,body:{query:term,results:results.slice(0,60),products:hits.slice(0,PRODUCT_INDEX_LIMIT).map(publicProductHit),searchStatus:issues.length?'partial':catalogueOnly?'catalogue':'complete',issues}};
+  };
+  // Product view of the same answer (code, brand, stores, package, per 100 g)
+  // for clients that show packaged products; results stays as it was. A
+  // per-100 ml row is never offered as grams.
+  const hits: ProductHit[] = [];
+  const hitCodes = new Set<string>();
+  const addHit = (hit: ProductHit | null) => {
+    if (!hit || hit.basis !== 'g' || hitCodes.has(hit.code)) return;
+    hitCodes.add(hit.code);
+    hits.push(hit);
   };
   const seen = new Set<string>();
   const add = (entry: unknown, referenceId: string) => {
@@ -730,6 +749,39 @@ async function searchFoods(
     seen.add(referenceId);
     results.push(entry);
   };
+
+  // Packaged products: the German product index first (a database query; it
+  // claims no provider quota), live Open Food Facts — and its quota — only
+  // when the index is unavailable, empty or finds fewer than three.
+  const searchProducts = async () => {
+    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_LIMIT);
+    let massHits = 0;
+    for (const hit of indexed ?? []) {
+      addHit(hit);
+      const product = productIndexResult(hit);
+      if (product) { massHits += 1; add(product, product.id); }
+    }
+    if (indexed && massHits >= PRODUCT_INDEX_MIN_HITS) return;
+    try {
+      for (const product of await searchOpenFoodFacts(
+        term,
+        language,
+        claimProvider ? () => claimProvider('off_search') : undefined,
+      )) {
+        // deno-lint-ignore no-explicit-any
+        add(product, `off-${String((product as any)?.source?.referenceId ?? '')}`);
+        addHit(offSearchHit(product));
+      }
+    } catch (error) {
+      noteFailure(error);
+    }
+  };
+
+  // scope=products: what is on the shelf, even when the reference answers.
+  if (productsOnly) {
+    await searchProducts();
+    return finish();
+  }
 
   const catalogue = searchBlsCatalog(term, language, 60);
   // A hit that merely starts with the same letters is not an answer: "pho"
@@ -767,7 +819,21 @@ async function searchFoods(
   // search, though — a weak one keeps the catalogue entry and asks the network
   // as well, so the letters that happen to match cannot hide three million
   // products behind them.
-  if (catalogueOnly || (results.length && catalogueAnswered)) {
+  if (catalogueOnly) {
+    appendWeak(); return finish();
+  }
+  if (results.length && catalogueAnswered) {
+    // "Skyr" is answered by the reference, but the packs on the shelf are
+    // what people log. The index costs no provider call, so its best matches
+    // follow the first reference rows; live Open Food Facts is not asked.
+    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE);
+    const rest = results.splice(PRODUCT_INDEX_AFTER_CATALOGUE_POSITION);
+    for (const hit of indexed ?? []) {
+      addHit(hit);
+      const product = productIndexResult(hit);
+      if (product) add(product, product.id);
+    }
+    results.push(...rest);
     appendWeak(); return finish();
   }
 
@@ -776,18 +842,7 @@ async function searchFoods(
   // USDA does not, so sending its raw English descriptions here would recreate
   // the localization bug this catalogue is meant to remove.
   if (language === 'de') {
-    try {
-      for (const product of await searchOpenFoodFacts(
-        term,
-        language,
-        claimProvider ? () => claimProvider('off_search') : undefined,
-      )) {
-        // deno-lint-ignore no-explicit-any
-        add(product, `off-${String((product as any)?.source?.referenceId ?? '')}`);
-      }
-    } catch (error) {
-      noteFailure(error);
-    }
+    await searchProducts();
     appendWeak();
     return finish();
   }
@@ -826,18 +881,7 @@ async function searchFoods(
   // product long before they exist as a USDA entry. It is indexed in German
   // too, so it also answers the queries the translation above misses.
   if (results.length < 12) {
-    try {
-      for (const product of await searchOpenFoodFacts(
-        term,
-        language,
-        claimProvider ? () => claimProvider('off_search') : undefined,
-      )) {
-        // deno-lint-ignore no-explicit-any
-        add(product, `off-${String((product as any)?.source?.referenceId ?? '')}`);
-      }
-    } catch (error) {
-      noteFailure(error);
-    }
+    await searchProducts();
   }
 
   appendWeak();
@@ -897,6 +941,7 @@ async function searchOpenFoodFacts(
         per100g,
         defaultGrams: 100,
         portions: offMassPortions(product),
+        brand,
         source: { provider: 'open-food-facts', referenceId: String(product.code), label: `Open Food Facts ${product.code}` },
       });
       if (out.length >= 5) break;
@@ -1118,6 +1163,10 @@ async function lookupBarcode(barcode: string, language: string, claimOff?: () =>
   if (!/^\d{7,14}$/.test(barcode)) {
     return { status: 400, body: { code: 'invalid_barcode', message: 'Ungültiger Barcode.' } };
   }
+  // The German product index answers most German packs without a provider
+  // call; a missing, volume-based or unreachable row falls through to OFF.
+  const indexed = await readProductIndex(admin, barcode);
+  if (indexed) return indexed;
   const cached = await readOffCache(admin, barcode);
   if (cached) return cached.product ? barcodeResult(barcode, cached.product, language) : { status: 404, body: { code: 'product_not_found' } };
   let firstError: Result | null = null;
@@ -1136,6 +1185,181 @@ async function lookupBarcode(barcode: string, language: string, claimOff?: () =>
   }
   await writeOffCache(admin, barcode, null);
   return { status: 404, body: { code: 'product_not_found' } };
+}
+
+/**
+ * German product index (public.products_de): products sold in Germany from
+ * the Open Food Facts export (ODbL), ranked in Postgres by
+ * search_products_de. Reading it is a database query, not a provider call,
+ * so it claims no provider quota. Every failure (migration not applied,
+ * table empty, timeout) yields null and the caller asks live Open Food Facts.
+ */
+const PRODUCT_INDEX_LIMIT = 20;
+const PRODUCT_INDEX_MIN_HITS = 3;
+const PRODUCT_INDEX_AFTER_CATALOGUE = 8;
+const PRODUCT_INDEX_AFTER_CATALOGUE_POSITION = 10;
+
+type ProductHit = {
+  code: string;
+  name: string;
+  brand: string | null;
+  stores: string[];
+  /** Whether per100g is per 100 g or per 100 ml; ml is never shown as grams. */
+  basis: 'g' | 'ml';
+  packageG: number | null;
+  packageMl: number | null;
+  servingG: number | null;
+  per100g: { kcal: number; protein: number; carbs: number; fat: number; fiber?: number };
+  source: 'productdb' | 'off';
+};
+
+function optionalAmount(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+/** The client contract: grams only, amounts 1–5000, absent rather than null. */
+function publicProductHit(hit: ProductHit) {
+  const amount = (value: number | null) => value !== null && value >= 1 && value <= 5000 ? value : undefined;
+  return {
+    code: hit.code,
+    name: hit.name,
+    ...(hit.brand ? { brand: hit.brand } : {}),
+    ...(hit.stores.length ? { stores: hit.stores } : {}),
+    ...(amount(hit.packageG) !== undefined ? { packageG: amount(hit.packageG) } : {}),
+    ...(amount(hit.servingG) !== undefined ? { servingG: amount(hit.servingG) } : {}),
+    per100g: hit.per100g,
+    source: hit.source,
+  };
+}
+
+/** A products_de row, checked like any provider payload before it is used. */
+// deno-lint-ignore no-explicit-any
+function productIndexHit(row: any): ProductHit | null {
+  const code = String(row?.code ?? '');
+  const name = typeof row?.name === 'string' ? row.name.replace(/\s+/g, ' ').trim() : '';
+  const [kcal, protein, carbs, fat] = [row?.kcal, row?.protein, row?.carbs, row?.fat].map((value) => value === null || value === undefined || value === '' ? NaN : Number(value));
+  if (!/^\d{7,14}$/.test(code) || !name || name.length > 130) return null;
+  if (![kcal, protein, carbs, fat].every((value) => Number.isFinite(value) && value >= 0)) return null;
+  // Same rule as the app: an empty energy value must not look like a real zero.
+  if (kcal === 0 && protein * 4 + carbs * 4 + fat * 9 > 5) return null;
+  const fiber = row?.fiber === null || row?.fiber === undefined ? null : Number(row.fiber);
+  const brand = typeof row?.brand === 'string' && row.brand.trim() && row.brand.length <= 60 ? row.brand.trim() : null;
+  const basis = row?.basis === 'ml' ? 'ml' : 'g';
+  const servingG = optionalAmount(row?.serving_g);
+  return {
+    code,
+    name,
+    brand,
+    stores: Array.isArray(row?.stores) ? row.stores.filter((store: unknown) => typeof store === 'string').slice(0, 10) : [],
+    basis,
+    packageG: optionalAmount(row?.package_g),
+    packageMl: optionalAmount(row?.package_ml),
+    servingG: basis === 'g' && servingG !== null && servingG <= 2000 ? servingG : null,
+    per100g: { kcal, protein, carbs, fat, ...(fiber !== null && Number.isFinite(fiber) && fiber >= 0 ? { fiber } : {}) },
+    source: 'productdb',
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+async function searchProductIndex(admin: any, term: string, brands: string[], limit: number): Promise<ProductHit[] | null> {
+  if (!admin) return null;
+  try {
+    const { data, error } = await admin
+      .rpc('search_products_de', { q: term, brands: brands.length ? brands : null, lim: limit })
+      .abortSignal(AbortSignal.timeout(2500));
+    if (error || !Array.isArray(data)) return null;
+    // The same pack is often recorded under several codes (sizes, relaunches);
+    // identical name, brand and label values are shown once.
+    const seen = new Set<string>();
+    return data.map(productIndexHit).filter((hit: ProductHit | null): hit is ProductHit => {
+      if (!hit) return false;
+      const key = [hit.name.toLowerCase(), hit.brand?.toLowerCase() ?? '', hit.basis, hit.per100g.kcal, hit.per100g.protein, hit.per100g.carbs, hit.per100g.fat].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** The search row the app already understands; grams only. */
+function productIndexResult(hit: ProductHit) {
+  if (hit.basis !== 'g') return null;
+  const { brand, name } = hit;
+  return {
+    id: `off-${hit.code}`,
+    name: brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${name} (${brand})` : name,
+    per100g: {
+      calories: hit.per100g.kcal,
+      protein: hit.per100g.protein,
+      carbs: hit.per100g.carbs,
+      fat: hit.per100g.fat,
+      ...(hit.per100g.fiber !== undefined ? { fiber: hit.per100g.fiber } : {}),
+    },
+    defaultGrams: 100,
+    portions: hit.servingG ? [{ label: `${hit.servingG} g`, grams: hit.servingG }] : [],
+    brand,
+    packageGrams: hit.packageG,
+    // The values are Open Food Facts data (ODbL); the code identifies the record.
+    source: { provider: 'open-food-facts', referenceId: hit.code, label: `Open Food Facts ${hit.code}` },
+  };
+}
+
+/** The hit view of a live Open Food Facts search row. */
+// deno-lint-ignore no-explicit-any
+function offSearchHit(product: any): ProductHit | null {
+  const code = String(product?.source?.referenceId ?? '');
+  const per100g = product?.per100g;
+  if (!/^\d{7,14}$/.test(code) || !per100g) return null;
+  return {
+    code,
+    name: String(product.name ?? ''),
+    brand: typeof product.brand === 'string' ? product.brand : null,
+    stores: [],
+    basis: 'g',
+    packageG: optionalAmount(product.packageGrams),
+    packageMl: null,
+    servingG: optionalAmount(product.portions?.[0]?.grams),
+    per100g: {
+      kcal: per100g.calories, protein: per100g.protein, carbs: per100g.carbs, fat: per100g.fat,
+      ...(per100g.fiber !== undefined ? { fiber: per100g.fiber } : {}),
+    },
+    source: 'off',
+  };
+}
+
+/** Barcode answer from the product index, in the barcode route's shape. */
+// deno-lint-ignore no-explicit-any
+async function readProductIndex(admin: any, barcode: string): Promise<Result | null> {
+  if (!admin) return null;
+  try {
+    const { data, error } = await admin.from('products_de')
+      .select('code, name, brand, stores, basis, package_g, package_ml, serving_g, kcal, protein, carbs, fat, fiber')
+      .in('code', offBarcodeCandidates(barcode))
+      .limit(1)
+      .abortSignal(AbortSignal.timeout(2000));
+    const hit = !error && Array.isArray(data) ? productIndexHit(data[0]) : null;
+    if (!hit || hit.basis !== 'g') return null;
+    const result = productIndexResult(hit)!;
+    return {
+      status: 200,
+      body: {
+        barcode,
+        name: result.name,
+        nameMissing: false,
+        brand: hit.brand,
+        packageGrams: hit.packageG,
+        per100g: result.per100g,
+        portions: result.portions,
+        source: { provider: 'open-food-facts', referenceId: barcode, label: `Open Food Facts ${barcode}` },
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** An Open Food Facts serving size, when it is a weight anyone would trust. */
@@ -1299,7 +1523,10 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
     if (route === '/v1/search') {
       const params = new URL(request.url).searchParams;
       try {
-        return reply(await searchCache.get(await captureFingerprint([SEARCH_VERSION, data.user.id, params.get('q'), params.get('language'), params.get('scope')]), () => searchFoods(
+        // Optional brand hints ("brands=Milbona,Pilos"; ≤30, each ≤40 chars): ranking boost only.
+        const brands = [...new Set(params.getAll('brands').flatMap((value) => value.split(','))
+          .map((value) => value.replace(/\s+/g, ' ').trim()).filter((value) => value.length >= 2 && value.length <= 40))].slice(0, 30);
+        return reply(await searchCache.get(await captureFingerprint([SEARCH_VERSION, data.user.id, params.get('q'), params.get('language'), params.get('scope'), brands]), () => searchFoods(
           params.get('q') ?? '',
           requestedLanguage({ language: params.get('language') }),
           (providerRoute) => claimProviderRequest(
@@ -1309,6 +1536,9 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
             networkHash,
           ),
           params.get('scope') === 'catalogue',
+          context.supabaseAdmin,
+          brands,
+          params.get('scope') === 'products',
         ), (result: Result) => result.status === 200 && result.body.searchStatus !== 'partial', (result: Result) => (result.body.results as unknown[]).length === 0));
       } catch (error) {
         if (error instanceof ProviderQuotaError) return reply(error.result);
