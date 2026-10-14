@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0.4",
+    "version": "1.0.5",
     "copyright": "2026 Hewad Dorani",
     "categories": [
       "HEALTH_AND_FITNESS",
@@ -28,7 +28,7 @@
           "kcal",
           "gym"
         ],
-        "releaseNotes": "Kandro now tells you even faster what fits next.\n\n• Start right away: log your first meal by photo, voice or text straight after setup\n• Unclear amount? Kandro suggests a typical portion instead of stopping\n• Log meals for earlier days and look back at past days\n• Favorites: log your go-to meals again with one tap\n• Reminders with what you really have left, e.g. “820 kcal left”\n• A weekly goal instead of pressure: 4 out of 7 days is enough\n• Dark mode follows your iPhone, larger text and better readability",
+        "releaseNotes": "Small improvements for reliability:\n\n• More robust subscription and purchase flow\n• Polish for layout and reminders",
         "promoText": "782 kcal left and no idea what to eat? Kandro tells you what fits next: three dishes for the rest of your day – at home, from the supermarket or on the go.",
         "marketingUrl": "https://getkandro.com/en/",
         "supportUrl": "https://getkandro.com/en/support",
@@ -54,7 +54,7 @@
           "tagebuch",
           "kcal"
         ],
-        "releaseNotes": "Kandro sagt dir jetzt noch schneller, was als Nächstes passt.\n\n• Direkt loslegen: deine erste Mahlzeit gleich nach dem Start per Foto, Sprache oder Text erfassen\n• Unklare Menge? Kandro schlägt eine typische Portion vor, statt abzubrechen\n• Mahlzeiten nachtragen und frühere Tage ansehen\n• Favoriten: deine Lieblingsmahlzeiten mit einem Tipp erneut eintragen\n• Erinnerungen mit deinem echten Rest, z. B. „Noch 820 kcal übrig“\n• Wochenziel statt Druck: 4 von 7 Tagen reichen\n• Dunkelmodus folgt deinem iPhone, größere Schrift und bessere Lesbarkeit",
+        "releaseNotes": "Kleine Verbesserungen für mehr Zuverlässigkeit:\n\n• Stabilere Abo- und Kaufabläufe\n• Feinschliff bei Darstellung und Erinnerungen",
         "promoText": "782 kcal übrig und keine Idee? Kandro sagt dir, was als Nächstes passt: drei Gerichte für deinen restlichen Tag – zu Hause, aus dem Supermarkt oder unterwegs.",
         "marketingUrl": "https://getkandro.com/",
         "supportUrl": "https://getkandro.com/support",
