@@ -138,7 +138,7 @@ function paywallFixture({ days = 7, eligible = true, mode = 'native-store', hard
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: dict, locale: 'en-GB' }) }, '@/services/haptics': { successHaptic() {} },
     '@/services/reminders': { TRIAL_REMINDER_LEAD_DAYS: 2, getReminderPermission: async () => permission, requestReminderPermission: async () => { permissionRequests.push(permission); return 'authorized'; } },
     '@/utils/format': { formatNumber: n => String(n) }, '@/utils/units': { formatWeight: kg => kg + ' kg' },
-    '@/services/telemetry': { toBillingMode: x => x, trackEvent() {} }, '@/services/paywallExposure': { markPaywallShown() {} },
+    '@/services/telemetry': { toBillingMode: x => x, trackEvent() {} }, '@/services/paywallExposure': { markPaywallShown() {}, markPurchaseStep() {} },
   }).default;
   const render = () => h.render(screen);
   const cards = tree => nodes(tree).filter(n => n.type?.name === 'PlanCard');

@@ -88,3 +88,11 @@ group by 1 order by 2 desc;
 - Meal timing uses the client-provided `saved_at`.
 - `paywall_shown` starts with the app build that calls `mark_paywall_shown`.
   Earlier cohorts show 0.
+
+## Paywall purchase steps (2026-10-14)
+
+`private.paywall_steps_daily` counts, per signup day, accounts that saw the paywall, tapped the purchase button, cancelled Apple's sheet, failed, are pending, or completed a purchase. Recorded server-side for everyone (first occurrence per account and step, no plan/price data), so it does not depend on the analytics opt-in.
+
+```sql
+select * from private.paywall_steps_daily order by signup_day desc;
+```

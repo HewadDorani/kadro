@@ -21,7 +21,7 @@ import { finishFirstRunOffer } from '@/services/firstRun';
 import { successHaptic } from '@/services/haptics';
 import { TRIAL_REMINDER_LEAD_DAYS, getReminderPermission, requestReminderPermission, type ReminderPermission } from '@/services/reminders';
 import { toBillingMode, trackEvent } from '@/services/telemetry';
-import { markPaywallShown } from '@/services/paywallExposure';
+import { markPaywallShown, markPurchaseStep } from '@/services/paywallExposure';
 
 /** The close button arrives after a short, calm moment; only an enforced lock (hard wall, old B) without usable access has none. */
 const CLOSE_DELAY_MS = 2500;
@@ -134,8 +134,10 @@ export default function PaywallScreen() {
     if (busy) return;
     setCancelled(false);
     trackEvent('subscription purchase started', { billing_mode: billingMode, plan: selected });
+    if (!testStore) markPurchaseStep('started');
     const result = await purchase(selected);
     trackEvent('subscription purchase ended', { billing_mode: billingMode, plan: selected, outcome: result });
+    if (!testStore) markPurchaseStep(result);
     if (result === 'cancelled') { setCancelled(true); return; }
     if (result !== 'active') return;
     trackEvent('subscription purchase completed', { billing_mode: billingMode, plan: selected, purchase_kind: selectedPlan?.hasFreeTrial ? 'trial' : 'paid' });

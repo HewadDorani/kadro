@@ -116,7 +116,7 @@ function paywall({ hard, hardWall: wall, canUse = false, trial = true, reason })
     '@/hooks/useFirstRun': { useFirstRun: () => null }, '@/services/firstRun': { finishFirstRunOffer: async () => {} },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: dict, locale: 'en-GB' }) }, '@/services/haptics': { successHaptic() {} },
     '@/services/reminders': { TRIAL_REMINDER_LEAD_DAYS: 2, getReminderPermission: async () => 'authorized', requestReminderPermission: async () => 'authorized' },
-    '@/services/telemetry': { toBillingMode: x => x, trackEvent() {} }, '@/services/paywallExposure': { markPaywallShown: context => shown.push(context) },
+    '@/services/telemetry': { toBillingMode: x => x, trackEvent() {} }, '@/services/paywallExposure': { markPaywallShown: context => shown.push(context), markPurchaseStep: step => shown.push('step:' + step) },
   }).default;
   h.render(screen); const tree = h.render(screen);
   return { tree, shown, back, all: nodes(tree), texts: texts(tree) };

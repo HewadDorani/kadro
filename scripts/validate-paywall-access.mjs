@@ -63,4 +63,14 @@ assert.match(exposure,/revoke all on function public\.mark_paywall_shown\(text\)
 assert.doesNotMatch(exposure,/grant [^;]+ to anon/);
 const paywallScreen=fs.readFileSync(new URL('../src/app/paywall.tsx',import.meta.url),'utf8');
 assert.match(paywallScreen,/paywallViewed\.current = true;\s*markPaywallShown\(/,'paywall marks its first sighting once per mount');
+// Purchase steps (2026-10-14): same idempotent per-account record, no plan or price data.
+const steps=fs.readFileSync(new URL('../supabase/migrations/20261014170000_paywall_purchase_steps.sql',import.meta.url),'utf8');
+assert.match(steps,/'purchase_started', 'purchase_cancelled', 'purchase_failed', 'purchase_pending', 'purchase_completed'/);
+assert.match(steps,/on conflict \(user_id, context\) do nothing/);
+assert.match(steps,/revoke all on private\.paywall_steps_daily from public, anon, authenticated;/);
+assert.doesNotMatch(steps,/grant [^;]+ to anon/);
+assert.doesNotMatch(steps.replace(/--[^\n]*/g,''),/price|plan_id|amount/i,'purchase steps store no plan or price');
+assert.match(paywallScreen,/markPurchaseStep\('started'\);[\s\S]*?await purchase\(selected\);[\s\S]*?markPurchaseStep\(result\);/,'paywall records start and outcome of every real store purchase');
+const exposureClient=fs.readFileSync(new URL('../src/services/paywallExposure.ts',import.meta.url),'utf8');
+assert.match(exposureClient,/outcome === 'cancelled' \? 'purchase_cancelled'/);
 console.log('PASS access states, protected entry routes, legal/history access, safe return intent, stable B, free fallback, account race and per-meal authorization; actual client modules with local mocked boundaries.');
