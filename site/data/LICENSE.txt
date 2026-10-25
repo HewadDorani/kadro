@@ -1,14 +1,16 @@
 Kandro – Supermarkt-Produktdatenauszug / supermarket product extract
 ====================================================================
 
-supermarket-products.json is a derivative database of Open Food Facts
+supermarket-products.json (Germany), supermarket-products.gb.json (United
+Kingdom) and supermarket-products.us.json (United States) are derivative
+databases of Open Food Facts
 (https://world.openfoodfacts.org), made available under the
 Open Database License (ODbL) v1.0: https://opendatacommons.org/licenses/odbl/1-0/
 Individual contents: Database Contents License (DbCL) v1.0:
 https://opendatacommons.org/licenses/dbcl/1-0/
 
-Five loose fruit entries (source "BLS 4.0") come from the German
-Bundeslebensmittelschlüssel and are included for completeness.
+A few loose fruit entries (source "BLS 4.0") come from the German
+Bundeslebensmittelschlüssel (CC BY 4.0) and are included for completeness.
 
 You may share, create and adapt this database under the ODbL terms
 (attribution, share-alike, keep open). Nutrition values are label values as

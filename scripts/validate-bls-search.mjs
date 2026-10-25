@@ -80,11 +80,11 @@ assert.match(searchFn, /searchBlsCatalog\(term, language, 60\)/, 'the gateway mu
 // the search hid every product Open Food Facts has behind four letters.
 assert.match(searchFn, /if \(catalogueOnly\) \{\s*appendWeak\(\); return finish\(\)/,
   'the catalogue-only scope must finish without any further lookup');
-// A real match may add the German product index (one database query, no
+// A real match may add the regional product index (one database query, no
 // provider, no quota) but must still finish without a provider round trip.
 const answered = searchFn.slice(searchFn.indexOf('if (results.length && catalogueAnswered) {'), searchFn.indexOf("if (language === 'de')"));
 assert.ok(answered.length > 50, 'could not locate the catalogue-answered branch');
-assert.match(answered, /searchProductIndex\(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE\)/, 'packs on the shelf follow a real catalogue match');
+assert.match(answered, /searchProductIndex\(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE, indexMarket\)/, 'packs on the shelf (of the reader\'s region) follow a real catalogue match');
 assert.match(answered, /appendWeak\(\); return finish\(\)/, 'a real catalogue match must finish');
 assert.doesNotMatch(answered, /claimProvider|searchOpenFoodFacts|searchUsdaFoods/,
   'a real catalogue match must finish without a provider round trip');

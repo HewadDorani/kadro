@@ -12,7 +12,8 @@ import { hasRecipe } from '@/services/recipes';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { recordRecommendationFeedback, recordRecommendationSet } from '@/services/cloudRepository';
 import { recommendMeals } from '@/services/recommendations';
-import { ComboPortion, comboSearchEntries, productDisplayName, StoreId, SUPERMARKET_DATA, supermarketCombos, SupermarketCombo } from '@/services/supermarketCombos';
+import { ComboPortion, comboSearchEntries, productDisplayName, StoreId, supermarketCombos, SupermarketCombo, supermarketDataset } from '@/services/supermarketCombos';
+import { useMarketRegion } from '@/services/region';
 import { SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
 import { trackEvent } from '@/services/telemetry';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -28,9 +29,12 @@ export default function PlanScreen() {
   const router = useRouter();
   const { consumed, freeScansLeft, hasLoggedScan, logPlannedMeal, profile, remaining, startPlannedDraft, targets } = useApp();
   const { language, locale, t } = useLanguage();
+  // Supermarkt follows the shopping region: Tesco in the UK, Walmart in the US.
+  const region = useMarketRegion();
+  const marketData = supermarketDataset(region);
   const contexts: { id: MealContext; title: string; detail: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'home', title: t.plan.ctxHome, detail: t.plan.ctxHomeDetail, icon: 'home-outline' },
-    { id: 'supermarket', title: t.plan.ctxMarket, detail: t.plan.ctxMarketDetail, icon: 'basket-outline' },
+    { id: 'supermarket', title: t.plan.ctxMarket, detail: t.plan.ctxMarketStores[region], icon: 'basket-outline' },
     { id: 'eating-out', title: t.plan.ctxOut, detail: t.plan.ctxOutDetail, icon: 'restaurant-outline' },
   ];
   const { status: subscriptionStatus } = useSubscription();
@@ -58,8 +62,8 @@ export default function PlanScreen() {
   // Supermarkt shows real products. The dish catalogue stays the fallback if
   // the bundled product data ever cannot fill three baskets.
   const combos = useMemo(
-    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences) : []),
-    [profile.preferences, remaining, selected],
+    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences, marketData.products) : []),
+    [marketData, profile.preferences, remaining, selected],
   );
   const marketMode = selected === 'supermarket' && combos.length === 3;
   const options: { id: string; calories: number; protein: number }[] = marketMode ? combos : suggestions;
@@ -378,7 +382,7 @@ export default function PlanScreen() {
           {marketMode ? (
             <>
               <Text style={styles.catalogNote}>{t.plan.marketNote}</Text>
-              <Text style={styles.catalogNote}>{t.plan.marketAttribution(formatDataDate(SUPERMARKET_DATA.fetchedAt, locale))}</Text>
+              <Text style={styles.catalogNote}>{t.plan.marketAttribution(formatDataDate(marketData.fetchedAt, locale))}</Text>
             </>
           ) : (
             <Text style={styles.catalogNote}>{t.plan.catalogNote}</Text>

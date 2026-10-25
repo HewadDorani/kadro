@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Builds src/data/supermarketProducts.json: real packaged products from German
- * supermarkets for the Plan → Supermarkt combos.
+ * Builds the bundled supermarket datasets for the Plan → Supermarkt combos,
+ * one per shopping market (src/services/region.ts):
+ *   --market de → src/data/supermarketProducts.json     (Germany, German label)
+ *   --market gb → src/data/supermarketProducts.gb.json  (United Kingdom, English label)
+ *   --market us → src/data/supermarketProducts.us.json  (United States, English label)
+ * Each is also published under ODbL in site/data/.
  *
  * Source: Open Food Facts (ODbL 1.0 database, DbCL 1.0 contents). Discovery
  * runs against the public search service (search.openfoodfacts.org) restricted
- * to products sold in Germany with a German label; every candidate is then
+ * to products sold in the market with a label in its language; every candidate is then
  * re-read by barcode from the product API, and only that record is used.
  * Loose fruit and vegetables have no barcode; those few rows come from the
  * bundled BLS 4.0 snapshot with the app's existing typical piece weights
@@ -23,7 +27,7 @@
  *   from the brand.
  * - At most one request per second, identified as Kandro.
  *
- * Usage: node scripts/build-supermarket-products.mjs [--cache <dir>] [--date YYYY-MM-DD]
+ * Usage: node scripts/build-supermarket-products.mjs [--market de|gb|us] [--cache <dir>] [--date YYYY-MM-DD]
  * Raw responses are cached (default: $TMPDIR/kandro-off-cache) so a rerun
  * after a network hiccup does not hit Open Food Facts again.
  */
@@ -35,7 +39,6 @@ import { fileURLToPath } from 'node:url';
 import { BLS_SEARCH_ROWS } from '../supabase/functions/_shared/bls-search-data.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUTPUT = resolve(root, 'src/data/supermarketProducts.json');
 const USER_AGENT = 'Kandro/1.0 (getkandro.com)';
 const SEARCH = 'https://search.openfoodfacts.org/search';
 const PRODUCT = 'https://world.openfoodfacts.org/api/v2/product';
@@ -47,6 +50,19 @@ const argument = (name) => {
 };
 const CACHE = argument('--cache') ?? join(tmpdir(), 'kandro-off-cache');
 const FETCHED = argument('--date') ?? new Date().toISOString().slice(0, 10);
+const MARKET = argument('--market') ?? 'de';
+/** Per market: OFF country, label language, output files, and discovery hints only that market has. */
+const MARKETS = {
+  de: { country: 'en:germany', lang: 'de', output: 'src/data/supermarketProducts.json', site: 'site/data/supermarket-products.json',
+    attribution: 'Produktdaten: Open Food Facts (openfoodfacts.org), ODbL 1.0' },
+  gb: { country: 'en:united-kingdom', lang: 'en', output: 'src/data/supermarketProducts.gb.json', site: 'site/data/supermarket-products.gb.json',
+    attribution: 'Product data: Open Food Facts (openfoodfacts.org), ODbL 1.0' },
+  us: { country: 'en:united-states', lang: 'en', output: 'src/data/supermarketProducts.us.json', site: 'site/data/supermarket-products.us.json',
+    attribution: 'Product data: Open Food Facts (openfoodfacts.org), ODbL 1.0' },
+};
+if (!MARKETS[MARKET]) throw new Error(`--market must be one of ${Object.keys(MARKETS).join(', ')}`);
+const MARKET_CONFIG = MARKETS[MARKET];
+const OUTPUT = resolve(root, MARKET_CONFIG.output);
 mkdirSync(CACHE, { recursive: true });
 
 // --- polite fetch ---------------------------------------------------------
@@ -74,7 +90,7 @@ async function politeJson(url) {
 }
 
 // --- discovery ------------------------------------------------------------
-const GERMANY = 'countries_tags:"en:germany" AND lang:"de"';
+const MARKET_FILTER = `countries_tags:"${MARKET_CONFIG.country}" AND lang:"${MARKET_CONFIG.lang}"`;
 const cat = (tag) => `categories_tags:"${tag}"`;
 /**
  * Each query names what we are looking for; `limit` is the number of most
@@ -103,16 +119,21 @@ const QUERIES = [
   { q: cat('en:chickpeas'), limit: 12 },
   { q: cat('en:falafels'), limit: 12 },
   { q: cat('en:mozzarella'), limit: 15 },
-  { q: 'Harzer', limit: 10 },
+  ...(MARKET === 'de' ? [{ q: 'Harzer', limit: 10 }] : []),
   { q: cat('en:wraps'), limit: 30 },
   { q: `${cat('en:sandwiches')} AND NOT ${cat('en:breads')}`, limit: 60 },
-  { q: 'brands_tags:"rewe-to-go"', limit: 80 },
+  ...(MARKET === 'de' ? [{ q: 'brands_tags:"rewe-to-go"', limit: 80 }] : []),
+  ...(MARKET === 'gb' ? [{ q: 'meal deal', limit: 40 }, { q: cat('en:greek-style-yogurts'), limit: 30 }] : []),
+  ...(MARKET === 'us' ? [{ q: cat('en:greek-yogurts'), limit: 50 }, { q: cat('en:string-cheese'), limit: 15 }, { q: cat('en:beef-jerky'), limit: 20 }] : []),
   { q: cat('en:pasta-salads'), limit: 15 },
   { q: cat('en:prepared-salads'), limit: 40, minProtein: 5 },
   { q: cat('en:microwave-meals'), limit: 40 },
-  // store own brands, high protein only
-  ...['milbona', 'milsani', 'ja', 'gut-gunstig', 'rewe-beste-wahl', 'k-classic', 'golden-seafood', 'rugenwalder-muhle', 'ehrmann', 'dulano', 'chef-select', 'vemondo', 'alpro']
-    .map((brand) => ({ q: `brands_tags:"${brand}"`, limit: 60, minProtein: 8 })),
+  // store own brands and protein brands of the market, high protein only
+  ...({
+    de: ['milbona', 'milsani', 'ja', 'gut-gunstig', 'rewe-beste-wahl', 'k-classic', 'golden-seafood', 'rugenwalder-muhle', 'ehrmann', 'dulano', 'chef-select', 'vemondo', 'alpro'],
+    gb: ['tesco', 'sainsbury-s', 'asda', 'morrisons', 'marks-spencer', 'm-s', 'waitrose', 'co-op', 'aldi', 'lidl', 'milbona', 'yeo-valley', 'arla', 'fage', 'grenade', 'fulfil', 'graze', 'quorn', 'alpro'],
+    us: ['great-value', 'kirkland-signature', 'trader-joe-s', '365-by-whole-foods-market', 'good-gather', 'simple-truth', 'kroger', 'friendly-farms', 'chobani', 'fairlife', 'oikos', 'siggi-s', 'quest', 'premier-protein', 'pure-protein', 'good-culture', 'tyson'],
+  }[MARKET]).map((brand) => ({ q: `brands_tags:"${brand}"`, limit: 60, minProtein: 8 })),
   // sides
   { q: cat('en:crispbreads'), limit: 15 },
   { q: cat('en:puffed-rice-cakes'), limit: 10 },
@@ -136,7 +157,7 @@ const QUERIES = [
 ];
 
 const PRODUCT_FIELDS = [
-  'code', 'product_name', 'product_name_de', 'brands', 'stores_tags', 'quantity', 'product_quantity', 'product_quantity_unit',
+  'code', 'product_name', 'product_name_de', 'product_name_en', 'ingredients_text_en', 'brands', 'stores_tags', 'quantity', 'product_quantity', 'product_quantity_unit',
   'serving_size', 'serving_quantity', 'serving_quantity_unit', 'nutrition_data_per', 'nutriments', 'categories_tags', 'labels_tags',
   'ingredients_analysis_tags', 'allergens_tags', 'ingredients_text_de', 'ingredients_text', 'ingredients_n', 'countries_tags', 'lang',
   'obsolete', 'unique_scans_n',
@@ -146,8 +167,8 @@ async function discover() {
   const candidates = new Map();
   for (const query of QUERIES) {
     const params = new URLSearchParams({
-      q: `(${query.q}) AND ${GERMANY}`,
-      fields: 'code,product_name,product_name_de,brands,quantity,nutriments,categories_tags,lang,unique_scans_n',
+      q: `(${query.q}) AND ${MARKET_FILTER}`,
+      fields: 'code,product_name,product_name_de,product_name_en,brands,quantity,nutriments,categories_tags,lang,unique_scans_n',
       sort_by: '-unique_scans_n',
       page_size: String(Math.min(100, query.limit * 2)),
     });
@@ -160,7 +181,7 @@ async function discover() {
       // Cheap pre-filter on the search record, so only plausible products
       // cost a product-API request. The product record is checked again.
       const nutrients = per100g(hit.nutriments ?? {});
-      const name = displayName({ ...hit, lang: hit.lang ?? 'de' });
+      const name = displayName({ ...hit, lang: hit.lang ?? MARKET_CONFIG.lang });
       if (!nutrients || !atwaterOk(nutrients) || !name || isVolume(hit)) continue;
       const category = classify(hit, name);
       if (!category || !categoryPlausible(category, nutrients)) continue;
@@ -234,8 +255,8 @@ function packaging(product) {
     const single = quantity.match(/(\d+(?:\.\d+)?)\s*(g|kg)\b/i);
     if (single) packageG = Math.round(Number(single[1]) * (single[2].toLowerCase() === 'kg' ? 1000 : 1));
   }
-  // Eggs: "6 Stück" with a declared mass gives a per-piece weight from the label.
-  const pieces = quantity.match(/(\d{1,2})\s*(stück|stk|eier|st\.)/i);
+  // Eggs: "6 Stück" / "12 ct" with a declared mass gives a per-piece weight from the label.
+  const pieces = quantity.match(/(\d{1,2})\s*(stück|stk|eier|st\.|eggs|ct\b|count\b|pieces)/i);
   if (!unit && pieces && packageG && Number(pieces[1]) >= 2) unit = { g: Math.round(packageG / Number(pieces[1])), count: Number(pieces[1]) };
   if (packageG !== null && (packageG < 10 || packageG > 2500)) packageG = null;
   // OFF sometimes copies the whole pack into serving_size; only a real part counts.
@@ -247,7 +268,21 @@ function packaging(product) {
   return { packageG, unit, servingG: servingG === null ? null : Math.round(servingG) };
 }
 
-const STORES = {
+/** OFF store slug → store id, per market (display names: plan.marketStores). */
+const STORES_BY_MARKET = {
+  gb: {
+    tesco: 'tesco', 'tesco-extra': 'tesco', 'tesco-express': 'tesco', 'tesco-metro': 'tesco', 'sainsbury-s': 'sainsburys', sainsburys: 'sainsburys',
+    'sainsbury-s-local': 'sainsburys', asda: 'asda', morrisons: 'morrisons', 'marks-spencer': 'ms', 'marks-and-spencer': 'ms', 'm-s': 'ms',
+    'm-s-food': 'ms', waitrose: 'waitrose', 'waitrose-partners': 'waitrose', 'co-op': 'coop', 'the-co-operative': 'coop', 'co-operative': 'coop',
+    'coop': 'coop', aldi: 'aldi', 'aldi-uk': 'aldi', lidl: 'lidl', 'lidl-uk': 'lidl', iceland: 'iceland',
+  },
+  us: {
+    walmart: 'walmart', 'wal-mart': 'walmart', 'walmart-supercenter': 'walmart', costco: 'costco', 'trader-joe-s': 'traderjoes', 'trader-joes': 'traderjoes',
+    'whole-foods': 'wholefoods', 'whole-foods-market': 'wholefoods', target: 'target', 'super-target': 'target', kroger: 'kroger',
+    aldi: 'aldi', 'aldi-us': 'aldi', safeway: 'safeway', albertsons: 'albertsons',
+  },
+};
+const STORES = STORES_BY_MARKET[MARKET] ?? {
   lidl: 'lidl', 'lidl-deutschland': 'lidl',
   aldi: 'aldi', 'aldi-nord': 'aldi-nord', 'aldi-sud': 'aldi-sued', 'aldi-sued': 'aldi-sued', 'aldi-suid': 'aldi-sued',
   rewe: 'rewe', 'rewe-to-go': 'rewe', 'rewe-city': 'rewe', 'rewe-center': 'rewe',
@@ -268,7 +303,8 @@ const has = (product, field, tag) => (product[field] ?? []).includes(tag);
 const anyCategory = (product, tags) => tags.some((tag) => has(product, 'categories_tags', tag));
 
 function displayName(product) {
-  let name = String(product.product_name_de || (product.lang === 'de' ? product.product_name : '') || '').replace(/\s+/g, ' ').trim();
+  const lang = MARKET_CONFIG.lang;
+  let name = String(product[`product_name_${lang}`] || (product.lang === lang ? product.product_name : '') || '').replace(/\s+/g, ' ').trim();
   // Some records carry the barcode or a price in the name.
   name = name.replace(/\s*\b\d{8,14}\b\s*/g, ' ').replace(/[\u2013\u2014]/g, '-').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   if (!name) return null;
@@ -279,14 +315,24 @@ function displayName(product) {
 }
 function displayBrand(product) {
   const first = String(product.brands ?? '').split(',').map((part) => part.trim()).find((part) => /[a-zäöü]{2}/i.test(part));
-  return first ? first.replace(/\s+/g, ' ').slice(0, 40) : '';
+  if (!first) return '';
+  const brand = first.replace(/\s+/g, ' ').slice(0, 40);
+  // UK/US retailer feeds write brands in capitals ("TESCO", "RYVITA"); short marks ("M&S") stay.
+  if (MARKET_CONFIG.lang === 'en' && brand.length > 4 && brand === brand.toUpperCase() && /[A-Z]{3}/.test(brand)) {
+    return brand.toLowerCase().replace(/(^|[\s\-(&])([a-z])/g, (_m, lead, letter) => lead + letter.toUpperCase());
+  }
+  return brand;
 }
 
 /**
  * Not something to buy and eat now: needs an oven or a pan (raw patties,
  * fresh pasta, frozen food), is a filling or an ingredient, or is a sweet.
  */
-const NOT_READY = /tiefgefroren|tiefkühl|\btk\b|fischstäbchen|nuggets|burger|hot ?dogs?|patt(y|ies)|tortell|tortelin|maultasch|lasagne|easy-to-mix|bratwurst|brezel|focaccia|pizza|füllung|sour cream|müsli|muesli|gezuckert|geschält|schoko/i;
+const NOT_READY = new RegExp([
+  'tiefgefroren|tiefkühl|\\btk\\b|fischstäbchen|nuggets|burger|hot ?dogs?|patt(y|ies)|tortell|tortelin|maultasch|lasagne|easy-to-mix|bratwurst|brezel|focaccia|pizza|füllung|sour cream|müsli|muesli|gezuckert|geschält|schoko',
+  // English labels (UK/US datasets only, so the German build is unchanged).
+  ...(MARKET_CONFIG.lang === 'en' ? ['frozen|uncooked|\\braw\\b|fish fingers|sausages?\\b|pastry|granola|cereal|chocolate|candy|cookie|brownie|ice cream|\\bmix\\b|seasoning|\\bsauce\\b|dressing|\\bdip\\b|pancake'] : []),
+].join('|'), 'i');
 
 /** The product's own categories decide; the order resolves overlaps (skyr is also a cheese). */
 function classify(product, name) {
@@ -295,11 +341,11 @@ function classify(product, name) {
   if (anyCategory(product, ['en:hummus']) && !anyCategory(product, ['en:beverages'])) return 'hummus';
   if (anyCategory(product, ['en:beverages', 'en:dried-fruits', 'en:frozen-foods', 'en:juices', 'en:spreads', 'en:sweet-spreads'])) return null;
   if (NOT_READY.test(name) && !/protein|riegel|pudding/i.test(name)) return null;
-  if (/reiswaffel|knäcke/.test(lower)) return 'bread';
+  if (/reiswaffel|knäcke|rice cakes?|crispbread|rye crisp/.test(lower)) return 'bread';
   if (/tortilla wraps|wraps? \d|tortillas/.test(lower)) return 'bread';
   if (anyCategory(product, ['en:protein-bars']) || /proteinriegel|protein bar|protein-riegel|quarkriegel/.test(lower)) return 'protein-bar';
   if (anyCategory(product, ['en:skyrs'])) return 'skyr';
-  if (anyCategory(product, ['en:cottage-cheeses']) || /hüttenkäse|körniger frischkäse/.test(lower)) return 'cottage-cheese';
+  if (anyCategory(product, ['en:cottage-cheeses']) || /hüttenkäse|körniger frischkäse|cottage cheese/.test(lower)) return 'cottage-cheese';
   if (anyCategory(product, ['en:quarks']) || /\bquark\b|magerquark|speisequark/.test(lower)) return 'quark';
   if (anyCategory(product, ['en:puddings']) || /pudding/.test(lower)) return 'pudding';
   if (anyCategory(product, ['en:yogurts', 'en:plant-based-foods-and-beverages']) && /joghurt|yogurt|yoghurt|soja natur|skyr/.test(lower)) return 'yogurt';
@@ -307,7 +353,7 @@ function classify(product, name) {
   if (anyCategory(product, ['en:tunas'])) return 'tuna';
   if (anyCategory(product, ['en:smoked-fishes', 'en:mackerels', 'en:salmons', 'en:fishes'])) return 'fish';
   if (/jerky/.test(lower)) return 'jerky';
-  if (anyCategory(product, ['en:poultry-hams', 'en:chicken-breasts', 'en:turkey-breasts']) || /hähnchenbrust|putenbrust/.test(lower)) return 'poultry';
+  if (anyCategory(product, ['en:poultry-hams', 'en:chicken-breasts', 'en:turkey-breasts']) || /hähnchenbrust|putenbrust|chicken breast|turkey breast/.test(lower)) return 'poultry';
   if (anyCategory(product, ['en:boiled-eggs'])) return 'eggs';
   if (anyCategory(product, ['en:tofu', 'xx:tofu', 'en:smoked-tofu']) || /\btofu\b|räuchertofu/.test(lower)) return 'tofu';
   if (anyCategory(product, ['en:edamame', 'en:chickpeas', 'en:falafels'])) return 'legumes';
@@ -345,7 +391,7 @@ function categoryPlausible(category, nutrients) {
 
 const MEAT_FISH = new Set(['tuna', 'fish', 'jerky', 'poultry']);
 const DAIRY = new Set(['skyr', 'quark', 'cottage-cheese', 'pudding', 'yogurt', 'cheese']);
-const PORK = /schwein|speck|bacon|pork|gelatine|gelatin|schmalz|salami|schinken|wurst|\blard\b/i;
+const PORK = /schwein|speck|bacon|pork|gelatine|gelatin|schmalz|salami|schinken|wurst|\blard\b|\bham\b|sausage|pepperoni|chorizo|prosciutto|pancetta/i;
 
 /**
  * Conservative dietary flags. A flag is only set when the label or OFF's
@@ -356,7 +402,7 @@ function dietFlags(product, category) {
   const labels = product.labels_tags ?? [];
   const analysis = product.ingredients_analysis_tags ?? [];
   const allergens = product.allergens_tags ?? [];
-  const ingredients = String(product.ingredients_text_de || product.ingredients_text || '');
+  const ingredients = String(product[`ingredients_text_${MARKET_CONFIG.lang}`] || product.ingredients_text || '');
   const hasIngredients = ingredients.trim().length > 2 && Number(product.ingredients_n ?? 1) > 0;
   const flags = [];
   const vegan = !MEAT_FISH.has(category) && !DAIRY.has(category) && !allergens.some((tag) => ['en:milk', 'en:eggs', 'en:fish', 'en:crustaceans', 'en:molluscs'].includes(tag))
@@ -365,10 +411,10 @@ function dietFlags(product, category) {
   if (vegan) flags.push('vegan');
   if (vegetarian) flags.push('vegetarian');
   const lactoseLabel = labels.includes('en:no-lactose') || labels.includes('en:lactose-free');
-  if (lactoseLabel || vegan || (hasIngredients && !DAIRY.has(category) && !allergens.includes('en:milk') && !/milch|milk|sahne|butter|käse|joghurt|quark|molke|lactose|laktose/i.test(ingredients))) flags.push('lactose-free');
+  if (lactoseLabel || vegan || (hasIngredients && !DAIRY.has(category) && !allergens.includes('en:milk') && !/milch|milk|sahne|butter|käse|joghurt|quark|molke|lactose|laktose|cheese|cream|whey|yog(h)?urt|casein/i.test(ingredients))) flags.push('lactose-free');
   // Meat of unnamed species ("Fleisch", "Hack", "Gyros") may be pork; only
   // named poultry, fish or no meat at all counts.
-  const unnamedMeat = /(^|[^a-zäöüß])(fleisch|hackfleisch|hack|gyros|frikadell|leberkäse|döner)/i.test(ingredients);
+  const unnamedMeat = /(^|[^a-zäöüß])(fleisch|hackfleisch|hack|gyros|frikadell|leberkäse|döner|meat\b|mechanically separated)/i.test(ingredients);
   if (hasIngredients && !PORK.test(ingredients) && (vegetarian || !unnamedMeat)) flags.push('pork-free');
   return flags.sort();
 }
@@ -390,10 +436,12 @@ function produceRows() {
     if (!row) throw new Error(`BLS row ${entry.code} missing`);
     const [, nameDe, nameEn, kcal, protein, carbs, fat, fiber] = row;
     if (!new RegExp(entry.name.slice(0, 4), 'i').test(nameDe)) throw new Error(`BLS ${entry.code} is ${nameDe}, not ${entry.name}`);
+    const english = nameEn.replace(/,? raw$/i, '').replace(/^(\w)/, (letter) => letter.toUpperCase());
     return {
       id: `bls-${entry.code}`,
-      name: entry.name,
-      nameEn: nameEn.replace(/,? raw$/i, '').replace(/^(\w)/, (letter) => letter.toUpperCase()),
+      // UK/US datasets name loose fruit in English; the values stay BLS 4.0.
+      name: MARKET_CONFIG.lang === 'de' ? entry.name : english,
+      ...(MARKET_CONFIG.lang === 'de' ? { nameEn: english } : {}),
       brand: '',
       stores: [],
       unit: { g: entry.pieceG, count: 1, estimated: true },
@@ -404,6 +452,14 @@ function produceRows() {
       fetched: FETCHED,
     };
   });
+}
+
+const HALF_PACK = new Set(['skyr', 'quark', 'cottage-cheese', 'yogurt', 'tofu', 'legumes', 'poultry', 'fish', 'cheese', 'hummus', 'vegetable', 'salad', 'fruit-puree']);
+function eatablePortion(category, pack) {
+  if ((pack.servingG && pack.servingG <= 550) || (pack.unit && pack.unit.g <= 550)) return true;
+  if (!pack.packageG) return false;
+  if (category === 'tuna') return pack.packageG * 0.72 <= 550;
+  return pack.packageG <= 550 || (HALF_PACK.has(category) && pack.packageG / 2 <= 550);
 }
 
 // --- build ----------------------------------------------------------------
@@ -426,10 +482,10 @@ async function main() {
     const product = body?.status === 1 ? body.product : null;
     if (!product) { drop('not found'); continue; }
     if (product.obsolete === 'on' || product.obsolete === true) { drop('obsolete'); continue; }
-    if (!(product.countries_tags ?? []).includes('en:germany')) { drop('not sold in Germany'); continue; }
+    if (!(product.countries_tags ?? []).includes(MARKET_CONFIG.country)) { drop(`not sold in ${MARKET_CONFIG.country}`); continue; }
     if (isVolume(product)) { drop('volume label'); continue; }
     const name = displayName(product);
-    if (!name) { drop('no German name'); continue; }
+    if (!name) { drop(`no ${MARKET_CONFIG.lang} name`); continue; }
     const nutrients = per100g(product.nutriments);
     if (!nutrients) { drop('missing nutrients'); continue; }
     if (nutrients.kcal > 900 || nutrients.protein > 100 || nutrients.carbs > 100 || nutrients.fat > 100
@@ -440,6 +496,9 @@ async function main() {
     if (!categoryPlausible(category, nutrients)) { drop('implausible for category'); continue; }
     const pack = packaging(product);
     if (!pack.packageG && !pack.servingG && !pack.unit) { drop('no package size'); continue; }
+    // Mirrors productPortions in src/services/supermarketCombos.ts: a whole
+    // 800 g loaf without a labelled serving offers no amount anyone eats.
+    if (!eatablePortion(category, pack)) { drop('no eatable portion'); continue; }
     const brand = displayBrand(product);
     const key = `${slug(brand)}|${slug(name)}|${pack.packageG ?? pack.servingG}`;
     if (seenKeys.has(key)) { drop('duplicate'); continue; }
@@ -474,11 +533,14 @@ async function main() {
       off: { name: 'Open Food Facts', url: 'https://world.openfoodfacts.org', license: 'Open Database License (ODbL) 1.0; individual contents: Database Contents License (DbCL) 1.0' },
       bls: { name: 'Bundeslebensmittelschlüssel 4.0 (Max Rubner-Institut)', url: 'https://doi.org/10.25826/Data20251217-134202-0', license: 'CC BY 4.0' },
     },
-    attribution: 'Produktdaten: Open Food Facts (openfoodfacts.org), ODbL 1.0',
+    attribution: MARKET_CONFIG.attribution,
+    market: MARKET,
     fetchedAt: FETCHED,
     products: all,
   };
   writeFileSync(OUTPUT, `${JSON.stringify(dataset)}\n`);
+  // The same extract, published under ODbL on getkandro.com.
+  writeFileSync(resolve(root, MARKET_CONFIG.site), `${JSON.stringify(dataset)}\n`);
   const size = Buffer.byteLength(JSON.stringify(dataset));
   const storeCounts = {};
   for (const item of all) for (const store of item.stores) storeCounts[store] = (storeCounts[store] ?? 0) + 1;
