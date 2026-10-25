@@ -232,3 +232,18 @@ assert.match(migration, /md5\(pg_get_functiondef\('private\.paywall_access_v1\(u
 assert.doesNotMatch(migration, /enforcement_enabled\s*=\s*true|public_enabled\s*=\s*true/, 'the paused A/B test stays paused');
 check('wiring: onboarding cohort, sticky first meal, allowance counter, migration contract');
 console.log(`PASS ${passed.length} hard-paywall checks.`);
+
+// First-run search (2026-10-25): a free, AI-less way to the first result, and a quiet skip.
+{
+  const fs = await import('node:fs');
+  const firstScan = fs.readFileSync(new URL('../src/app/first-scan.tsx', import.meta.url), 'utf8');
+  const scanScreen = fs.readFileSync(new URL('../src/app/(tabs)/scan.tsx', import.meta.url), 'utf8');
+  const de = fs.readFileSync(new URL('../src/i18n/de.ts', import.meta.url), 'utf8');
+  const assertOk = (cond, msg) => { if (!cond) { console.error('FAIL ' + msg); process.exit(1); } };
+  assertOk(/mode: 'search', icon: 'search-outline'/.test(firstScan), 'first-scan offers food search');
+  assertOk(/mode === 'search' \? \{ mode, first: '1' \}/.test(firstScan), 'first-run search is marked for the result reveal');
+  assertOk(/laterText: \{ \.\.\.typeScale\.footnote/.test(firstScan) && !/textDecorationLine: 'underline'/.test(firstScan), 'skip link is quiet');
+  assertOk(/later: 'Ohne Probe weiter'/.test(de), 'skip copy says what it means');
+  assertOk(/if \(firstRunSearch && !added\.length\) \{[\s\S]*?applySearchResult\(pendingFood, grams\);[\s\S]*?confirmAfterSearchDismiss\.current = true;/.test(scanScreen), 'first pick goes through confirm and result');
+  console.log('PASS first-run search: free search option, confirm → result before the paywall, quiet skip');
+}

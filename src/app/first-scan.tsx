@@ -17,7 +17,7 @@ import { setFirstRunStage } from '@/services/firstRun';
 import { markHardWallUsed } from '@/services/hardWall';
 import { selectionHaptic } from '@/services/haptics';
 
-type Option = { mode: 'photo' | 'description'; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string };
+type Option = { mode: 'photo' | 'description' | 'search'; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string };
 
 /**
  * The first value comes before any offer: right after the plan, one real
@@ -45,6 +45,8 @@ export default function FirstScanScreen() {
     { mode: 'photo', icon: 'camera-outline', title: copy.photo, detail: copy.photoDetail },
     { mode: 'description', icon: 'mic-outline', title: copy.speak, detail: copy.speakDetail },
     { mode: 'description', icon: 'create-outline', title: copy.type, detail: copy.typeDetail },
+    // Free and instant: sceptics still reach the result ("what fits next") before any offer.
+    { mode: 'search', icon: 'search-outline', title: copy.search, detail: copy.searchDetail },
   ];
   const allowance = hardWall
     ? copy.trialScan
@@ -54,7 +56,7 @@ export default function FirstScanScreen() {
   const open = (mode: Option['mode']) => {
     if (leaving.current) return;
     void selectionHaptic();
-    router.replace({ pathname: '/(tabs)/scan', params: { mode } });
+    router.replace({ pathname: '/(tabs)/scan', params: mode === 'search' ? { mode, first: '1' } : { mode } });
   };
   const later = async () => {
     if (leaving.current) return;
@@ -117,6 +119,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   optionDetail: { ...typeScale.footnote, color: colors.muted },
   allowance: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 4, paddingHorizontal: 4 },
   allowanceText: { ...typeScale.footnote, flex: 1, color: colors.muted },
-  later: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 6 },
-  laterText: { ...typeScale.callout, color: colors.muted, fontWeight: '600', textDecorationLine: 'underline' },
+  // Deliberately quiet: skipping the sample means meeting the paywall without having seen a result.
+  later: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 10 },
+  laterText: { ...typeScale.footnote, color: colors.muted, fontWeight: '400' },
 });

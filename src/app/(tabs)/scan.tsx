@@ -60,7 +60,10 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
-  const { mode: requestedMode } = useLocalSearchParams<{ mode?: string }>();
+  const { mode: requestedMode, first } = useLocalSearchParams<{ mode?: string; first?: string }>();
+  // Search opened from the first-run screen: the first pick goes through confirm
+  // and the result reveal, like a photo would, so the value shows before any offer.
+  const firstRunSearch = first === '1';
   const [restoredInput] = useState(getScanInputState);
   const inputRevision = useRef(getScanInputRevision());
   const [mode, setMode] = useState<'photo' | 'description' | 'barcode' | 'search'>(
@@ -521,6 +524,15 @@ export default function ScanScreen() {
 
   const confirmPortion = (grams: number) => {
     if (!pendingFood) return;
+    if (firstRunSearch && !added.length) {
+      void successHaptic();
+      applySearchResult(pendingFood, grams);
+      setPendingFood(null); setPortionDraft(null);
+      confirmAfterSearchDismiss.current = true;
+      Keyboard.dismiss();
+      setShowSearch(false);
+      return;
+    }
     finishFood(pendingFood, grams);
   };
   const finishFood = (food: FoodSearchResult, grams: number) => {
