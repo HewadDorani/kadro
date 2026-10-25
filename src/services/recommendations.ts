@@ -4,6 +4,7 @@ import recipeStore from '@/data/recipes.json';
 import catalogDe from '@/data/mealCatalog.de.json';
 import catalogEn from '@/data/mealCatalog.en.json';
 import { getDictionary, getLanguage } from '@/i18n/active';
+import { meetsDiet, preferenceBonus } from '@/services/preferences';
 import { MealContext, MealSuggestion, Nutrition } from '@/types/nutrition';
 import { scaleSuggestedNutrition, suggestionBudget, suggestionCalorieTarget } from '@/utils/mealSuggestions';
 
@@ -41,23 +42,32 @@ const veganIngredients = new Set(diet.diet.vegan);
  * cream cheese their recipes contain: a lactose-free reader was offered all
  * four. Where a recipe exists it is what the person will actually cook, so it
  * is what gets checked; the prose stays the answer for bought food.
+ *
+ * The result is the dish's diet tags in the shared vocabulary of
+ * services/preferences.ts, which Supermarkt and Unterwegs use as well.
  */
-function matchesDietaryConstraints(entry: CatalogEntry, preferences: string[]) {
+export function catalogDietTags(entry: Pick<CatalogEntry, 'id' | 'title' | 'detail' | 'tags'>): string[] {
   const recipe = recipes[entry.id];
+  const tags: string[] = [];
   if (recipe) {
     const keys = recipe.ingredients.map((item) => item.key);
-    if (preferences.includes('vegan') && keys.some((key) => !veganIngredients.has(key))) return false;
-    if (preferences.includes('vegetarian') && keys.some((key) => meatIngredients.has(key))) return false;
-    if (preferences.includes('pork-free') && keys.some((key) => porkIngredients.has(key))) return false;
-    if (preferences.includes('lactose-free') && keys.some((key) => lactoseIngredients.has(key))) return false;
-    return true;
+    if (keys.every((key) => veganIngredients.has(key))) tags.push('vegan');
+    if (!keys.some((key) => meatIngredients.has(key))) tags.push('vegetarian');
+    if (!keys.some((key) => porkIngredients.has(key))) tags.push('pork-free');
+    if (!keys.some((key) => lactoseIngredients.has(key))) tags.push('lactose-free');
+    return tags;
   }
   const copy = `${entry.title} ${entry.detail}`.replace(negated, ' ');
-  if (preferences.includes('vegan') && !entry.tags.includes('vegan')) return false;
-  if (preferences.includes('vegetarian') && !entry.tags.some((tag) => tag === 'vegetarian' || tag === 'vegan')) return false;
-  if (preferences.includes('pork-free') && porkWords.test(copy)) return false;
-  if (preferences.includes('lactose-free') && lactoseWords.test(copy)) return false;
-  return true;
+  // Bought food: the editorial tag is the only vegan/vegetarian evidence.
+  if (entry.tags.includes('vegan')) tags.push('vegan');
+  if (entry.tags.includes('vegan') || entry.tags.includes('vegetarian')) tags.push('vegetarian');
+  if (!porkWords.test(copy)) tags.push('pork-free');
+  if (!lactoseWords.test(copy)) tags.push('lactose-free');
+  return tags;
+}
+
+function matchesDietaryConstraints(entry: CatalogEntry, preferences: string[]) {
+  return meetsDiet(catalogDietTags(entry), preferences);
 }
 
 function score(entry: CatalogEntry, remaining: Nutrition, preferences: string[]) {
@@ -66,15 +76,10 @@ function score(entry: CatalogEntry, remaining: Nutrition, preferences: string[])
   const macroDistance = Math.abs(entry.calories - calorieTarget) / 80
     + Math.abs(entry.protein - proteinTarget) / 12
     + Math.max(0, entry.fat - remaining.fat * 0.35) / 10;
-  // One bonus per preference the meal actually satisfies, so choosing two
-  // things you care about outranks a meal that only happens to fit one.
-  // 'quick' is a tag now rather than a phrase parsed out of the localised time
-  // string, which only ever matched German.
-  const matched = preferences.filter((preference) => preference !== 'high-protein' && entry.tags.includes(preference)).length;
-  // Raw/cooked recipe corrections change real protein amounts. Rank this
-  // preference from the offered portion, not the old editorial category tag.
-  const proteinPreference = preferences.includes('high-protein') ? Math.min(entry.protein, 60) / 8 : 0;
-  return macroDistance - matched * 1.5 - proteinPreference;
+  // Shared weights (services/preferences.ts): protein from the offered
+  // portion, low carb from its energy split, 'quick' from the tag rather than
+  // the localised time string, which only ever matched German.
+  return macroDistance - preferenceBonus(entry, entry.tags, preferences);
 }
 
 // Main protein source, read from the German catalogue (stable across languages).

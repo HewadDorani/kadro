@@ -1,5 +1,6 @@
 import productData from '@/data/supermarketProducts.json';
 import type { FoodSearchResult } from '@/services/mealAnalysis';
+import { meetsDiet, preferenceBonus } from '@/services/preferences';
 import type { Nutrition } from '@/types/nutrition';
 import { suggestionBudget, suggestionCalorieTarget } from '@/utils/mealSuggestions';
 
@@ -102,7 +103,6 @@ const CONTAINER: Record<SupermarketCategory, PortionContainer> = {
 };
 /** Categories where half a package is a normal amount to eat. */
 const HALVES = new Set<SupermarketCategory>(['skyr', 'quark', 'cottage-cheese', 'yogurt', 'tofu', 'legumes', 'poultry', 'fish', 'cheese', 'hummus', 'vegetable', 'salad', 'fruit-puree']);
-const DIET_PREFERENCES = ['vegan', 'vegetarian', 'lactose-free', 'pork-free'];
 /** More than this is not "a portion" of anything, however few kcal it has (1 kg carrots). */
 const MAX_PORTION_G = 550;
 /** A side stays a side: half a bag of tomatoes, not the whole 500 g. */
@@ -182,9 +182,13 @@ function allCandidates(products: SupermarketProduct[]) {
   return cached;
 }
 
+/** Diet preferences are hard filters via the shared mapping; a product without the tag is unknown and excluded. */
 export function matchesPreferences(product: SupermarketProduct, preferences: string[]) {
-  return DIET_PREFERENCES.every((preference) => !preferences.includes(preference) || product.diet.includes(preference));
+  return meetsDiet(product.diet, preferences);
 }
+
+/** Nothing in a basket needs cooking, so every basket counts as quick. */
+const BASKET_TAGS = ['quick'];
 
 export type ComboBudget = { target: number; max: number; min: number; protein: number; fatCap: number };
 
@@ -213,7 +217,7 @@ function sum(items: ComboItem[]): Nutrition {
   }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 }
 
-function scoreOf(total: Nutrition, items: ComboItem[], budget: ComboBudget, highProtein: boolean) {
+function scoreOf(total: Nutrition, items: ComboItem[], budget: ComboBudget, preferences: string[]) {
   const calorieDistance = Math.abs(total.calories - budget.target) / 70;
   const proteinShort = Math.max(0, budget.protein - total.protein) / 5;
   const fatOver = Math.max(0, total.fat - budget.fatCap) / 8;
@@ -221,8 +225,11 @@ function scoreOf(total: Nutrition, items: ComboItem[], budget: ComboBudget, high
   const bareSavory = items.length === 1 && roleOf(items[0].product) === 'savory' ? 0.8 : 0;
   const extraItems = items.length === 3 ? 0.2 : 0;
   const storeKnown = items.some((item) => item.product.stores.length) ? 0.15 : 0;
-  const proteinBonus = highProtein ? Math.min(total.protein, 60) / 12 : Math.min(total.protein, 50) / 40;
-  return calorieDistance + proteinShort + fatOver + bareSavory + extraItems - storeKnown - proteinBonus;
+  // Baskets lean to protein by design; the person's own preferences add the
+  // same bonus they earn for a dish at home or on the go.
+  const baseProtein = preferences.includes('high-protein') ? 0 : Math.min(total.protein, 50) / 40;
+  return calorieDistance + proteinShort + fatOver + bareSavory + extraItems - storeKnown - baseProtein
+    - preferenceBonus(total, BASKET_TAGS, preferences);
 }
 
 function comboId(items: ComboItem[]) {
@@ -231,14 +238,14 @@ function comboId(items: ComboItem[]) {
 
 type Scored = { items: Candidate[]; total: Nutrition; score: number };
 
-function bestForAnchor(anchor: Candidate, carbs: Candidate[], extras: Candidate[], budget: ComboBudget, highProtein: boolean, relaxed: boolean): Scored | null {
+function bestForAnchor(anchor: Candidate, carbs: Candidate[], extras: Candidate[], budget: ComboBudget, preferences: string[], relaxed: boolean): Scored | null {
   const role = roleOf(anchor.product);
   const pairing = PAIRING[role];
   const evaluate = (items: Candidate[]): Scored | null => {
     const total = sum(items);
     if (total.calories > budget.max) return null;
     if (!relaxed && total.calories < budget.min) return null;
-    return { items, total, score: scoreOf(total, items, budget, highProtein) };
+    return { items, total, score: scoreOf(total, items, budget, preferences) };
   };
   const better = (a: Scored | null, b: Scored | null) => (!a ? b : !b ? a : b.score < a.score ? b : a);
   let best = evaluate([anchor]);
@@ -272,7 +279,6 @@ export function supermarketCombos(
   products: SupermarketProduct[] = SUPERMARKET_DATA.products,
 ): SupermarketCombo[] {
   const budget = comboBudget(remaining);
-  const highProtein = preferences.includes('high-protein');
   const pool = allCandidates(products).filter((candidate) => matchesPreferences(candidate.product, preferences) && candidate.calories <= budget.max);
   const sides = pool.filter((candidate) => SIDES.has(candidate.product.category) && candidate.portion.grams <= MAX_SIDE_G);
   const carbs = sides.filter((candidate) => ['fruit', 'fruit-puree', 'bread'].includes(candidate.product.category));
@@ -284,7 +290,7 @@ export function supermarketCombos(
       : ANCHOR_ROLE[candidate.product.category] && candidate.protein >= 10);
     const bestByProduct = new Map<string, Scored>();
     for (const anchor of anchors) {
-      const best = bestForAnchor(anchor, carbs, extras, budget, highProtein, relaxed);
+      const best = bestForAnchor(anchor, carbs, extras, budget, preferences, relaxed);
       if (!best) continue;
       const current = bestByProduct.get(anchor.product.id);
       if (!current || best.score < current.score) bestByProduct.set(anchor.product.id, best);
@@ -326,9 +332,14 @@ export function supermarketCombos(
   }));
 }
 
+/** The product's own name in the reader's language, without the brand. */
+export function productName(product: SupermarketProduct, language: string) {
+  return language === 'en' && product.nameEn ? product.nameEn : product.name;
+}
+
 /** "Milbona Skyr natur"; the brand is not repeated when the name already starts with it. */
 export function productDisplayName(product: SupermarketProduct, language: string) {
-  const name = language === 'en' && product.nameEn ? product.nameEn : product.name;
+  const name = productName(product, language);
   if (!product.brand || name.toLowerCase().includes(product.brand.toLowerCase())) return name;
   return `${product.brand} ${name}`;
 }

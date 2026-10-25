@@ -16,6 +16,7 @@ const recommendations = load('src/services/recommendations.ts', {
   '@/data/recipes.json': json('src/data/recipes.json'), '@/data/mealCatalog.de.json': json('src/data/mealCatalog.de.json'), '@/data/mealCatalog.en.json': json('src/data/mealCatalog.en.json'),
   '@/i18n/active': { getLanguage: () => language, getDictionary: () => ({ errors: { catalogSourceLabel: 'Kandro' } }) },
   '@/utils/mealSuggestions': load('src/utils/mealSuggestions.ts', {}),
+  '@/services/preferences': load('src/services/preferences.ts', {}),
 });
 const de = json('src/data/mealCatalog.de.json');
 const source = id => { const entry = de.find(item => item.id === id); return (`${entry.title} ${entry.detail}`.match(/(puten|hähnchen|rind|schwein|lachs|thunfisch|kabeljau|seelachs|fisch|tofu|linsen|kichererbse|bohnen|quark|skyr|joghurt|eier|ei\b)/i)?.[1] ?? id).toLowerCase(); };
