@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0.5",
+    "version": "1.0.6",
     "copyright": "2026 Hewad Dorani",
     "categories": [
       "HEALTH_AND_FITNESS",
@@ -28,7 +28,7 @@
           "kcal",
           "gym"
         ],
-        "releaseNotes": "Small improvements for reliability:\n\n• More robust subscription and purchase flow\n• Polish for layout and reminders",
+        "releaseNotes": "Big update for eating out, favorites and more countries:\n\n• Eating out: 3 fitting orders from real chains with official nutrition facts (e.g. McDonald's, Wendy's, Chick-fil-A, Greggs, Pret, Nando's)\n• Favorites: save them when logging and add them to the right meal with one tap\n• Clearer suggestions in Plan, matched to your preferences\n• New for the UK and US: local supermarkets, products and chains",
         "promoText": "782 kcal left and no idea what to eat? Kandro tells you what fits next: three dishes for the rest of your day – at home, from the supermarket or on the go.",
         "marketingUrl": "https://getkandro.com/en/",
         "supportUrl": "https://getkandro.com/en/support",
@@ -54,7 +54,7 @@
           "tagebuch",
           "kcal"
         ],
-        "releaseNotes": "Kleine Verbesserungen für mehr Zuverlässigkeit:\n\n• Stabilere Abo- und Kaufabläufe\n• Feinschliff bei Darstellung und Erinnerungen",
+        "releaseNotes": "Großes Update für unterwegs, Favoriten und mehr Länder:\n\n• Unterwegs: 3 passende Bestellungen von echten Ketten mit offiziellen Nährwerten (z. B. McDonald's, Subway, Burger King, KFC, dean&david, BackWerk)\n• Favoriten: beim Speichern merken und mit einem Tipp in die richtige Mahlzeit eintragen\n• Übersichtlichere Vorschläge im Plan, angepasst an deine Vorlieben\n• Neu für Großbritannien und die USA: eigene Supermärkte, Produkte und Ketten",
         "promoText": "782 kcal übrig und keine Idee? Kandro sagt dir, was als Nächstes passt: drei Gerichte für deinen restlichen Tag – zu Hause, aus dem Supermarkt oder unterwegs.",
         "marketingUrl": "https://getkandro.com/",
         "supportUrl": "https://getkandro.com/support",
