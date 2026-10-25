@@ -35,9 +35,7 @@ steps the new blocks simply stay hidden; nothing breaks.
    **Pay as you go, 3 months at 50 %** (monthly product; for annual e.g.
    1 year at 30 %). Repeat per product you want covered. Needs step 2.
 5. **Migration** `supabase/migrations/20261025140000_paywall_retention_steps.sql`
-   (written, not applied): adds `winback_*` / `retention_offer_*` purchase steps.
-   Apply with the next migration window (`npm run db:remote:check`, then
-   `db:remote:push`). Until then those step calls are dropped silently.
+   adds `winback_*` / `retention_offer_*` purchase steps (applied 25.10.2026).
 6. **Small Business Program** (15 % commission instead of 30 %): enrol at
    https://developer.apple.com/app-store/small-business-program/ (account holder,
    once per developer account; associated developer accounts must be listed).
@@ -48,6 +46,15 @@ steps the new blocks simply stay hidden; nothing breaks.
    "Your subscription" → *Cancel anyway* opens Apple's sheet; monthly → annual
    switch; promotional offer purchase; lapsed sandbox account on iOS 18 sees the
    win-back card. Record in `docs/qa/`.
+
+**Status 25.10.2026 (set up in App Store Connect, read back via API):**
+grace period 16 days, all renewals, production and sandbox. Win-back
+`kandro_winback_monthly_50_v1` and `kandro_winback_annual_50_v1` (50 %, paid
+≥ 1 month, lapsed 1–24 months, start 26.10.2026). Promotional offer
+`kandro_retention_monthly_3m50_v1` (monthly only, 3 × 50 %); the app reads
+StoreKit discounts dynamically, so no identifier is hard-coded. DE/GB/US only.
+RevenueCat keys valid. Small Business Program submitted, decision pending.
+Still open: the sandbox device test in step 7.
 
 ## Sentry source maps (status 09.10.2026: upload still off)
 
