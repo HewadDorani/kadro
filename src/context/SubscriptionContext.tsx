@@ -6,8 +6,11 @@ import {
   isSubscriptionPurchasePending,
   loadSubscriptionSnapshot,
   loadSubscriptionTrial,
+  purchasePromotionalDiscount,
   purchaseSubscription,
+  purchaseWinBackOffer,
   restoreSubscription,
+  SubscriptionPlan,
   SubscriptionPlanId,
   SubscriptionSnapshot,
   subscriptionErrorMessage,
@@ -19,6 +22,13 @@ import { captureOperationalError } from '@/services/telemetry';
 import { getDictionary } from '@/i18n/active';
 import { useApp } from '@/context/AppContext';
 import { scheduleTrialEndingReminder } from '@/services/reminders';
+import type { PurchasesStoreProductDiscount, PurchasesWinBackOffer } from 'react-native-purchases';
+
+type PurchaseOutcome = 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted';
+/** A real StoreKit offer: win-back (lapsed, iOS 18+) or a promotional offer on the current product. */
+export type SubscriptionOffer =
+  | { kind: 'winback'; planId: SubscriptionPlanId; offer: PurchasesWinBackOffer }
+  | { kind: 'retention'; planId: SubscriptionPlanId; discount: PurchasesStoreProductDiscount };
 
 type SubscriptionStatus = 'loading' | 'unconfigured' | 'ready' | 'active' | 'pending' | 'error';
 
@@ -29,7 +39,9 @@ type SubscriptionContextValue = {
   error: string | null;
   refresh: () => Promise<void>;
   syncTrialReminder: () => Promise<boolean>;
-  purchase: (planId: SubscriptionPlanId) => Promise<'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted'>;
+  purchase: (planId: SubscriptionPlanId) => Promise<PurchaseOutcome>;
+  /** Same confirmation path as purchase(), with a StoreKit offer applied. */
+  purchaseOffer: (offer: SubscriptionOffer) => Promise<PurchaseOutcome>;
   restore: () => Promise<'active' | 'none' | 'failed' | 'pending' | 'interrupted'>;
 };
 
@@ -156,7 +168,7 @@ export function SubscriptionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => () => { refreshGenerationRef.current += 1; }, []);
 
-  const purchase = useCallback(async (planId: SubscriptionPlanId) => {
+  const runPurchase = useCallback(async (planId: SubscriptionPlanId, operation: string, perform: (plan: SubscriptionPlan) => Promise<boolean>): Promise<PurchaseOutcome> => {
     if (billingGenerationRef.current !== null || !wellnessConsentGranted) return 'interrupted';
     const plan = snapshot?.plans[planId];
     if (!plan) {
@@ -171,7 +183,7 @@ export function SubscriptionProvider({ children }: PropsWithChildren) {
     setBusy(true);
     setError(null);
     try {
-      const active = await purchaseSubscription(plan);
+      const active = await perform(plan);
       if (!isCurrent()) return 'interrupted';
       if (active) {
         const serverActive = await confirmServerEntitlementWithRetry(() => isCurrent() ? refreshServerEntitlement() : Promise.resolve(false));
@@ -201,12 +213,19 @@ export function SubscriptionProvider({ children }: PropsWithChildren) {
       setSnapshot((current) => current ? { ...current, entitlementActive: false } : current);
       setStatus('error');
       setError(subscriptionErrorMessage(failure));
-      captureOperationalError(failure, { area: 'subscription', operation: `purchase_${planId}` });
+      captureOperationalError(failure, { area: 'subscription', operation });
       return 'failed';
     } finally {
       if (isCurrent()) { billingGenerationRef.current = null; setBusy(false); }
     }
   }, [snapshot, wellnessConsentGranted]);
+
+  const purchase = useCallback((planId: SubscriptionPlanId) =>
+    runPurchase(planId, `purchase_${planId}`, purchaseSubscription), [runPurchase]);
+
+  const purchaseOffer = useCallback((offer: SubscriptionOffer) => offer.kind === 'winback'
+    ? runPurchase(offer.planId, `winback_${offer.planId}`, plan => purchaseWinBackOffer(plan, offer.offer))
+    : runPurchase(offer.planId, `retention_${offer.planId}`, plan => purchasePromotionalDiscount(plan, offer.discount)), [runPurchase]);
 
   const restore = useCallback(async () => {
     if (billingGenerationRef.current !== null || !wellnessConsentGranted) return 'interrupted';
@@ -261,8 +280,9 @@ export function SubscriptionProvider({ children }: PropsWithChildren) {
     refresh,
     syncTrialReminder,
     purchase,
+    purchaseOffer,
     restore,
-  }), [busy, error, purchase, refresh, restore, snapshot, status, syncTrialReminder]);
+  }), [busy, error, purchase, purchaseOffer, refresh, restore, snapshot, status, syncTrialReminder]);
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
 }

@@ -67,6 +67,9 @@ type AnalyticsEventMap = {
   'subscription purchase completed': { billing_mode: BillingMode; plan: 'yearly' | 'monthly'; purchase_kind: 'trial' | 'paid' };
   'access paywall shown': { experiment: 'paywall_access_v1'; variant: 'A' | 'B'; environment: 'production'; cohort_source: 'public'; access_version: 'v1' };
   'subscription restore completed': { active: boolean; billing_mode: BillingMode };
+  // Retention (1.0.6): fixed values only, never price, product or free text.
+  'subscription offer purchase ended': { billing_mode: BillingMode; offer: 'winback' | 'promotional' | 'annual_switch'; outcome: 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted' };
+  'subscription cancel reason': { reason: 'too_expensive' | 'not_using' | 'ai_inaccurate' | 'other' };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
@@ -106,6 +109,7 @@ const allowedEvents = new Set<string>([
     'paywall viewed', 'access paywall shown',
     'subscription purchase completed',
     'subscription restore completed',
+    'subscription offer purchase ended', 'subscription cancel reason',
   ] satisfies AnalyticsEventName[]),
   '$exception',
 ]);
@@ -141,6 +145,7 @@ const propertyValues: Record<string, readonly unknown[]> = {
   operation: ['save', 'delete', 'hydrate'], next_destination: ['today', 'recommendations'],
   meal_context: ['home', 'supermarket', 'eating-out'],
   billing_mode: ['preview', 'test_store', 'native_store', 'web'], plan: ['yearly', 'monthly'],
+  offer: ['winback', 'promotional', 'annual_switch'], reason: ['too_expensive', 'not_using', 'ai_inaccurate', 'other'],
 };
 export function sanitizeProductProperties(properties: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(properties).filter(([key, value]) => propertyValues[key]?.includes(value)));

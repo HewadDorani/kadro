@@ -68,6 +68,7 @@ const subscription = load('src/services/subscription.ts', {
   'react-native': { Platform: { OS: 'ios' } },
   'react-native-purchases': { __esModule: true, default: sdk, LOG_LEVEL: {}, INTRO_ELIGIBILITY_STATUS: {}, PURCHASES_ERROR_CODE: {} },
   '@/services/supabaseClient': { getCurrentSessionUserId: async () => owner, ensureSupabaseUser: async () => ({ id: owner }) },
+  '@/services/retention': load('src/services/retention.ts', {}),
   '@/i18n/active': { getDictionary: () => ({}) },
 });
 const attributes = policy.experimentAttributes(eligible);

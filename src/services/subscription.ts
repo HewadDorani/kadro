@@ -1,16 +1,19 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import Purchases, {
   CustomerInfo,
   INTRO_ELIGIBILITY_STATUS,
   LOG_LEVEL,
   PURCHASES_ERROR_CODE,
   PurchasesPackage,
+  PurchasesStoreProductDiscount,
+  PurchasesWinBackOffer,
 } from 'react-native-purchases';
 
 import { ensureSupabaseUser, getCurrentSessionUserId } from '@/services/supabaseClient';
 import type { ExperimentAttributes } from '@/services/revenueCatExperimentPolicy';
 import { getDictionary } from '@/i18n/active';
+import { NO_CUSTOMER, SubscriptionCustomer, subscriptionCustomerFrom, winBackApplies } from '@/services/retention';
 
 export type SubscriptionPlanId = 'yearly' | 'monthly';
 
@@ -37,6 +40,8 @@ export type SubscriptionSnapshot = {
   currentTrial: SubscriptionTrial | null;
   mode: 'unconfigured' | 'test-store' | 'native-store' | 'web';
   plans: Record<SubscriptionPlanId, SubscriptionPlan | null>;
+  /** Device SDK facts for retention UI only (grace banner, manage screen, win-back); never access. */
+  customer: SubscriptionCustomer;
 };
 
 const ENTITLEMENT_ID = process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT_ID?.trim() || 'kandro_pro';
@@ -196,6 +201,7 @@ export async function loadSubscriptionSnapshot(): Promise<SubscriptionSnapshot> 
       currentTrial: null,
       mode: 'unconfigured',
       plans: { yearly: null, monthly: null },
+      customer: NO_CUSTOMER,
     };
   }
 
@@ -223,6 +229,7 @@ export async function loadSubscriptionSnapshot(): Promise<SubscriptionSnapshot> 
       yearly: toPlan('yearly', offering?.annual ?? null, trialEligible(offering?.annual)),
       monthly: toPlan('monthly', offering?.monthly ?? null, trialEligible(offering?.monthly)),
     },
+    customer: subscriptionCustomerFrom(customerInfo, ENTITLEMENT_ID),
   };
 }
 
@@ -237,6 +244,78 @@ export async function purchaseSubscription(plan: SubscriptionPlan) {
     throw new Error(getDictionary().access.offerChanged);
   }
   const { customerInfo } = await Purchases.purchasePackage(fresh.package);
+  return hasPro(customerInfo);
+}
+
+export const APPLE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
+
+/**
+ * Apple's own subscription management (cancel, change plan, payment method).
+ * Never gated on offers, access or network: the sheet first, the Apple URL as
+ * the fallback, so cancelling always stays one tap away (guideline 3.1.2).
+ */
+export async function openSubscriptionManagement() {
+  if (Platform.OS === 'ios' && subscriptionMode() === 'native-store') {
+    try {
+      if (await Purchases.isConfigured()) { await Purchases.showManageSubscriptions(); return 'sheet' as const; }
+    } catch { /* Fall through to Apple's page. */ }
+  }
+  await Linking.openURL(APPLE_SUBSCRIPTIONS_URL).catch(() => undefined);
+  return 'url' as const;
+}
+
+export type WinBackChoice = { planId: SubscriptionPlanId; offer: PurchasesWinBackOffer };
+
+/**
+ * Real StoreKit win-back offers only (iOS 18+, lapsed Kandro Pro customer).
+ * Apple decides eligibility; no offer means the normal paywall. Annual first.
+ */
+export async function loadWinBackOffer(snapshot: SubscriptionSnapshot): Promise<WinBackChoice | null> {
+  if (snapshot.mode !== 'native-store' || !winBackApplies(snapshot.customer, Platform.OS, Platform.Version)) return null;
+  if (!(await ensureRevenueCatConfigured())) return null;
+  for (const planId of ['yearly', 'monthly'] as const) {
+    const plan = snapshot.plans[planId];
+    if (!plan) continue;
+    const offers = await Purchases.getEligibleWinBackOffersForProduct(plan.package.product).catch(() => undefined);
+    const offer = offers?.find(candidate => Boolean(candidate?.identifier && candidate.priceString));
+    if (offer) return { planId, offer };
+  }
+  return null;
+}
+
+export async function purchaseWinBackOffer(plan: SubscriptionPlan, offer: PurchasesWinBackOffer) {
+  if (!(await ensureRevenueCatConfigured())) throw new Error(getDictionary().errors.billingSetupMissing);
+  // Eligibility can change (another device resubscribed): re-ask Apple first.
+  const offers = await Purchases.getEligibleWinBackOffersForProduct(plan.package.product).catch(() => undefined);
+  const fresh = offers?.find(candidate => candidate.identifier === offer.identifier);
+  if (!fresh || fresh.priceString !== offer.priceString || fresh.cycles !== offer.cycles
+    || fresh.periodUnit !== offer.periodUnit || fresh.periodNumberOfUnits !== offer.periodNumberOfUnits) {
+    throw new Error(getDictionary().access.offerChanged);
+  }
+  const { customerInfo } = await Purchases.purchaseProductWithWinBackOffer(plan.package.product, fresh);
+  return hasPro(customerInfo);
+}
+
+/**
+ * The first promotional offer (configured on the product in App Store
+ * Connect) that RevenueCat can sign for this customer. Undefined from the SDK
+ * means not eligible or not set up (In-App Purchase key missing): no offer.
+ */
+export async function loadPromotionalDiscount(plan: SubscriptionPlan, discounts: PurchasesStoreProductDiscount[]) {
+  if (subscriptionMode() !== 'native-store' || !discounts.length || !(await ensureRevenueCatConfigured())) return null;
+  for (const discount of discounts) {
+    const signed = await Purchases.getPromotionalOffer(plan.package.product, discount).catch(() => undefined);
+    if (signed) return discount;
+  }
+  return null;
+}
+
+export async function purchasePromotionalDiscount(plan: SubscriptionPlan, discount: PurchasesStoreProductDiscount) {
+  if (!(await ensureRevenueCatConfigured())) throw new Error(getDictionary().errors.billingSetupMissing);
+  // A signed offer is short-lived: sign right before opening Apple's sheet.
+  const signed = await Purchases.getPromotionalOffer(plan.package.product, discount).catch(() => undefined);
+  if (!signed) throw new Error(getDictionary().access.offerChanged);
+  const { customerInfo } = await Purchases.purchaseDiscountedPackage(plan.package, signed);
   return hasPro(customerInfo);
 }
 

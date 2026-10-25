@@ -1,7 +1,10 @@
 import { getCurrentSessionUserId, supabase } from '@/services/supabaseClient';
 
 export type PaywallContext = 'entry' | 'blocked' | 'hard' | 'manual';
-export type PurchaseStep = 'purchase_started' | 'purchase_cancelled' | 'purchase_failed' | 'purchase_pending' | 'purchase_completed';
+type StepOutcome = 'started' | 'cancelled' | 'failed' | 'pending' | 'completed';
+/** 'winback' and 'retention_offer' need migration 20261025140000 (written, not applied). */
+export type PurchaseStepKind = 'purchase' | 'winback' | 'retention_offer';
+export type PurchaseStep = `${PurchaseStepKind}_${StepOutcome}`;
 
 const sent = new Set<string>();
 
@@ -21,11 +24,17 @@ export function markPaywallShown(context: PaywallContext | PurchaseStep) {
   })().catch(() => undefined);
 }
 
-/** Purchase outcome → funnel step (first occurrence per account, like the exposure). */
-export function markPurchaseStep(outcome: 'started' | 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted') {
-  const step: PurchaseStep = outcome === 'started' ? 'purchase_started'
-    : outcome === 'active' ? 'purchase_completed'
-      : outcome === 'cancelled' ? 'purchase_cancelled'
-        : outcome === 'pending' ? 'purchase_pending' : 'purchase_failed';
-  markPaywallShown(step);
+/**
+ * Purchase outcome → funnel step (first occurrence per account, like the
+ * exposure). `kind` separates the paywall purchase from a win-back offer and
+ * the manage screen's retention offers (promotional offer, annual switch).
+ * Until the migration is applied the server rejects the new values and the
+ * fire-and-forget call is silently dropped; the purchase is never affected.
+ */
+export function markPurchaseStep(outcome: 'started' | 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted', kind: PurchaseStepKind = 'purchase') {
+  const step: StepOutcome = outcome === 'started' ? 'started'
+    : outcome === 'active' ? 'completed'
+      : outcome === 'cancelled' ? 'cancelled'
+        : outcome === 'pending' ? 'pending' : 'failed';
+  markPaywallShown(`${kind}_${step}`);
 }

@@ -72,5 +72,6 @@ assert.doesNotMatch(steps,/grant [^;]+ to anon/);
 assert.doesNotMatch(steps.replace(/--[^\n]*/g,''),/price|plan_id|amount/i,'purchase steps store no plan or price');
 assert.match(paywallScreen,/markPurchaseStep\('started'\);[\s\S]*?await purchase\(selected\);[\s\S]*?markPurchaseStep\(result\);/,'paywall records start and outcome of every real store purchase');
 const exposureClient=fs.readFileSync(new URL('../src/services/paywallExposure.ts',import.meta.url),'utf8');
-assert.match(exposureClient,/outcome === 'cancelled' \? 'purchase_cancelled'/);
+assert.match(exposureClient,/outcome === 'cancelled' \? 'cancelled'/);
+assert.match(exposureClient,/kind: PurchaseStepKind = 'purchase'\) \{[\s\S]*markPaywallShown\(`\$\{kind\}_\$\{step\}`\)/,'paywall purchases keep the purchase_* steps; win-back/retention get their own prefix');
 console.log('PASS access states, protected entry routes, legal/history access, safe return intent, stable B, free fallback, account race and per-meal authorization; actual client modules with local mocked boundaries.');

@@ -22,6 +22,8 @@ import { successHaptic } from '@/services/haptics';
 import { TRIAL_REMINDER_LEAD_DAYS, getReminderPermission, requestReminderPermission, type ReminderPermission } from '@/services/reminders';
 import { toBillingMode, trackEvent } from '@/services/telemetry';
 import { markPaywallShown, markPurchaseStep } from '@/services/paywallExposure';
+import { loadWinBackOffer, type WinBackChoice } from '@/services/subscription';
+import { offerTerms } from '@/services/retention';
 
 /** The close button arrives after a short, calm moment; only an enforced lock (hard wall, old B) without usable access has none. */
 const CLOSE_DELAY_MS = 2500;
@@ -54,7 +56,7 @@ export default function PaywallScreen() {
   const [selected, setSelected] = useState<Plan>('yearly');
   const [cancelled, setCancelled] = useState(false);
   const planChosen = useRef(false);
-  const { busy, error, purchase, refresh, restore, snapshot, status, syncTrialReminder } = useSubscription();
+  const { busy, error, purchase, purchaseOffer, refresh, restore, snapshot, status, syncTrialReminder } = useSubscription();
   const yearly = snapshot?.plans.yearly ?? null;
   const monthly = snapshot?.plans.monthly ?? null;
   const selectedPlan = snapshot?.plans[selected] ?? null;
@@ -121,6 +123,31 @@ export default function PaywallScreen() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Win-back (iOS 18+, lapsed Kandro Pro): only a real StoreKit offer Apple
+  // says this account is eligible for. None → the normal paywall, unchanged.
+  const [winBack, setWinBack] = useState<WinBackChoice | null>(null);
+  useEffect(() => {
+    setWinBack(null);
+    if (!snapshot || status !== 'ready' || testStore || !snapshot.customer?.lapsed) return;
+    let alive = true;
+    void loadWinBackOffer(snapshot).then(choice => { if (alive) setWinBack(choice); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [snapshot, status, testStore]);
+  const winBackPlan = winBack ? snapshot?.plans[winBack.planId] ?? null : null;
+  const winBackTerms = winBack && winBackPlan ? offerTerms(winBack.offer, t) : null;
+  const redeemWinBack = async () => {
+    if (!winBack || !winBackTerms || busy) return;
+    setCancelled(false);
+    markPurchaseStep('started', 'winback');
+    const result = await purchaseOffer({ kind: 'winback', planId: winBack.planId, offer: winBack.offer });
+    trackEvent('subscription offer purchase ended', { billing_mode: billingMode, offer: 'winback', outcome: result });
+    markPurchaseStep(result, 'winback');
+    if (result === 'cancelled') { setCancelled(true); return; }
+    if (result !== 'active') return;
+    void successHaptic();
+    Alert.alert(t.paywall.activated, t.paywall.activatedBody, [{ text: t.paywall.continueLabel, onPress: () => { void resume(); } }]);
+  };
 
   const subscribe = async () => {
     if (status === 'active') {
@@ -294,6 +321,13 @@ export default function PaywallScreen() {
         <Text accessibilityRole="header" style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
 
+        {winBackPlan && winBackTerms ? <View style={styles.winBack}>
+          <Text style={styles.winBackEyebrow}>{t.retention.winBackEyebrow}</Text>
+          <Text accessibilityRole="header" style={styles.winBackTitle}>{t.retention.winBackTitle(winBackTerms)}</Text>
+          <Text style={styles.planDetail}>{t.retention.offerThen(winBackTerms, winBackPlan.price)}</Text>
+          <PrimaryButton disabled={busy || status === 'loading'} label={t.retention.winBackAction} onPress={() => void redeemWinBack()} />
+        </View> : null}
+
         <View style={styles.benefits}>
           <Benefit icon="camera-outline" title={t.paywall.benefitAnalyze} />
           <Benefit icon="restaurant-outline" title={t.paywall.benefitMeals} />
@@ -437,6 +471,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   keepsCard: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 18, borderRadius: radii.card, backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent, padding: 13 },
   keepsText: { ...typeScale.subhead, flex: 1, minWidth: 0, color: colors.text },
   benefits: { alignSelf: 'stretch', gap: 9, marginTop: 22 },
+  winBack: { alignSelf: 'stretch', gap: 8, marginTop: 20, borderRadius: radii.card, borderWidth: 1.5, borderColor: colors.accentText, backgroundColor: colors.surface, padding: 16 },
+  winBackEyebrow: { ...typeScale.eyebrow, color: colors.accentText },
+  winBackTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   benefit: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 11, borderRadius: radii.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 13, paddingVertical: 11 },
   benefitIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   benefitCopy: { flex: 1, minWidth: 0, gap: 3 },

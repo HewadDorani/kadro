@@ -495,7 +495,7 @@ assert.equal(await confirmationModule.confirmServerEntitlementWithRetry(
 assert.deepEqual(observedWaits, [1_500, 19_500]);
 assert.ok(observedWaits.reduce((sum, value) => sum + value, 0) > 20_000,
   'the final purchase probe must cross the server refresh cooldown');
-const purchaseBody = subscriptionContext.slice(subscriptionContext.indexOf('const purchase = useCallback'));
+const purchaseBody = subscriptionContext.slice(subscriptionContext.indexOf('const runPurchase = useCallback'));
 const confirmationIndex = purchaseBody.indexOf('await confirmServerEntitlementWithRetry(');
 assert.ok(confirmationIndex >= 0 && confirmationIndex < purchaseBody.indexOf("setStatus('active')"),
   'the UI must not claim Pro before the server confirms it');

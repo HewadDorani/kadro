@@ -9,6 +9,7 @@ import { useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { MealSyncStatus } from '@/components/MealSyncStatus';
+import { BillingIssueBanner } from '@/components/BillingIssueBanner';
 import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
 import { MealDetailSheet } from '@/components/MealDetailSheet';
 import { FavoriteLogSheet } from '@/components/FavoriteLogSheet';
@@ -195,6 +196,7 @@ export default function TodayScreen() {
       </View>
 
       <MealSyncStatus />
+      <BillingIssueBanner />
 
       {pendingAnalysisCount > 0 ? (
         <Pressable

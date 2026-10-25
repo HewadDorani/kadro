@@ -28,6 +28,7 @@ const service = compile('src/services/subscription.ts', {
   'react-native-purchases': { default: {}, INTRO_ELIGIBILITY_STATUS: {}, LOG_LEVEL: {}, PURCHASES_ERROR_CODE: {} },
   '@/services/supabaseClient': { ensureSupabaseUser: async () => null },
   '@/i18n/active': { getDictionary: () => dict },
+  '@/services/retention': compile('src/services/retention.ts', {}),
 });
 const mapperSource = source('src/services/subscription.ts').slice(source('src/services/subscription.ts').indexOf('function trialLabelFrom'), source('src/services/subscription.ts').indexOf('export async function loadSubscriptionSnapshot'));
 const mapper = new Function('getDictionary', `${ts.transpileModule(mapperSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText}; return toPlan;`)(() => dict);
@@ -139,6 +140,7 @@ function paywallFixture({ days = 7, eligible = true, mode = 'native-store', hard
     '@/services/reminders': { TRIAL_REMINDER_LEAD_DAYS: 2, getReminderPermission: async () => permission, requestReminderPermission: async () => { permissionRequests.push(permission); return 'authorized'; } },
     '@/utils/format': { formatNumber: n => String(n) }, '@/utils/units': { formatWeight: kg => kg + ' kg' },
     '@/services/telemetry': { toBillingMode: x => x, trackEvent() {} }, '@/services/paywallExposure': { markPaywallShown() {}, markPurchaseStep() {} },
+    '@/services/subscription': { loadWinBackOffer: async () => null }, '@/services/retention': { offerTerms: () => null },
   }).default;
   const render = () => h.render(screen);
   const cards = tree => nodes(tree).filter(n => n.type?.name === 'PlanCard');

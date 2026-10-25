@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AccountLinkCard } from '@/components/AccountLinkCard';
+import { BillingIssueBanner } from '@/components/BillingIssueBanner';
 import { MarketRegionPreference } from '@/components/MarketRegionPreference';
 import { Card, Eyebrow, ListDivider, PageTitle, PressableScale, Screen, SectionTitle, SettingsRow } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
@@ -103,7 +104,10 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <PressableScale accessibilityLabel={t.profile.proView} accessibilityRole="button" onPress={() => router.push('/paywall')}>
+      <BillingIssueBanner />
+
+      {/* Active Pro opens the subscription screen (plan, renewal, cancel at Apple); otherwise the paywall. */}
+      <PressableScale accessibilityLabel={subscriptionStatus === 'active' ? t.access.manage : t.profile.proView} accessibilityRole="button" onPress={() => router.push(subscriptionStatus === 'active' ? '/subscription-manage' as never : '/paywall')}>
         <Card style={styles.proCard}>
           {/* Not "infinite": Pro has a fair-use cap, so the glyph must not promise otherwise. */}
           <View style={styles.proIcon}><Ionicons color={colors.onAccent} name="sparkles" size={22} /></View>
