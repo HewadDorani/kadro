@@ -33,17 +33,37 @@ function load(path) {
   return module.exports;
 }
 
-const DATA_PATH = 'src/data/supermarketProducts.json';
-const data = JSON.parse(read(DATA_PATH));
 const engine = load('src/services/supermarketCombos.ts');
-const { supermarketCombos, productPortions, comboBudget, comboSearchEntries, matchesPreferences, STORE_IDS } = engine;
+const { supermarketCombos, productPortions, comboBudget, comboSearchEntries, matchesPreferences, STORE_IDS, MARKET_STORE_IDS, SUPERMARKET_DATASETS, supermarketDataset } = engine;
+/** One bundled dataset per shopping region; nobody in the UK sees a Rewe product. */
+const MARKETS = {
+  de: { path: 'src/data/supermarketProducts.json', site: 'site/data/supermarket-products.json', maxKb: 300, country: 'en:germany', language: 'de',
+    categories: ['skyr', 'quark', 'protein-bar', 'tuna', 'poultry', 'fruit', 'bread', 'nuts'] },
+  gb: { path: 'src/data/supermarketProducts.gb.json', site: 'site/data/supermarket-products.gb.json', maxKb: 150, country: 'en:united-kingdom', language: 'en',
+    categories: ['protein-bar', 'yogurt', 'poultry', 'fruit', 'bread', 'nuts', 'sandwich'] },
+  us: { path: 'src/data/supermarketProducts.us.json', site: 'site/data/supermarket-products.us.json', maxKb: 150, country: 'en:united-states', language: 'en',
+    categories: ['protein-bar', 'yogurt', 'skyr', 'poultry', 'tuna', 'fruit', 'bread', 'nuts'] },
+};
+assert.deepEqual(Object.keys(SUPERMARKET_DATASETS).sort(), ['de', 'gb', 'us']);
+assert.equal(supermarketDataset('de').products.length, JSON.parse(read(MARKETS.de.path)).products.length, 'de is the German dataset');
+const STORES_OF = { de: new Set(MARKET_STORE_IDS.de), gb: new Set(MARKET_STORE_IDS.gb), us: new Set(MARKET_STORE_IDS.us) };
+assert.ok(!STORES_OF.gb.has('rewe') && !STORES_OF.us.has('rewe') && !STORES_OF.de.has('tesco') && !STORES_OF.de.has('walmart'), 'store lists never cross markets');
+for (const store of Object.values(MARKET_STORE_IDS).flat()) assert.ok(STORE_IDS.includes(store), `store id ${store}`);
+const summaries = [];
+
+function validateMarket(market) {
+const { path: DATA_PATH, site: SITE_PATH, maxKb, categories: REQUIRED, language } = MARKETS[market];
+const data = JSON.parse(read(DATA_PATH));
+assert.equal(read(SITE_PATH), read(DATA_PATH), `${market}: the ODbL copy on getkandro.com matches the bundled data`);
+assert.equal(supermarketDataset(market).products.length, data.products.length, `${market}: the engine reads the ${market} dataset`);
 
 // --- data integrity -------------------------------------------------------
 const CATEGORIES = new Set(['skyr', 'quark', 'cottage-cheese', 'pudding', 'yogurt', 'tuna', 'fish', 'poultry', 'jerky', 'eggs', 'protein-bar', 'tofu', 'legumes', 'wrap', 'sandwich', 'salad', 'ready-meal', 'cheese', 'hummus', 'nuts', 'bread', 'fruit-puree', 'fruit', 'vegetable']);
 const DIETS = new Set(['vegan', 'vegetarian', 'lactose-free', 'pork-free']);
 const MEAT_FISH = new Set(['tuna', 'fish', 'jerky', 'poultry']);
 const size = statSync(resolve(root, DATA_PATH)).size;
-assert.ok(size < 300 * 1024, `dataset must stay below 300 KB (is ${(size / 1024).toFixed(1)} KB)`);
+assert.ok(size < maxKb * 1024, `${market}: dataset must stay below ${maxKb} KB (is ${(size / 1024).toFixed(1)} KB)`);
+if (market !== 'de') assert.equal(data.market, market, `${market}: dataset is marked with its market`);
 assert.ok(data.products.length >= 200 && data.products.length <= 450, `expected ~250–400 products, got ${data.products.length}`);
 assert.match(data.attribution, /Open Food Facts/);
 assert.match(data.attribution, /ODbL/);
@@ -72,7 +92,7 @@ for (const product of data.products) {
   assert.equal(typeof product.brand, 'string', `${label}: brand`);
   assert.match(product.fetched, /^\d{4}-\d{2}-\d{2}$/, `${label}: fetched date`);
   assert.ok(CATEGORIES.has(product.category), `${label}: category ${product.category}`);
-  assert.ok(Array.isArray(product.stores) && product.stores.every((store) => STORE_IDS.includes(store)), `${label}: unknown store ${product.stores}`);
+  assert.ok(Array.isArray(product.stores) && product.stores.every((store) => STORES_OF[market].has(store)), `${market} ${label}: store ${product.stores} is not a ${market} store`);
   assert.ok(Array.isArray(product.diet) && product.diet.every((tag) => DIETS.has(tag)), `${label}: diet tags`);
   if (product.diet.includes('vegan')) assert.ok(product.diet.includes('vegetarian'), `${label}: vegan implies vegetarian`);
   if (MEAT_FISH.has(product.category)) assert.ok(!product.diet.includes('vegetarian'), `${label}: meat/fish is never vegetarian`);
@@ -94,43 +114,9 @@ for (const product of data.products) {
 const offProducts = data.products.filter((product) => product.src === 'off');
 assert.ok(offProducts.length >= 200, 'most rows are real packaged products');
 assert.ok(offProducts.filter((product) => !product.brand.trim()).length < offProducts.length * 0.1, 'packaged products carry their brand');
-for (const category of ['skyr', 'quark', 'protein-bar', 'tuna', 'poultry', 'fruit', 'bread', 'nuts']) {
-  assert.ok(data.products.some((product) => product.category === category), `category ${category} present`);
+for (const category of REQUIRED) {
+  assert.ok(data.products.some((product) => product.category === category), `${market}: category ${category} present`);
 }
-
-// Stores only from Open Food Facts tags: the build script has no brand→store mapping.
-const build = read('scripts/build-supermarket-products.mjs');
-assert.match(build, /User-Agent': USER_AGENT|'User-Agent': USER_AGENT/);
-assert.match(build, /Kandro\/1\.0 \(getkandro\.com\)/);
-const interval = Number(build.match(/MIN_INTERVAL_MS = (\d+)/)?.[1]);
-assert.ok(interval >= 1000, 'Open Food Facts requests stay at or below one per second');
-const storeMap = build.slice(build.indexOf('const STORES = {'), build.indexOf('};', build.indexOf('const STORES = {')));
-for (const brand of ['milbona', 'milsani', 'ja', 'gut-gunstig', 'k-classic', 'golden-seafood', 'rewe-beste-wahl']) {
-  assert.ok(!new RegExp(`['\\s]${brand}['\\s]*:`).test(storeMap), `store must not be inferred from brand ${brand}`);
-}
-assert.match(build, /stores_tags/);
-
-// Attribution in the app and in the docs.
-for (const locale of ['de', 'en']) {
-  const dictionary = read(`src/i18n/${locale}.ts`);
-  const line = dictionary.match(/marketAttribution: \(date: string\) => `([^`]+)`/)?.[1] ?? '';
-  assert.match(line, /Open Food Facts \(ODbL\)/, `${locale}: Plan shows the ODbL attribution`);
-}
-for (const locale of ['de', 'en']) {
-  const dictionary = read(`src/i18n/${locale}.ts`);
-  for (const store of STORE_IDS) assert.ok(dictionary.includes(`${store.includes('-') ? `'${store}'` : store}: '`), `${locale}: store name for ${store}`);
-}
-const plan = read('src/app/(tabs)/plan.tsx');
-assert.match(plan, /t\.plan\.marketAttribution\(/, 'Plan renders the product data attribution');
-assert.match(plan, /supermarketCombos\(remaining, profile\.preferences\)/);
-assert.match(plan, /startPlannedDraft\(comboSearchEntries\(/, '"Das hole ich mir" prefills the confirm screen');
-assert.match(plan, /router\.push\('\/confirm'\)/);
-const notices = read('THIRD_PARTY_NOTICES.md');
-assert.match(notices, /supermarketProducts\.json/, 'THIRD_PARTY_NOTICES names the bundled product extract');
-assert.match(notices, /ODbL/);
-const context = read('src/context/AppContext.tsx');
-assert.match(context, /FREE_ANALYSIS_MODES = new Set<ScanMode>\(\[[^\]]*'plan'/, 'a basket never spends a free analysis');
-assert.match(context, /scanModeRef\.current === 'plan' \? 'recommendation'/, 'a basket is saved as a recommendation');
 
 // --- engine ---------------------------------------------------------------
 const PREFERENCES = [[], ['vegan'], ['vegetarian'], ['lactose-free'], ['pork-free'], ['vegetarian', 'lactose-free'], ['high-protein'], ['pork-free', 'high-protein']];
@@ -141,14 +127,14 @@ for (const calories of [300, 500, 800]) {
     for (const preferences of PREFERENCES) {
       const remaining = { calories, protein, carbs: 80, fat: 25 };
       const started = performance.now();
-      const combos = supermarketCombos(remaining, preferences);
+      const combos = supermarketCombos(remaining, preferences, data.products);
       timings.push(performance.now() - started);
-      const label = `${calories} kcal / ${protein} g / ${preferences.join('+') || 'none'}`;
+      const label = `${market}: ${calories} kcal / ${protein} g / ${preferences.join('+') || 'none'}`;
       const budget = comboBudget(remaining);
       assert.equal(combos.length, 3, `${label}: exactly three baskets`);
       assert.equal(new Set(combos.map((combo) => combo.id)).size, 3, `${label}: distinct baskets`);
       assert.equal(new Set(combos.map((combo) => combo.items[0].product.id)).size, 3, `${label}: three different anchors`);
-      assert.deepEqual(supermarketCombos(remaining, preferences), combos, `${label}: deterministic`);
+      assert.deepEqual(supermarketCombos(remaining, preferences, data.products), combos, `${label}: deterministic`);
       for (const combo of combos) {
         assert.ok(combo.items.length >= 1 && combo.items.length <= 3, `${label}: 1–3 products`);
         assert.equal(new Set(combo.items.map((item) => item.product.id)).size, combo.items.length, `${label}: no product twice`);
@@ -168,7 +154,7 @@ for (const calories of [300, 500, 800]) {
           assert.equal(combo[key], combo.items.reduce((sum, item) => sum + item[key], 0), `${label}: ${key} total`);
         }
         // The confirm screen receives exactly these products and amounts.
-        const entries = comboSearchEntries(combo, 'de', (portion) => `${portion.count} · ${portion.grams} g`);
+        const entries = comboSearchEntries(combo, language, (portion) => `${portion.count} · ${portion.grams} g`);
         assert.equal(entries.length, combo.items.length);
         entries.forEach((entry, index) => {
           const item = combo.items[index];
@@ -191,13 +177,13 @@ for (const calories of [300, 500, 800]) {
 }
 // Tiny and negative remainders still give three real small meals (200 kcal rule).
 for (const calories of [-100, 0, 150]) {
-  const combos = supermarketCombos({ calories, protein: 10, carbs: 10, fat: 5 }, []);
+  const combos = supermarketCombos({ calories, protein: 10, carbs: 10, fat: 5 }, [], data.products);
   assert.equal(combos.length, 3, `${calories} kcal: three baskets`);
   for (const combo of combos) assert.ok(combo.calories <= 220, `${calories} kcal: small basket stays ≤ 220 kcal (${combo.calories})`);
 }
 // High-protein preference raises protein, never lowers it.
-const plain = supermarketCombos({ calories: 600, protein: 60, carbs: 60, fat: 20 }, []);
-const strong = supermarketCombos({ calories: 600, protein: 60, carbs: 60, fat: 20 }, ['high-protein']);
+const plain = supermarketCombos({ calories: 600, protein: 60, carbs: 60, fat: 20 }, [], data.products);
+const strong = supermarketCombos({ calories: 600, protein: 60, carbs: 60, fat: 20 }, ['high-protein'], data.products);
 const average = (combos) => combos.reduce((sum, combo) => sum + combo.protein, 0) / combos.length;
 assert.ok(average(strong) >= average(plain), 'high-protein preference does not lower protein');
 
@@ -213,4 +199,49 @@ timings.sort((a, b) => a - b);
 const median = timings[Math.floor(timings.length / 2)];
 assert.ok(median < 20, `combo engine median ${median.toFixed(1)} ms exceeds 20 ms`);
 
-console.log(`supermarket combos: ${data.products.length} products (${(size / 1024).toFixed(1)} KB, ${offProducts.filter((p) => p.stores.length).length} with store tag), ${checked} budget/preference cases, median ${median.toFixed(1)} ms`);
+summaries.push(`${market}: ${data.products.length} products (${(size / 1024).toFixed(1)} KB, ${offProducts.filter((p) => p.stores.length).length} with store tag), ${checked} budget/preference cases, median ${median.toFixed(1)} ms`);
+}
+
+for (const market of Object.keys(MARKETS)) validateMarket(market);
+
+// Stores only from Open Food Facts tags: the build script has no brand→store mapping.
+const build = read('scripts/build-supermarket-products.mjs');
+assert.match(build, /User-Agent': USER_AGENT|'User-Agent': USER_AGENT/);
+assert.match(build, /Kandro\/1\.0 \(getkandro\.com\)/);
+const interval = Number(build.match(/MIN_INTERVAL_MS = (\d+)/)?.[1]);
+assert.ok(interval >= 1000, 'Open Food Facts requests stay at or below one per second');
+// Every market's slug → store table, German one included.
+const storeMap = build.slice(build.indexOf('const STORES_BY_MARKET'), build.indexOf('const slug ='));
+assert.ok(storeMap.length > 500, 'store tables found');
+for (const brand of ['milbona', 'milsani', 'ja', 'gut-gunstig', 'k-classic', 'golden-seafood', 'rewe-beste-wahl']) {
+  assert.ok(!new RegExp(`['\\s]${brand}['\\s]*:`).test(storeMap), `store must not be inferred from brand ${brand}`);
+}
+assert.match(build, /stores_tags/);
+
+// Attribution in the app and in the docs.
+for (const locale of ['de', 'en']) {
+  const dictionary = read(`src/i18n/${locale}.ts`);
+  const line = dictionary.match(/marketAttribution: \(date: string\) => `([^`]+)`/)?.[1] ?? '';
+  assert.match(line, /Open Food Facts \(ODbL\)/, `${locale}: Plan shows the ODbL attribution`);
+}
+for (const locale of ['de', 'en']) {
+  const dictionary = read(`src/i18n/${locale}.ts`);
+  for (const store of STORE_IDS) assert.ok(dictionary.includes(`${store.includes('-') ? `'${store}'` : store}: '`), `${locale}: store name for ${store}`);
+}
+for (const brand of ['great-value', 'kirkland-signature', 'tesco-finest', 'taste-the-difference', 'cowbelle', 'good-gather']) {
+  assert.ok(!new RegExp(`['\\s]${brand}['\\s]*:`).test(storeMap), `store must not be inferred from brand ${brand}`);
+}
+const plan = read('src/app/(tabs)/plan.tsx');
+assert.match(plan, /t\.plan\.marketAttribution\(/, 'Plan renders the product data attribution');
+assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, marketData\.products\)/, 'Plan uses the dataset of the shopping region');
+assert.match(plan, /startPlannedDraft\(comboSearchEntries\(/, '"Das hole ich mir" prefills the confirm screen');
+assert.match(plan, /router\.push\('\/confirm'\)/);
+const notices = read('THIRD_PARTY_NOTICES.md');
+assert.match(notices, /supermarketProducts\.json/, 'THIRD_PARTY_NOTICES names the bundled product extract');
+assert.match(notices, /ODbL/);
+const context = read('src/context/AppContext.tsx');
+assert.match(context, /FREE_ANALYSIS_MODES = new Set<ScanMode>\(\[[^\]]*'plan'/, 'a basket never spends a free analysis');
+assert.match(context, /scanModeRef\.current === 'plan' \? 'recommendation'/, 'a basket is saved as a recommendation');
+
+console.log(`supermarket combos per region:\n  ${summaries.join('\n  ')}`);
+

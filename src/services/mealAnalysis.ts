@@ -14,6 +14,7 @@ import { MealItem, Nutrition } from '@/types/nutrition';
 import { getDictionary, getLanguage, getLocale } from '@/i18n/active';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { customFoodResult, findCustomFoodByBarcode } from '@/services/customFoods';
+import { getMarketRegion, loadMarketRegion } from '@/services/region';
 
 /**
  * Optional local override for development. When it is unset the app talks to
@@ -359,7 +360,10 @@ export async function analyzeBarcode(barcode: string): Promise<MealAnalysisResul
     const serving = result.portions?.[0];
     return { ...meal, warnings: [serving ? getDictionary().errors.portionStartServing(serving.label, serving.grams) : getDictionary().errors.portionStartValue] };
   }
-  const response = await gatewayFetch(`/v1/barcode/${encodeURIComponent(barcode)}?language=${getLanguage()}`);
+  // The region only orders the lookup (that market's index first); any
+  // market's product is still found.
+  await loadMarketRegion();
+  const response = await gatewayFetch(`/v1/barcode/${encodeURIComponent(barcode)}?language=${getLanguage()}&region=${getMarketRegion()}`);
   const payload = (await response.json().catch(() => null)) as BarcodePayload | null;
   if (!response.ok || !payload) {
     // Remembered so "Nährwerttabelle fotografieren" can link the new product.
@@ -491,8 +495,10 @@ export type FoodSearchResults = FoodSearchResult[] & { searchStatus?: 'complete'
 export async function searchFoods(query: string, options: { catalogueOnly?: boolean } = {}): Promise<FoodSearchResults> {
   const term = query.trim();
   if (term.length < 2) return [];
+  // Packaged products in these rows come from the shopping region's index too.
+  await loadMarketRegion();
   const response = await gatewayFetch(
-    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}${options.catalogueOnly ? '&scope=catalogue' : ''}`,
+    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}${options.catalogueOnly ? '&scope=catalogue' : `&region=${getMarketRegion()}`}`,
   );
   const payload = (await response.json().catch(() => null)) as
     { results?: FoodSearchResult[]; searchStatus?: FoodSearchResults['searchStatus']; issues?: {code:string;retryAfter?:string}[]; code?: string; message?: string } | null;
@@ -514,7 +520,7 @@ export async function searchFoods(query: string, options: { catalogueOnly?: bool
 /**
  * One branded product from the product search, in the shape the product
  * database route answers with. Values are per 100 g as published by the
- * source (Open Food Facts, directly or via Kandro's German product table).
+ * source (Open Food Facts, directly or via Kandro's regional product index).
  */
 export type ProductHit = {
   code: string;
@@ -596,13 +602,17 @@ function withProductParts(result: FoodSearchResult): FoodSearchResult {
  * products too. `brands` is the store/own-brand hint ("lidl" → Milbona, …);
  * servers that do not know it ignore it. Accepts the product route's
  * `products: ProductHit[]` and the older `results: FoodSearchResult[]` rows.
+ * `region` (the shopping market) picks the server's product index; servers
+ * that do not know it ignore it.
  */
 export async function searchProducts(query: string, options: { brands?: readonly string[] } = {}): Promise<ProductSearchResults> {
   const term = query.trim();
   if (term.length < 2) return { generic: [], products: [] };
   const brands = (options.brands ?? []).map(brand => brand.trim()).filter(brand => brand && brand.length <= 40 && !brand.includes(',')).slice(0, 30);
+  // Products of the shelves the person shops at (de = DE/AT/CH, gb, us).
+  await loadMarketRegion();
   const response = await gatewayFetch(
-    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}&scope=products${brands.length ? `&brands=${encodeURIComponent(brands.join(','))}` : ''}`,
+    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}&scope=products&region=${getMarketRegion()}${brands.length ? `&brands=${encodeURIComponent(brands.join(','))}` : ''}`,
   );
   const payload = (await response.json().catch(() => null)) as
     { results?: unknown[]; products?: unknown[]; searchStatus?: ProductSearchResults['searchStatus']; code?: string; message?: string } | null;

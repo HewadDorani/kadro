@@ -18,6 +18,16 @@
 - [x] `scripts/validate-chain-combos.mjs` in `verify`; Hinweise in `THIRD_PARTY_NOTICES.md`.
 - [ ] Offen (Mensch): Stichprobe je Kette gegen die Quelle; Nando's UK (Makros aus Datei von 01/2022, nur Artikel mit identischen kcal im aktuellen Menü), Taco Bell US (Werte aus dem Nutritionix-Panel der offiziellen Produktseiten), Shake Shack US (PDF 04/2025), Burger King UK (gescanntes PDF, per Auge gelesen); Gerätetest der Karten (Dark Mode, große Schrift); Daten vor jedem Release neu prüfen.
 
+## 2026-10-25 – Regionen DE/AT/CH, UK, USA für Suche, Barcode und Supermarkt (Branch `wip4/regiondata`, nicht deployt)
+
+- [x] Region aus den Geräteeinstellungen (`src/services/region.ts`), Übersteuerung in Du → „Land für Vorschläge“ (Automatisch, DE/AT/CH, UK, USA), nur lokal gespeichert; Suche und Barcode senden `region=`.
+- [x] Produktindex `public.products` (Migration `20261025130000_products_markets.sql`), Build 2026-10-25 aus dem OFF-Parquet-Export: de 313.921 (DE/AT/CH, 26.686 pro 100 ml), gb 138.040 (4.996 ml), us 697.730 (10.303 ml); gzip 19,6 / 8,3 / 37,7 MB; lokal 620 MB inkl. Indizes. Eigenmarken je Markt (Tesco, Sainsbury’s, Asda, Morrisons, M&S, Waitrose, Co-op, Aldi UK, Lidl UK, Iceland; Walmart, Costco, Trader Joe’s, Whole Foods, Target, Kroger, Aldi US, Safeway/Albertsons u. a.).
+- [x] `search_products` lokal (PG 17, alle drei Märkte): 4–25 ms, „kirkland protein bar“ 63 ms; „heinz beans“ → Heinz, „lidl skyr“ (UK) → Milbona, „m&s sandwich“ → M&S, „chobani“, „quest bar“, „fairlife“, „trader joes“ → jeweils die Marke. Märkte mischen sich nie (kein Tesco in DE, kein Rewe im UK).
+- [x] Barcode: Index aller Märkte, eigener Markt zuerst; Live-OFF-Suche auf das Land der Region begrenzt.
+- [x] Plan → Supermarkt mit eigenem Datensatz je Region (UK 383 Produkte/104 KB, 245 mit Händler-Tag; USA 369/98 KB, 75 mit Händler-Tag; DE unverändert 397) und Untertitel „Tesco, Sainsbury’s, Aldi“ / „Walmart, Trader Joe’s, Target“; ODbL-Kopien in `site/data/`. Thunfisch-Multipacks zählen wie Einzeldosen nur das geschätzte Abtropfgewicht.
+- [ ] Getränke pro 100 ml: im Index (`basis 'ml'`), in der App weiter ausgeblendet, bis Mahlzeiten eine Einheit kennen (Bestätigen, Portionen, Verlauf, Sync).
+- Offen (Lead): Migration anwenden, je Markt laden (`node scripts/load-products.mjs --market de|gb|us --file … --linked --confirm-linked --prune`), `nutrition` deployen, App-Build; später `products_de`/`store_brands`/`search_products_de` per Migration entfernen.
+
 ## 2026-10-12 – Deutscher Produktindex `products_de` (Branch `wip3/productdb`, nicht deployt)
 
 - Build (2026-10-12, OFF Parquet-Export): 228.540 in Deutschland verkaufte Produkte (21.788 davon pro 100 ml), 14,4 MB gzip; 25 % mit Store-Tag. Verworfen: 19.651 ohne vollständige Nährwerte, 5.636 Atwater-unplausibel, 6.064 ohne Namen u. a.

@@ -1,15 +1,20 @@
 import productData from '@/data/supermarketProducts.json';
+import productDataGb from '@/data/supermarketProducts.gb.json';
+import productDataUs from '@/data/supermarketProducts.us.json';
 import type { FoodSearchResult } from '@/services/mealAnalysis';
 import { meetsDiet, preferenceBonus } from '@/services/preferences';
+import type { MarketRegion } from '@/services/region';
 import type { Nutrition } from '@/types/nutrition';
 import { suggestionBudget, suggestionCalorieTarget } from '@/utils/mealSuggestions';
 
 /**
  * Plan → Supermarkt: three concrete shopping baskets of real products.
  *
- * Every product comes from the bundled Open Food Facts snapshot
- * (src/data/supermarketProducts.json, built by
- * scripts/build-supermarket-products.mjs); loose fruit comes from BLS 4.0.
+ * Every product comes from the bundled Open Food Facts snapshot of the
+ * shopping market (src/data/supermarketProducts{,.gb,.us}.json, built by
+ * scripts/build-supermarket-products.mjs --market de|gb|us): nobody in the UK
+ * is offered a Rewe product, nobody in Germany a Tesco one. Loose fruit comes
+ * from BLS 4.0.
  * The engine only picks products and whole-package-like amounts (1 pack,
  * ½ pack, 1–2 cups of a multipack, the label's own serving). It never changes
  * a nutrient value, so a card shows exactly what the label says for that
@@ -28,7 +33,7 @@ export type SupermarketProduct = {
   /** Barcode for Open Food Facts rows, `bls-<code>` for loose produce. */
   id: string;
   name: string;
-  /** Only loose produce has an English name; packaged products keep their German label name. */
+  /** Only loose produce in the German dataset has an English name; packaged products keep their label name. */
   nameEn?: string;
   brand: string;
   /** Only from the product's own Open Food Facts stores tag. Empty = unknown. */
@@ -71,10 +76,30 @@ export type SupermarketCombo = Nutrition & {
   score: number;
 };
 
+/** The German (DE/AT/CH) dataset. */
 export const SUPERMARKET_DATA = productData as unknown as SupermarketDataset;
+export const SUPERMARKET_DATASETS: Readonly<Record<MarketRegion, SupermarketDataset>> = {
+  de: SUPERMARKET_DATA,
+  gb: productDataGb as unknown as SupermarketDataset,
+  us: productDataUs as unknown as SupermarketDataset,
+};
+/** The bundled products of a shopping market; unknown regions get the German set. */
+export function supermarketDataset(region: MarketRegion): SupermarketDataset {
+  return SUPERMARKET_DATASETS[region] ?? SUPERMARKET_DATA;
+}
 
 /** Store ids the data may carry; display names live in the dictionaries (plan.marketStores). */
-export const STORE_IDS = ['lidl', 'aldi', 'aldi-nord', 'aldi-sued', 'rewe', 'edeka', 'kaufland', 'dm', 'penny', 'netto', 'rossmann'] as const;
+export const STORE_IDS = [
+  'lidl', 'aldi', 'aldi-nord', 'aldi-sued', 'rewe', 'edeka', 'kaufland', 'dm', 'penny', 'netto', 'rossmann',
+  'tesco', 'sainsburys', 'asda', 'morrisons', 'ms', 'waitrose', 'coop', 'iceland',
+  'walmart', 'costco', 'traderjoes', 'wholefoods', 'target', 'kroger', 'safeway', 'albertsons',
+] as const;
+/** Which store ids belong to which market (Aldi and Lidl trade in more than one). */
+export const MARKET_STORE_IDS: Readonly<Record<MarketRegion, readonly StoreId[]>> = {
+  de: ['lidl', 'aldi', 'aldi-nord', 'aldi-sued', 'rewe', 'edeka', 'kaufland', 'dm', 'penny', 'netto', 'rossmann'],
+  gb: ['tesco', 'sainsburys', 'asda', 'morrisons', 'ms', 'waitrose', 'coop', 'aldi', 'lidl', 'iceland'],
+  us: ['walmart', 'costco', 'traderjoes', 'wholefoods', 'target', 'kroger', 'aldi', 'safeway', 'albertsons'],
+};
 export type StoreId = (typeof STORE_IDS)[number];
 
 type Role = 'sweet' | 'savory' | 'meal' | 'bar';
@@ -109,7 +134,7 @@ const MAX_PORTION_G = 550;
 const MAX_SIDE_G = 300;
 const SIDES = new Set<SupermarketCategory>(['fruit', 'fruit-puree', 'bread', 'vegetable', 'nuts', 'hummus']);
 /** Herb quark or paprika skyr goes with bread and vegetables, not with a banana. */
-const SAVORY_NAME = /kräuter|frühlings|paprika|knoblauch|schnittlauch|herzhaft|gurke|tomate/i;
+const SAVORY_NAME = /kräuter|frühlings|paprika|knoblauch|schnittlauch|herzhaft|gurke|tomate|\bherbs?\b|garlic|chives?\b|savou?ry|cucumber|tomato/i;
 
 function roleOf(product: SupermarketProduct): Role {
   const role = ANCHOR_ROLE[product.category] ?? 'savory';
@@ -142,8 +167,12 @@ export function productPortions(product: SupermarketProduct): ComboPortion[] {
   }
   if (product.unit) {
     const max = product.category === 'eggs' ? Math.min(3, product.unit.count) : Math.min(2, Math.max(1, product.unit.count));
+    // A tuna multipack ("4 x 102 g") states the gross can weight too: same
+    // drained share as a single can, marked as an estimate.
+    const drained = product.category === 'tuna' && !product.servingG;
     for (let count = 1; count <= max; count += 1) {
-      portions.push({ kind: 'unit', count, grams: product.unit.g * count, container, estimated });
+      const grams = drained ? Math.round(product.unit.g * count * TUNA_DRAINED_SHARE) : product.unit.g * count;
+      portions.push({ kind: 'unit', count, grams, container, estimated: estimated || drained });
     }
   } else if (product.packageG && product.category === 'tuna' && !product.servingG) {
     // Canned tuna labels refer to the drained fish, but the pack weight

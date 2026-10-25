@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { AccountLinkCard } from '@/components/AccountLinkCard';
+import { MarketRegionPreference } from '@/components/MarketRegionPreference';
 import { Card, Eyebrow, ListDivider, PageTitle, PressableScale, Screen, SectionTitle, SettingsRow } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
@@ -245,6 +246,11 @@ export default function ProfileScreen() {
             })}
           </View>
         </Card>
+      </View>
+
+      <View style={styles.section}>
+        <SectionTitle>{t.profile.marketRegion}</SectionTitle>
+        <MarketRegionPreference />
       </View>
 
       <View style={styles.section}>

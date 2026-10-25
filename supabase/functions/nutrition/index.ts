@@ -700,10 +700,13 @@ async function analyzeLabel(input: any, signal?: AbortSignal): Promise<Result> {
  * reader's language. USDA and Open Food Facts remain fallbacks for products
  * the reference catalogue does not contain.
  *
- * Packaged products come from the German product index (public.products_de,
- * an Open Food Facts export): one ranked database query, no provider call and
- * no provider quota. Live Open Food Facts is asked only when the index is
- * unavailable, empty or finds fewer than PRODUCT_INDEX_MIN_HITS products.
+ * Packaged products come from the regional product index (public.products,
+ * an Open Food Facts export per market): one ranked database query, no
+ * provider call and no provider quota. `market` is the reader's shopping
+ * region (de = DE/AT/CH, gb, us); without one (older apps) the German index
+ * and the previous live-search filters apply. Live Open Food Facts, limited
+ * to that market's country, is asked only when the index is unavailable,
+ * empty or finds fewer than PRODUCT_INDEX_MIN_HITS products.
  */
 async function searchFoods(
   query: string,
@@ -714,8 +717,10 @@ async function searchFoods(
   admin?: any,
   brands: string[] = [],
   productsOnly = false,
+  market: ProductMarket | null = null,
 ): Promise<Result> {
   const term = normalizeSearchTerm(query);
+  const indexMarket: ProductMarket = market ?? 'de';
   if (!isSearchQuery(term)) {
     return { status: 400, body: { code: 'invalid_input', message: 'Query too short.' } };
   }
@@ -754,7 +759,7 @@ async function searchFoods(
   // claims no provider quota), live Open Food Facts — and its quota — only
   // when the index is unavailable, empty or finds fewer than three.
   const searchProducts = async () => {
-    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_LIMIT);
+    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_LIMIT, indexMarket);
     let massHits = 0;
     for (const hit of indexed ?? []) {
       addHit(hit);
@@ -767,6 +772,7 @@ async function searchFoods(
         term,
         language,
         claimProvider ? () => claimProvider('off_search') : undefined,
+        market,
       )) {
         // deno-lint-ignore no-explicit-any
         add(product, `off-${String((product as any)?.source?.referenceId ?? '')}`);
@@ -826,7 +832,7 @@ async function searchFoods(
     // "Skyr" is answered by the reference, but the packs on the shelf are
     // what people log. The index costs no provider call, so its best matches
     // follow the first reference rows; live Open Food Facts is not asked.
-    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE);
+    const indexed = await searchProductIndex(admin, term, brands, PRODUCT_INDEX_AFTER_CATALOGUE, indexMarket);
     const rest = results.splice(PRODUCT_INDEX_AFTER_CATALOGUE_POSITION);
     for (const hit of indexed ?? []) {
       addHit(hit);
@@ -888,6 +894,13 @@ async function searchFoods(
   return finish();
 }
 
+/** Open Food Facts country of each market; 'de' also stands for AT/CH, whose shelves overlap. */
+const MARKET_COUNTRY: Record<ProductMarket, { tag: string; slug: string }> = {
+  de: { tag: 'en:germany', slug: 'germany' },
+  gb: { tag: 'en:united-kingdom', slug: 'united-kingdom' },
+  us: { tag: 'en:united-states', slug: 'united-states' },
+};
+
 /**
  * Full-text product search.
  *
@@ -899,14 +912,20 @@ async function searchOpenFoodFacts(
   term: string,
   language: string,
   claimOff?: () => Promise<void>,
+  market: ProductMarket | null = null,
 ): Promise<unknown[]> {
   const fields = OFF_PRODUCT_FIELDS;
-  // German readers search what German shops sell: products sold in Germany,
-  // matched on their German fields. Query syntax characters are not passed on.
+  // People search what their shops sell: products sold in their market,
+  // matched on their language's fields (and English ones, which most UK/US
+  // records only have). Without a market (older apps) German readers get
+  // Germany, everyone else the whole database. Query syntax characters are
+  // not passed on.
   const words = term.replace(/["():\[\]{}^~*?\\/!+]/g, ' ').replace(/\s+/g, ' ').trim();
   const german = language === 'de';
-  const q = german ? `${words} countries_tags:"en:germany"` : words;
-  const url = `https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&langs=${german ? 'de' : 'en'}&page_size=10&fields=${fields}`;
+  const country = market ? MARKET_COUNTRY[market] : german ? MARKET_COUNTRY.de : null;
+  const langs = german ? (market && market !== 'de' ? 'de,en' : 'de') : market === 'de' ? 'en,de' : 'en';
+  const q = country ? `${words} countries_tags:"${country.tag}"` : words;
+  const url = `https://search.openfoodfacts.org/search?q=${encodeURIComponent(q)}&langs=${langs}&page_size=10&fields=${fields}`;
   await claimOff?.();
   const response = await fetch(url, {
     headers: { 'User-Agent': 'Kandro/1.0 (https://getkandro.com; hewaddorani22@gmail.com)' },
@@ -949,16 +968,16 @@ async function searchOpenFoodFacts(
   };
   collect(hits);
 
-  // "Milka", "Rewe Bio", "Müller Milchreis": a brand is a tag, not text. When
-  // the text search found little, ask for the brand's products sold in
-  // Germany; further words must then appear in the product name.
-  if (german && out.length < 3) {
+  // "Milka", "Rewe Bio", "Heinz beans": a brand is a tag, not text. When the
+  // text search found little, ask for the brand's products sold in the
+  // market; further words must then appear in the product name.
+  if (country && out.length < 3) {
     const [first, ...rest] = words.toLowerCase().split(' ');
     const slug = (first ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     if (slug.length >= 3) {
       try {
         await claimOff?.();
-        const brandResponse = await fetch(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${encodeURIComponent(slug)}&countries_tags_en=germany&lc=de&page_size=10&sort_by=unique_scans_n&fields=${fields}`, {
+        const brandResponse = await fetch(`https://world.openfoodfacts.org/api/v2/search?brands_tags=${encodeURIComponent(slug)}&countries_tags_en=${country.slug}&lc=${german ? 'de' : 'en'}&page_size=10&sort_by=unique_scans_n&fields=${fields}`, {
           headers: { 'User-Agent': OFF_USER_AGENT },
           signal: AbortSignal.timeout(4000),
         });
@@ -1159,13 +1178,14 @@ function barcodeResult(barcode: string, product: any, language: string): Result 
 }
 
 // deno-lint-ignore no-explicit-any
-async function lookupBarcode(barcode: string, language: string, claimOff?: () => Promise<void>, admin?: any): Promise<Result> {
+async function lookupBarcode(barcode: string, language: string, claimOff?: () => Promise<void>, admin?: any, market: ProductMarket | null = null): Promise<Result> {
   if (!/^\d{7,14}$/.test(barcode)) {
     return { status: 400, body: { code: 'invalid_barcode', message: 'Ungültiger Barcode.' } };
   }
-  // The German product index answers most German packs without a provider
-  // call; a missing, volume-based or unreachable row falls through to OFF.
-  const indexed = await readProductIndex(admin, barcode);
+  // The product index answers most packs without a provider call, the
+  // reader's market first, then any market; a missing, volume-based or
+  // unreachable row falls through to OFF (whose database is worldwide).
+  const indexed = await readProductIndex(admin, barcode, market ?? 'de');
   if (indexed) return indexed;
   const cached = await readOffCache(admin, barcode);
   if (cached) return cached.product ? barcodeResult(barcode, cached.product, language) : { status: 404, body: { code: 'product_not_found' } };
@@ -1188,12 +1208,20 @@ async function lookupBarcode(barcode: string, language: string, claimOff?: () =>
 }
 
 /**
- * German product index (public.products_de): products sold in Germany from
- * the Open Food Facts export (ODbL), ranked in Postgres by
- * search_products_de. Reading it is a database query, not a provider call,
- * so it claims no provider quota. Every failure (migration not applied,
- * table empty, timeout) yields null and the caller asks live Open Food Facts.
+ * Regional product index (public.products): products sold per market (de =
+ * DE/AT/CH, gb, us) from the Open Food Facts export (ODbL), ranked in
+ * Postgres by search_products(q, market, …). Reading it is a database query,
+ * not a provider call, so it claims no provider quota. Every failure
+ * (migration not applied, market empty, timeout) yields null and the caller
+ * asks live Open Food Facts.
  */
+type ProductMarket = 'de' | 'gb' | 'us';
+
+/** The app's `region` parameter; anything else is "not sent" (older apps). */
+function requestedMarket(value: string | null | undefined): ProductMarket | null {
+  return value === 'de' || value === 'gb' || value === 'us' ? value : null;
+}
+
 const PRODUCT_INDEX_LIMIT = 20;
 const PRODUCT_INDEX_MIN_HITS = 3;
 const PRODUCT_INDEX_AFTER_CATALOGUE = 8;
@@ -1234,7 +1262,7 @@ function publicProductHit(hit: ProductHit) {
   };
 }
 
-/** A products_de row, checked like any provider payload before it is used. */
+/** A public.products row, checked like any provider payload before it is used. */
 // deno-lint-ignore no-explicit-any
 function productIndexHit(row: any): ProductHit | null {
   const code = String(row?.code ?? '');
@@ -1263,11 +1291,11 @@ function productIndexHit(row: any): ProductHit | null {
 }
 
 // deno-lint-ignore no-explicit-any
-async function searchProductIndex(admin: any, term: string, brands: string[], limit: number): Promise<ProductHit[] | null> {
+async function searchProductIndex(admin: any, term: string, brands: string[], limit: number, market: ProductMarket = 'de'): Promise<ProductHit[] | null> {
   if (!admin) return null;
   try {
     const { data, error } = await admin
-      .rpc('search_products_de', { q: term, brands: brands.length ? brands : null, lim: limit })
+      .rpc('search_products', { q: term, market, brands: brands.length ? brands : null, lim: limit })
       .abortSignal(AbortSignal.timeout(2500));
     if (error || !Array.isArray(data)) return null;
     // The same pack is often recorded under several codes (sizes, relaunches);
@@ -1331,17 +1359,27 @@ function offSearchHit(product: any): ProductHit | null {
   };
 }
 
-/** Barcode answer from the product index, in the barcode route's shape. */
+/**
+ * Barcode answer from the product index, in the barcode route's shape. The
+ * reader's market answers first; a pack bought abroad (a US protein bar in
+ * Berlin) is still found in another market's rows.
+ */
 // deno-lint-ignore no-explicit-any
-async function readProductIndex(admin: any, barcode: string): Promise<Result | null> {
+async function readProductIndex(admin: any, barcode: string, market: ProductMarket = 'de'): Promise<Result | null> {
   if (!admin) return null;
   try {
-    const { data, error } = await admin.from('products_de')
-      .select('code, name, brand, stores, basis, package_g, package_ml, serving_g, kcal, protein, carbs, fat, fiber')
+    const { data, error } = await admin.from('products')
+      .select('market, code, name, brand, stores, basis, package_g, package_ml, serving_g, kcal, protein, carbs, fat, fiber')
       .in('code', offBarcodeCandidates(barcode))
-      .limit(1)
+      .limit(12)
       .abortSignal(AbortSignal.timeout(2000));
-    const hit = !error && Array.isArray(data) ? productIndexHit(data[0]) : null;
+    const order: ProductMarket[] = [market, ...(['de', 'gb', 'us'] as ProductMarket[]).filter((other) => other !== market)];
+    const rows = !error && Array.isArray(data)
+      // deno-lint-ignore no-explicit-any
+      ? [...data].sort((a: any, b: any) => order.indexOf(a?.market) - order.indexOf(b?.market))
+      : [];
+    // deno-lint-ignore no-explicit-any
+    const hit = rows.map(productIndexHit).find((row: ProductHit | null) => row && row.basis === 'g') ?? null;
     if (!hit || hit.basis !== 'g') return null;
     const result = productIndexResult(hit)!;
     return {
@@ -1508,12 +1546,15 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
     // A GET carries no body, so the language rides along in the query string.
     if (match) {
       const requested = new URL(request.url).searchParams.get('language');
+      // The shopping region only orders the index lookup; any market's product is found.
+      const market = requestedMarket(new URL(request.url).searchParams.get('region'));
       try {
-        return reply(await barcodeCache.get(JSON.stringify([SEARCH_VERSION, match[1], requested]), () => lookupBarcode(
+        return reply(await barcodeCache.get(JSON.stringify([SEARCH_VERSION, match[1], requested, market]), () => lookupBarcode(
           match[1],
           requestedLanguage({ language: requested }),
           () => claimProviderRequest(context.supabaseAdmin, data.user.id, 'off_barcode', networkHash),
           context.supabaseAdmin,
+          market,
         ), (result: Result) => [200,404].includes(result.status), (result: Result) => result.status === 404));
       } catch (error) {
         if (error instanceof ProviderQuotaError) return reply(error.result);
@@ -1526,7 +1567,9 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
         // Optional brand hints ("brands=Milbona,Pilos"; ≤30, each ≤40 chars): ranking boost only.
         const brands = [...new Set(params.getAll('brands').flatMap((value) => value.split(','))
           .map((value) => value.replace(/\s+/g, ' ').trim()).filter((value) => value.length >= 2 && value.length <= 40))].slice(0, 30);
-        return reply(await searchCache.get(await captureFingerprint([SEARCH_VERSION, data.user.id, params.get('q'), params.get('language'), params.get('scope'), brands]), () => searchFoods(
+        // Optional shopping region (de | gb | us): which market's products answer.
+        const market = requestedMarket(params.get('region'));
+        return reply(await searchCache.get(await captureFingerprint([SEARCH_VERSION, data.user.id, params.get('q'), params.get('language'), params.get('scope'), brands, market]), () => searchFoods(
           params.get('q') ?? '',
           requestedLanguage({ language: params.get('language') }),
           (providerRoute) => claimProviderRequest(
@@ -1539,6 +1582,7 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
           context.supabaseAdmin,
           brands,
           params.get('scope') === 'products',
+          market,
         ), (result: Result) => result.status === 200 && result.body.searchStatus !== 'partial', (result: Result) => (result.body.results as unknown[]).length === 0));
       } catch (error) {
         if (error instanceof ProviderQuotaError) return reply(error.result);
