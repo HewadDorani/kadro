@@ -1,5 +1,54 @@
 # Release notes for builds
 
+## 1.0.6 retention: App Store Connect and RevenueCat steps (owner, before review)
+
+The app code (`wip4/retention`) only shows what StoreKit returns. Without these
+steps the new blocks simply stay hidden; nothing breaks.
+
+1. **Billing Grace Period** – App Store Connect → Apps → Kandro → *Subscriptions*
+   (the subscription group page) → **Billing Grace Period** → *Turn On*:
+   duration **16 days**, eligible renewals **All renewals**, environment
+   **Production and Sandbox**. RevenueCat keeps `kandro_pro` active during grace
+   and sets `billingIssueDetectedAt`; the app shows the calm Today/Du notice.
+   Kandro's server already treats grace as active (`gives_access`) and locks
+   again on `EXPIRATION`/recheck. Confirm App Store Connect → App Information →
+   **App Store Server Notifications** (Production and Sandbox, Version 2) point
+   to the RevenueCat URL shown in RevenueCat → Apps → Kandro (App Store), so
+   `BILLING_ISSUE`/`EXPIRATION` arrive promptly.
+2. **In-App Purchase key for RevenueCat** (required for Promotional Offers and
+   Win-Back Offers): App Store Connect → *Users and Access* → *Integrations* →
+   **In-App Purchase** → *Generate In-App Purchase Key* (download the `.p8` once,
+   note Key ID and Issuer ID) → RevenueCat → Project settings → Apps → Kandro
+   (App Store) → **In-App Purchase Key Configuration** → upload `.p8`, Key ID,
+   Issuer ID → save. Never commit the key.
+3. **Win-Back Offer** for **both** products (`…pro.monthly`, `…pro.annual`):
+   App Store Connect → Subscriptions → product → *Subscription Prices* →
+   **Win-Back Offers** → *Create*: type *Pay as you go* (or *Pay up front*),
+   e.g. **50 % for the first period** (monthly: 1 month, annual: 1 year);
+   eligibility **paid for at least 1 month**, **lapsed at least 30 days**
+   (no "subscribed within the last …" restriction); priority *Normal*; available
+   in all storefronts; start now, no end date. Requires iOS 18+ on the device;
+   older iOS sees the normal paywall.
+4. **Promotional Offer** (shown on the in-app "Your subscription" screen):
+   App Store Connect → product → *Subscription Prices* → **Promotional Offers**
+   → *Create*: reference name e.g. `promo_3m_50`, identifier `promo_3m_50`,
+   **Pay as you go, 3 months at 50 %** (monthly product; for annual e.g.
+   1 year at 30 %). Repeat per product you want covered. Needs step 2.
+5. **Migration** `supabase/migrations/20261025140000_paywall_retention_steps.sql`
+   (written, not applied): adds `winback_*` / `retention_offer_*` purchase steps.
+   Apply with the next migration window (`npm run db:remote:check`, then
+   `db:remote:push`). Until then those step calls are dropped silently.
+6. **Small Business Program** (15 % commission instead of 30 %): enrol at
+   https://developer.apple.com/app-store/small-business-program/ (account holder,
+   once per developer account; associated developer accounts must be listed).
+7. **Device test before review** (sandbox): billing issue (App Store Connect →
+   Users and Access → Sandbox → tester → billing retry/interrupted renewals, or
+   an Xcode StoreKit configuration with *Billing Grace Period* and *Billing
+   Retry* enabled), notice shows and hides after "dismiss for today";
+   "Your subscription" → *Cancel anyway* opens Apple's sheet; monthly → annual
+   switch; promotional offer purchase; lapsed sandbox account on iOS 18 sees the
+   win-back card. Record in `docs/qa/`.
+
 ## Sentry source maps (status 09.10.2026: upload still off)
 
 Crash reporting is on in `preview` and `production` (`EXPO_PUBLIC_SENTRY_DSN`).

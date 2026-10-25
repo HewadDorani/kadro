@@ -9,6 +9,15 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-10-25 – Retention: Grace Period, Abo-Seite, Win-Back (`wip4/retention`, 1.0.6)
+
+- [x] Billing Grace Period: Eintrag bleibt aktiv (SDK `entitlements.active`, Server `gives_access` mit 15-min-Recheck, Lock bei `EXPIRATION`); ruhiger Hinweis auf Heute und in Du bei `billingIssueDetectedAt`, „Zahlungsmethode prüfen“ öffnet Apples Abo-Verwaltung, pro Tag ausblendbar (`BillingIssueBanner`).
+- [x] `src/app/subscription-manage.tsx`: Plan + Verlängerungsdatum; „Bevor du gehst“ nur mit echten Store-Optionen (Monat → Jahr als normaler Kauf; Promotional Offer nur, wenn auf dem Produkt konfiguriert und von RevenueCat signiert); optionaler Grund als PostHog-Event (nur mit Einwilligung); fester Footer „Trotzdem kündigen“ → Apple, in jedem Zustand. Ohne aktives, bestätigtes Abo führt „Abo verwalten“ direkt zu Apple.
+- [x] Win-Back auf der Paywall (iOS 18+, früheres `kandro_pro`, von StoreKit als berechtigt gemeldet): „Willkommen zurück – …“ mit StoreKit-Preis/-Zeitraum und Folgepreis, Kauf über `purchaseProductWithWinBackOffer`.
+- [x] Messung: `markPurchaseStep(…, 'winback' | 'retention_offer')`; Migration `20261025140000_paywall_retention_steps.sql` geschrieben, **nicht angewendet**.
+- [x] `scripts/validate-retention.mjs` in `verify`.
+- [ ] Offen (Owner): App-Store-Connect-/RevenueCat-Schritte in `docs/RELEASE.md` (Grace Period 16 Tage, Win-Back-Offers, Promotional Offer, In-App-Purchase-Key, Small Business Program); Migration anwenden; Sandbox-Gerätetest.
+
 ## 2026-10-25 – Plan → Unterwegs mit echten Ketten (`wip4/chains`, 1.0.6)
 
 - [x] Offizielle Nährwerte je Markt in `src/data/chains/{de,gb,us}.json` (Quelle-URL und Prüfdatum je Artikel, Atwater-geprüft): DE 8 Ketten/180 Artikel, GB 15/391, US 16/412; zusammen ~400 KB. Ohne offizielle Daten ausgelassen: DE Pizza Hut, Domino's, Dunkin', Vapiano, L'Osteria, Haus des Döners, Nordsee, Ditsch, Kamps, Lila Bäcker (geschlossen); GB Domino's (Geo-Sperre); US Dunkin' (Geo-Sperre), Jersey Mike's (nicht erreichbar).
