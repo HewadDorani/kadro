@@ -59,14 +59,17 @@ assert.match(off, /localizedProductName\(product, language\)/,
   'German search preserves an identifiable original product name when translation is absent');
 assert.match(gateway, /if \(strict\) return '';/,
   'strict localized-name selection must omit products without the requested language');
-assert.match(gateway, /try \{\s*for \(const product of await searchOpenFoodFacts\(\s*term,\s*language,\s*claimProvider \? \(\) => claimProvider\('off_search'\) : undefined,\s*\)\)[\s\S]*catch \(error\) \{\s*noteFailure\(error\);/,
+assert.match(gateway, /try \{\s*for \(const product of await searchOpenFoodFacts\(\s*term,\s*language,\s*claimProvider \? \(\) => claimProvider\('off_search'\) : undefined,\s*market,\s*\)\)[\s\S]*catch \(error\) \{\s*noteFailure\(error\);/,
   'Open Food Facts going down must not fail the whole search, while quota denials are preserved as partial status or an explicit error');
 
 // --- German-first Open Food Facts: products sold in Germany, German fields ----
-assert.match(off, /const q = german \? `\$\{words\} countries_tags:"en:germany"` : words;/, 'German readers must search products sold in Germany');
-assert.match(off, /&langs=\$\{german \? 'de' : 'en'\}/, 'German readers must be matched on German product fields');
-assert.match(off, /api\/v2\/search\?brands_tags=\$\{encodeURIComponent\(slug\)\}&countries_tags_en=germany&lc=de/, 'a brand query must reach the brand tag search for Germany');
-assert.match(off, /if \(german && out\.length < 3\)/, 'the brand search only runs when the text search found little');
+// Region-aware since 1.0.6 (scripts/validate-products.mjs runs it): German
+// readers without a region still search Germany on German fields.
+assert.match(off, /const country = market \? MARKET_COUNTRY\[market\] : german \? MARKET_COUNTRY\.de : null;/, 'German readers must search products sold in Germany (or their region)');
+assert.match(off, /const q = country \? `\$\{words\} countries_tags:"\$\{country\.tag\}"` : words;/);
+assert.match(off, /const langs = german \? \(market && market !== 'de' \? 'de,en' : 'de'\)/, 'German readers must be matched on German product fields');
+assert.match(off, /api\/v2\/search\?brands_tags=\$\{encodeURIComponent\(slug\)\}&countries_tags_en=\$\{country\.slug\}&lc=\$\{german \? 'de' : 'en'\}/, 'a brand query must reach the brand tag search for the market');
+assert.match(off, /if \(country && out\.length < 3\)/, 'the brand search only runs when the text search found little');
 assert.match(off, /if \(error instanceof ProviderQuotaError\) throw error;/, 'a quota denial in the brand probe must not be swallowed');
 assert.match(off, /replace\(\/\["\(\):\\\[\\\]\{\}\^~\*\?\\\\\/!\+\]\/g, ' '\)/, 'query syntax characters must not reach the search engine');
 

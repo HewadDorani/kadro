@@ -36,6 +36,11 @@ MARKETS = {
     'gb': {'countries': ['en:united-kingdom'], 'names': ('name_en', 'name_main')},
     'us': {'countries': ['en:united-states'], 'names': ('name_en', 'name_main')},
 }
+# GS1 prefixes of the market's own barcodes (13-digit form). Scan counts are
+# worldwide: a Moroccan water also tagged "United States" has thousands of
+# scans from Morocco. Outside DE, a product with a foreign prefix keeps a tenth
+# of its scan count for ranking (it stays in the index).
+LOCAL_PREFIX = {'gb': ('50',), 'us': tuple(f'{n:03d}' for n in range(0, 140))}
 ALL_COUNTRIES = sorted({c for market in MARKETS.values() for c in market['countries']})
 NUTRIENTS = {
     'kcal': 'energy-kcal', 'kj': 'energy', 'protein': 'proteins', 'carbs': 'carbohydrates', 'sugars': 'sugars',
@@ -441,7 +446,8 @@ STORE_KEYS = {
            'marks-and-spencer': 'ms', 'm-s': 'ms', 'waitrose': 'waitrose', 'co-op': 'coop', 'coop': 'coop', 'the-co-operative': 'coop',
            'co-operative': 'coop', 'aldi': 'aldi', 'lidl': 'lidl', 'iceland': 'iceland'},
     'us': {'walmart': 'walmart', 'wal-mart': 'walmart', 'costco': 'costco', 'trader-joe': 'traderjoes', 'whole-foods': 'wholefoods',
-           'target': 'target', 'super-target': 'target', 'kroger': 'kroger', 'aldi': 'aldi', 'safeway': 'safeway', 'albertsons': 'albertsons'},
+           'target': 'target', 'super-target': 'target', 'kroger': 'kroger', 'aldi': 'aldi', 'safeway': 'safeway', 'albertsons': 'albertsons',
+           'sam-s-club': 'samsclub', 'sams-club': 'samsclub', 'wegmans': 'wegmans', 'meijer': 'meijer', 'h-e-b': 'heb', 'heb': 'heb', 'publix': 'publix'},
 }
 
 
@@ -478,8 +484,19 @@ def tidy_caps(text):
     return re.sub(r"(^|[\s\-/(&])([a-z])", lambda m: m.group(1) + m.group(2).upper(), text.lower())
 
 
+def local_popularity(market, code, scans):
+    prefixes = LOCAL_PREFIX.get(market)
+    if not prefixes:
+        return scans
+    # 8 digits: UPC-E (US, leading 0/1) or EAN-8 (prefix as written).
+    local = code[0] in '01' if market == 'us' and len(code) == 8 else code.zfill(13).startswith(prefixes) if len(code) > 8 else code.startswith(prefixes)
+    if local:
+        return scans
+    return scans // 10
+
+
 def main_category(tags):
-    english = [t for t in (tags or []) if isinstance(t, str) and t.startswith('en:')]
+    english = [t for t in (tags or []) if isinstance(t, str) and t.startswith('en:') and t not in ('en:null', 'en:undefined')]
     return english[-1][3:].replace('-', ' ')[:60] if english else None
 
 
@@ -514,6 +531,11 @@ def transform(raw_path, out_dir, market, sample):
                     rejected['code'] += 1; continue
                 if code in seen_codes:
                     rejected['duplicate'] += 1; continue
+                # UK/US shelves are labelled in English; a record with neither an
+                # English name nor English as its main language is mostly a
+                # foreign product tagged with many countries (scans abroad).
+                if market != 'de' and not row['name_en'] and row['lang'] != 'en':
+                    rejected['not_english'] += 1; continue
                 name = next(filter(None, (clean_text(row[field], 130) for field in config['names'])), None)
                 if name and market != 'de':
                     name = tidy_caps(name)
@@ -541,7 +563,7 @@ def transform(raw_path, out_dir, market, sample):
                     'fat': r1(n['fat']), 'sat_fat': r1(n['sat_fat']), 'fiber': r1(n['fiber']), 'salt': r1(n['salt']),
                     'category': main_category(row['categories_tags']),
                     'nutriscore': row['nutriscore_grade'] if row['nutriscore_grade'] in ('a', 'b', 'c', 'd', 'e') else None,
-                    'popularity': int(row['unique_scans_n'] or 0),
+                    'popularity': local_popularity(market, code, int(row['unique_scans_n'] or 0)),
                     'last_modified': int(row['last_modified_t'] or 0),
                 }
                 out.write(json.dumps(record, ensure_ascii=False, separators=(',', ':')) + '\n')

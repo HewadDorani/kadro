@@ -50,6 +50,7 @@ const mocks={
  '@/utils/ingredientCorrection':{needsIngredientCorrection:()=>false},
  '@/services/localRepository':{getLocalDataGeneration:()=>generation},
  // No own product ("Mein Produkt") stored: every barcode reaches the gateway.
+ '@/services/region':{getMarketRegion:()=>'de',loadMarketRegion:async()=>{}},
  '@/services/customFoods':{findCustomFoodByBarcode:async()=>null,customFoodResult:()=>{throw new Error('unexpected own product');}},
 };
 const module={exports:{}};

@@ -78,6 +78,7 @@ const barcode = loadFunction('src/services/mealAnalysis.ts', 'analyzeBarcode', {
   getLanguage: () => 'de', getDictionary: () => ({ errors: { portionStartValue: '100 g' } }),
   // No own product ("Mein Produkt") for this barcode: the gateway answers.
   findCustomFoodByBarcode: async () => null,
+  getMarketRegion: () => 'de', loadMarketRegion: async () => {},
   gatewayMessage: () => 'missing_nutrition', MealAnalysisError: AnalysisError,
   validSearchResult:loadFunction('src/services/mealAnalysis.ts','validSearchResult',{}),
 });
