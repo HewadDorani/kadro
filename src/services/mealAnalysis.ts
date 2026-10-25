@@ -465,7 +465,7 @@ export type FoodSearchResult = {
   per100g: Nutrition;
   defaultGrams: number;
   /** Named household portions ("1 banana", "1 slice"), when the source has any. */
-  portions?: { label: string; grams: number; estimated?: boolean; kind?: string }[];
+  portions?: { label: string; grams: number; estimated?: boolean; kind?: string; unitOnly?: boolean }[];
   source: MealItem['source'];
   /** Amount the user logged last time; preselected in the portion sheet. */
   lastGrams?: number;

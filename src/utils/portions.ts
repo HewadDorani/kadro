@@ -6,7 +6,31 @@ export function itemNutritionPer100g(item: MealItem): Nutrition {
   return { calories: item.calories * factor, protein: item.protein * factor, carbs: item.carbs * factor, fat: item.fat * factor, fiber: (item.fiber ?? 0) * factor };
 }
 
-export type FoodPortion = { label: string; grams: number; estimated?: boolean };
+/**
+ * `unitOnly`: the source publishes values per serving but no weight (most
+ * restaurant chains); `grams` is then a 100 g stand-in for one serving and is
+ * never shown as a weight.
+ */
+export type FoodPortion = { label: string; grams: number; estimated?: boolean; unitOnly?: boolean };
+
+/**
+ * A serving-only amount ("2 × 1 Burger") for items whose source publishes no
+ * weight, or null when the item has real grams.
+ */
+export function servingOnlyAmount(item: { amountG: number; portions?: FoodPortion[] }): { count: number; label: string } | null {
+  const portion = item.portions?.find((entry) => entry.unitOnly && entry.grams > 0);
+  if (!portion) return null;
+  return { count: Math.round((item.amountG / portion.grams) * 10) / 10, label: portion.label };
+}
+
+/** "250 g", or "1 Burger" / "2 × 1 Burger" when the source publishes no weight. */
+export function formatItemAmount(item: { amountG: number; portions?: FoodPortion[] }, locale: string) {
+  const serving = servingOnlyAmount(item);
+  // Same output as utils/format formatNumber, without its UI imports.
+  const number = (value: number) => { try { return value.toLocaleString(locale); } catch { return String(value); } };
+  if (!serving) return `${number(item.amountG)} g`;
+  return serving.count === 1 ? serving.label : `${number(serving.count)} × ${serving.label}`;
+}
 
 /** Wider than any real meal, narrow enough to catch a typed "1000000". */
 export const MIN_PORTION_G = 1;
