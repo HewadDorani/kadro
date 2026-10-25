@@ -416,6 +416,9 @@ function dietFlags(product, category) {
   // named poultry, fish or no meat at all counts.
   const unnamedMeat = /(^|[^a-zäöüß])(fleisch|hackfleisch|hack|gyros|frikadell|leberkäse|döner|meat\b|mechanically separated)/i.test(ingredients);
   if (hasIngredients && !PORK.test(ingredients) && (vegetarian || !unnamedMeat)) flags.push('pork-free');
+  // A vegan product is also vegetarian, pork free and lactose free; vegetarian implies pork free.
+  if (flags.includes('vegan')) for (const implied of ['vegetarian', 'pork-free', 'lactose-free']) if (!flags.includes(implied)) flags.push(implied);
+  if (flags.includes('vegetarian') && !flags.includes('pork-free')) flags.push('pork-free');
   return flags.sort();
 }
 
