@@ -98,6 +98,7 @@ function activityChoicesFor(t: Dict): Choice[] {
 function preferenceChoicesFor(t: Dict) {
   return [
     { id: 'high-protein', label: t.onboarding.prefHighProtein },
+    { id: 'low-carb', label: t.onboarding.prefLowCarb },
     { id: 'vegetarian', label: t.onboarding.prefVegetarian },
     { id: 'vegan', label: t.onboarding.prefVegan },
     { id: 'pork-free', label: t.onboarding.prefPorkFree },
@@ -141,9 +142,15 @@ export default function OnboardingScreen() {
   const sexChoices = sexChoicesFor(t);
   const activityChoices = activityChoicesFor(t);
   const preferenceChoices = preferenceChoicesFor(t);
-  const params = useLocalSearchParams<{ edit?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; step?: string }>();
   const editing = params.edit === '1' && !!profile.completedAt;
-  const [stepIndex, setStepIndex] = useState(0);
+  // Plan → "Angepasst an … Ändern" opens the editor at the preference step and
+  // returns to Plan, instead of walking through goal, body and activity first.
+  const preferencesShortcut = editing && params.step === 'preferences';
+  const editDone = preferencesShortcut ? '/(tabs)/plan' : '/(tabs)/profile';
+  const [stepIndex, setStepIndex] = useState(() => (preferencesShortcut
+    ? Math.max(0, onboardingSteps(profile.age, effectiveGoal(profile), true).indexOf('preferences'))
+    : 0));
   const [goal, setGoal] = useState<NutritionGoal>(() => (editing ? profile.goal : 'lose'));
   const [displayName, setDisplayName] = useState(() => (editing ? profile.displayName : ''));
   const [sex, setSex] = useState<BiologicalSex>(() => (editing ? profile.sex : 'unspecified'));
@@ -403,7 +410,7 @@ export default function OnboardingScreen() {
   const saveEdits = async () => {
     await completeOnboarding(draftProfile);
     trackEvent('plan edited', { completion: 'finished' });
-    router.replace('/(tabs)/profile');
+    router.replace(editDone);
   };
 
   const primaryAction = async () => {
@@ -467,7 +474,7 @@ export default function OnboardingScreen() {
           accessibilityState={{ disabled: stepIndex === 0 && !editing }}
           disabled={stepIndex === 0 && !editing}
           hitSlop={10}
-          onPress={stepIndex === 0 && editing ? () => router.replace('/(tabs)/profile') : goBack}
+          onPress={preferencesShortcut && step === 'preferences' ? () => router.replace(editDone) : stepIndex === 0 && editing ? () => router.replace('/(tabs)/profile') : goBack}
           style={[styles.backButton, stepIndex === 0 && !editing && styles.invisible]}
         >
           <Ionicons color={colors.text} name="arrow-back" size={22} />

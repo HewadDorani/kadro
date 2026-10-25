@@ -74,6 +74,18 @@ if (!profile.includes('t.profile.changePlan')) {
   problems.push('profile: the plan editor row has no label');
 }
 
+// Plan → "Angepasst an … Ändern" jumps straight to the preference step of
+// the same editor and comes back to Plan; it is not a second editor.
+const plan = read('src/app/(tabs)/plan.tsx');
+if (!plan.includes("router.push('/onboarding?edit=1&step=preferences' as never)")) {
+  problems.push('plan: no way from the options to the preference editor');
+}
+if (!/const preferencesShortcut = editing && params\.step === 'preferences';/.test(onboarding)
+  || !/indexOf\('preferences'\)/.test(onboarding)
+  || !/router\.replace\(editDone\)/.test(onboarding)) {
+  problems.push('onboarding: the preference shortcut does not open the preference step and return to Plan');
+}
+
 // completeOnboarding is the single place that recalculates and syncs.
 if (!/const nextTargets = calculateDailyTargets\(completedProfile\);/.test(context)) {
   problems.push('AppContext: completeOnboarding no longer recalculates targets, so an edit would not move them');
