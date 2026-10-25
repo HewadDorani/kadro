@@ -88,17 +88,16 @@ for (const meal of catalogs.de.filter((entry) => entry.context === 'home')) {
 
 // --- The filter actually uses the ingredients -------------------------------
 const service = readFileSync(new URL('../src/services/recommendations.ts', import.meta.url), 'utf8');
-const filter = service.slice(service.indexOf('function matchesDietaryConstraints'), service.indexOf('function isQuick'));
+const preferencesModule = readFileSync(new URL('../src/services/preferences.ts', import.meta.url), 'utf8');
+const filter = service.slice(service.indexOf('export function catalogDietTags'), service.indexOf('function score('));
 assert.match(filter, /const recipe = recipes\[entry\.id\];/, 'the filter no longer looks at the recipe');
-for (const [preference, set] of [['vegan', 'veganIngredients'], ['vegetarian', 'meatIngredients'], ['pork-free', 'porkIngredients'], ['lactose-free', 'lactoseIngredients']]) {
-  if (preference === 'vegan') {
-    if (!/includes\('vegan'\) && keys\.some\(\(key\) => !veganIngredients\.has\(key\)\)/.test(filter)) {
-      problems.push('recommendations.ts: vegan is not checked against every recipe ingredient');
-    }
-    continue;
-  }
-  const pattern = new RegExp(`includes\\('${preference}'\\) && keys\\.some\\(\\(key\\) => ${set}\\.has\\(key\\)\\)`);
-  if (!pattern.test(filter)) problems.push(`recommendations.ts: ${preference} is not checked against the ingredient list`);
+assert.match(filter, /return meetsDiet\(catalogDietTags\(entry\), preferences\)/, 'the catalogue filter bypasses the shared preference mapping');
+if (!/keys\.every\(\(key\) => veganIngredients\.has\(key\)\)\) tags\.push\('vegan'\)/.test(filter)) {
+  problems.push('recommendations.ts: vegan is not established from every recipe ingredient');
+}
+for (const [preference, set] of [['vegetarian', 'meatIngredients'], ['pork-free', 'porkIngredients'], ['lactose-free', 'lactoseIngredients']]) {
+  const pattern = new RegExp(`!keys\\.some\\(\\(key\\) => ${set}\\.has\\(key\\)\\)\\) tags\\.push\\('${preference}'\\)`);
+  if (!pattern.test(filter)) problems.push(`recommendations.ts: ${preference} is not established from the ingredient list`);
 }
 
 // --- The shipped recommender, actually run ---------------------------------
@@ -109,7 +108,7 @@ for (const [preference, set] of [['vegan', 'veganIngredients'], ['vegetarian', '
  * a vegetarian is offered had never been executed by a test.
  */
 const portionHelpers = readFileSync(new URL('../src/utils/mealSuggestions.ts', import.meta.url), 'utf8').replace(/^import[^;]+;$/gm, '');
-const module = portionHelpers + service
+const module = portionHelpers + preferencesModule.replace(/^import[^;]+;$/gm, '') + service
   .replace(/^import[^;]+;$/gm, '')
   .replace(
     'type CatalogEntry',
@@ -171,7 +170,8 @@ const forbidden = {
 };
 
 const combinations = [
-  [], ['vegan'], ['vegetarian'], ['lactose-free'], ['pork-free'], ['high-protein'], ['quick'],
+  [], ['vegan'], ['vegetarian'], ['lactose-free'], ['pork-free'], ['high-protein'], ['quick'], ['low-carb'],
+  ['vegan', 'low-carb'], ['vegetarian', 'lactose-free', 'low-carb', 'high-protein'],
   ['vegan', 'quick'], ['vegan', 'high-protein'],
   ['vegetarian', 'lactose-free'], ['vegetarian', 'pork-free'], ['lactose-free', 'pork-free'],
   ['vegetarian', 'lactose-free', 'pork-free'], ['vegetarian', 'lactose-free', 'quick', 'high-protein'],
