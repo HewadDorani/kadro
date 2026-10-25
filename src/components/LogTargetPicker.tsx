@@ -1,4 +1,5 @@
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
+import { SheetHeader } from '@/components/SheetHeader';
 import type { ThemeColors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useState } from 'react';
@@ -71,7 +72,7 @@ function LogTargetSheet({ date, type, visible, onApply, onCancel }: { date: stri
     <Modal animationType="slide" onRequestClose={onCancel} transparent visible={visible}>
       <Pressable accessibilityLabel={t.common.close} onPress={onCancel} style={styles.scrim} />
       <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-        <Text accessibilityRole="header" style={styles.title}>{t.confirm.targetSheetTitle}</Text>
+        <SheetHeader onClose={onCancel} size="medium" title={t.confirm.targetSheetTitle} />
         <Text style={styles.sectionLabel}>{t.confirm.targetDay}</Text>
         <ScrollView contentContainerStyle={styles.chipRow} horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
           {days.map((day) => {
@@ -110,7 +111,6 @@ function LogTargetSheet({ date, type, visible, onApply, onCancel }: { date: stri
           })}
         </View>
         <PrimaryButton icon="checkmark" label={t.confirm.targetDone} onPress={() => onApply(draftType, draftDate)} />
-        <PrimaryButton label={t.common.cancel} onPress={onCancel} variant="ghost" />
       </View>
     </Modal>
   );

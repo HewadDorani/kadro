@@ -12,6 +12,7 @@ import { ActivityIndicator, Alert, AppState, Keyboard, Linking, Modal, Platform,
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFreeScanAllowance } from '@/hooks/useHardWall';
+import { SheetHeader } from '@/components/SheetHeader';
 import { PrimaryButton } from '@/components/ui';
 import { PortionSheet } from '@/components/PortionSheet';
 import { ManualFoodForm } from '@/components/ManualFoodForm';
@@ -35,7 +36,7 @@ import { formatDayLabel, formatNumber, mealTypeLabel } from '@/utils/format';
 import { mealTypeForTime } from '@/utils/mealDay';
 import { localDateKey } from '@/utils/date';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useKeyboardInset, useKeyboardVisible } from '@/hooks/useKeyboardInset';
 import { subscribePrivateDataInvalidation } from '@/services/localRepository';
 import { ScanFavoritesButton, ScanFavoritesSheet } from '@/components/ScanFavorites';
 
@@ -160,6 +161,9 @@ export default function ScanScreen() {
   const [scannerClosed, setScannerClosed] = useState(false);
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
+  const keyboardOpen = useKeyboardVisible();
+  // With the keyboard up the home indicator is covered; a small gap is enough.
+  const sheetBottom = (base: number) => (keyboardOpen ? 12 : insets.bottom + base);
   const { language, locale, t } = useLanguage();
   // The sheets cover the whole screen, so a camera running behind one is a
   // preview nobody can see holding a device nobody else can use.
@@ -855,8 +859,8 @@ export default function ScanScreen() {
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => setShowBarcodeEntry(false)} transparent visible={showBarcodeEntry}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
-          <View accessibilityViewIsModal style={[styles.barcodeSheet, { paddingBottom: insets.bottom + 20 }]}>
-            <Text accessibilityRole="header" style={styles.describeTitle}>{t.scan.barcodeManualTitle}</Text>
+          <View accessibilityViewIsModal style={[styles.barcodeSheet, { paddingBottom: sheetBottom(20) }]}>
+            <SheetHeader onClose={() => setShowBarcodeEntry(false)} title={t.scan.barcodeManualTitle} />
             <Text style={styles.describeText}>{t.scan.barcodeManualHint}</Text>
             <TextInput
               accessibilityLabel={t.scan.barcodeManualTitle}
@@ -874,9 +878,6 @@ export default function ScanScreen() {
             <Pressable accessibilityRole="button" onPress={submitBarcodeEntry} style={styles.describeSubmit}>
               <Text style={styles.describeSubmitText}>{t.scan.barcodeManualSubmit}</Text>
               <Ionicons color={colors.white} name="search" size={18} />
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => setShowBarcodeEntry(false)} style={styles.describeCancel}>
-              <Text style={styles.describeCancelText}>{t.common.cancel}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -902,20 +903,14 @@ export default function ScanScreen() {
           visible
         /> : (
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
-          <View accessibilityViewIsModal style={[styles.searchSheet, { paddingBottom: insets.bottom + 16 }]}>
-            <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchResults} contentContainerStyle={styles.searchContent}>
-            {manualFor !== null ? <>
-              {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
-              <ManualFoodForm initialName={manualFor} onCancel={() => { setAddError(null); setManualFor(null); }} onConfirm={finishFood} />
-            </> : quickAddFor !== null ? <>
-              {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
-              <QuickAddForm initialName={quickAddFor} onCancel={() => { setAddError(null); setQuickAddFor(null); }} onConfirm={finishFood} />
-            </> : <>
-            <View style={styles.searchHead}>
-              <Text accessibilityRole="header" style={styles.describeTitle}>{t.scan.searchTitle}</Text>
-              <View style={styles.freePill}><Text style={styles.freePillText}>{t.scan.searchFree}</Text></View>
-            </View>
-            <Text style={styles.describeText}>{t.scan.searchHint}</Text>
+          <View accessibilityViewIsModal style={[styles.searchSheet, { marginTop: insets.top + 12, paddingBottom: sheetBottom(16) }]}>
+            {manualFor === null && quickAddFor === null ? <View style={styles.searchTop}>
+            <SheetHeader
+              accessory={<View style={styles.freePill}><Text style={styles.freePillText}>{t.scan.searchFree}</Text></View>}
+              onClose={cancelSearch}
+              title={t.scan.searchTitle}
+            />
+            {!searchQuery.trim() && !added.length ? <Text style={styles.describeText}>{t.scan.searchHint}</Text> : null}
             {added.length ? <View accessibilityLiveRegion="polite" style={styles.addedBox}>
               {added.map(entry => (
                 <View key={entry.id} style={styles.addedRow}>
@@ -933,6 +928,7 @@ export default function ScanScreen() {
               accessibilityLabel={t.scan.searchTitle}
               autoCorrect={false}
               autoFocus
+              clearButtonMode="while-editing"
               maxLength={60}
               onChangeText={runSearch}
               onSubmitEditing={() => runSearch(searchQuery, true)}
@@ -942,6 +938,15 @@ export default function ScanScreen() {
               style={styles.searchInput}
               value={searchQuery}
             />
+            </View> : null}
+            <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" style={styles.searchResults} contentContainerStyle={styles.searchContent}>
+            {manualFor !== null ? <>
+              {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
+              <ManualFoodForm initialName={manualFor} onCancel={() => { setAddError(null); setManualFor(null); }} onConfirm={finishFood} />
+            </> : quickAddFor !== null ? <>
+              {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
+              <QuickAddForm initialName={quickAddFor} onCancel={() => { setAddError(null); setQuickAddFor(null); }} onConfirm={finishFood} />
+            </> : <>
             {searchNotice ? <Text accessibilityLiveRegion="polite" style={styles.searchStatus}>{searchNotice}</Text> : null}
             <View>
               {searching && !searchResults.length && !productResults.length ? <Text style={styles.searchStatus}>{t.scan.searchSearching}</Text> : null}
@@ -993,15 +998,9 @@ export default function ScanScreen() {
             </View>
             </>}
             </ScrollView>
-            {manualFor !== null || quickAddFor !== null ? null : added.length ? <>
+            {manualFor === null && quickAddFor === null && added.length ? (
               <PrimaryButton disabled={adding} icon="checkmark" label={t.scan.saveAs(mealTypeLabel(saveSlot, t.common))} onPress={() => void savePicked()} />
-              <Pressable accessibilityRole="button" onPress={cancelSearch} style={styles.describeCancel}>
-                <Text style={styles.describeCancelText}>{t.common.cancel}</Text>
-              </Pressable>
-            </> : (
-            <Pressable accessibilityRole="button" onPress={cancelSearch} style={styles.describeCancel}>
-              <Text style={styles.describeCancelText}>{t.common.cancel}</Text>
-            </Pressable>)}
+            ) : null}
           </View>
         </Animated.View>
         )}
@@ -1011,8 +1010,8 @@ export default function ScanScreen() {
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => { setShowDescription(false); setMode('photo'); }} transparent visible={showDescription}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
-          <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: insets.bottom + 22 }]}>
-            <Text accessibilityRole="header" style={styles.describeTitle}>{t.scan.describeTitle}</Text>
+          <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: sheetBottom(22) }]}>
+            <SheetHeader onClose={() => { setShowDescription(false); setMode('photo'); }} title={t.scan.describeTitle} />
             <Text style={styles.describeText}>{t.scan.describeText}</Text>
             <TextInput
               accessibilityLabel={t.scan.describeTitle}
@@ -1029,9 +1028,6 @@ export default function ScanScreen() {
             <Pressable accessibilityRole="button" onPress={submitDescription} style={styles.describeSubmit}>
               <Text style={styles.describeSubmitText}>{t.scan.describeSubmit}</Text>
               <Ionicons color={colors.white} name="arrow-forward" size={18} />
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => { setShowDescription(false); setMode('photo'); }} style={styles.describeCancel}>
-              <Text style={styles.describeCancelText}>{t.common.cancel}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -1106,13 +1102,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   modalScrim: { flex: 1, backgroundColor: 'rgba(20,21,15,0.58)', justifyContent: 'flex-end' },
   barcodeSheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
   barcodeInput: { minHeight: 56, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 15 },
-  searchSheet: { maxHeight: '86%', borderTopLeftRadius: radii.card, borderTopRightRadius: radii.card, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 20, gap: 12 },
+  // Full height above the keyboard: the results get every row the screen has.
+  searchSheet: { flex: 1, borderTopLeftRadius: radii.card, borderTopRightRadius: radii.card, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, gap: 12 },
+  searchTop: { gap: 10 },
   searchHead: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' },
   freePill: { borderRadius: radii.pill, backgroundColor: colors.accentSoft, paddingHorizontal: 10, paddingVertical: 4 },
   freePillText: { ...typeScale.caption, color: colors.accentText, fontWeight: '800', letterSpacing: 0.4 },
   searchInput: { minHeight: 52, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 17, paddingHorizontal: 16 },
-  searchResults: { flexShrink: 1 },
-  searchContent: { gap: 12 },
+  searchResults: { flex: 1, minHeight: 0 },
+  searchContent: { gap: 12, paddingBottom: 12 },
   searchError: { ...typeScale.subhead, color: colors.attentionText, paddingVertical: 12 },
   searchStatus: { ...typeScale.subhead, color: colors.muted, paddingVertical: 12 },
   addedBox: { gap: 6, padding: 12, borderRadius: 14, backgroundColor: colors.successSoft },

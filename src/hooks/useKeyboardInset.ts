@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Keyboard, KeyboardEvent, Platform } from 'react-native';
 
 // iOS keyboard curve: the sheet rides up exactly with the keyboard, instead of
@@ -23,4 +23,15 @@ export function useKeyboardInset(active = true) {
     return () => { show.remove(); hide.remove(); };
   }, [active, inset]);
   return inset;
+}
+
+/** Whether the system keyboard is up; sheets drop their home-indicator padding then. */
+export function useKeyboardVisible() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return visible;
 }

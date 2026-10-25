@@ -186,3 +186,17 @@ if (failures.length) {
 }
 
 console.log(`Validated ${files.length} screens: controls announce labels, every radio exposes its checked state, no text is below ${FONT_FLOOR} pt, ${textStyles} text styles carry a line height and amber text meets contrast.`);
+
+// Sheets close with an X top right (owner feedback 2026-10-26): no bottom "Cancel" that hides results.
+{
+  const fs = await import('node:fs');
+  const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const scanScreen = read('src/app/(tabs)/scan.tsx');
+  const fail = (m) => { console.error('FAIL ' + m); process.exit(1); };
+  if ((scanScreen.match(/<SheetHeader/g) || []).length < 3) fail('search, barcode and describe sheets use SheetHeader');
+  if (/onPress=\{cancelSearch\} style=\{styles\.describeCancel\}/.test(scanScreen)) fail('search sheet has no bottom Cancel');
+  if (!/searchSheet: \{ flex: 1/.test(scanScreen) || !/searchResults: \{ flex: 1/.test(scanScreen)) fail('search results get the full sheet height');
+  for (const p of ['src/components/FavoriteLogSheet.tsx', 'src/components/LogTargetPicker.tsx']) if (!/<SheetHeader/.test(read(p))) fail(p + ' uses SheetHeader');
+  if (!/accessibilityLabel=\{closeLabel \?\? t\.common\.close\}/.test(read('src/components/SheetHeader.tsx'))) fail('close button is labelled');
+  console.log('PASS sheets: X top right, no bottom Cancel over results, full-height search');
+}

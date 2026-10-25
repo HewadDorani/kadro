@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SheetHeader } from '@/components/SheetHeader';
 import { PrimaryButton } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
@@ -100,7 +101,7 @@ export function FavoriteLogSheet({ visible, candidate = null, fixedSlot = null, 
       <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
         {!picked ? (
           <>
-            <Text accessibilityRole="header" style={styles.title}>{fixedSlot ? t.favorites.pickTitleFor(mealTypeLabel(fixedSlot, t.common)) : t.favorites.pickTitle}</Text>
+            <SheetHeader onClose={onClose} size="medium" title={fixedSlot ? t.favorites.pickTitleFor(mealTypeLabel(fixedSlot, t.common)) : t.favorites.pickTitle} />
             {pastDay ? <Text style={styles.meta}>{t.favorites.forDay(pastDay)}</Text> : null}
             {all.length ? <Text style={styles.meta}>{t.favorites.pickHint}</Text> : null}
             {searchable ? (
@@ -140,11 +141,10 @@ export function FavoriteLogSheet({ visible, candidate = null, fixedSlot = null, 
                 </Pressable>
               ))}
             </ScrollView>
-            <PrimaryButton label={t.common.cancel} onPress={onClose} variant="ghost" />
           </>
         ) : (
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.check}>
-            <Text accessibilityRole="header" style={styles.title}>{fixedSlot ? t.favorites.logAs(slotName) : t.favorites.chooseTitle}</Text>
+            <SheetHeader onClose={onClose} size="medium" title={fixedSlot ? t.favorites.logAs(slotName) : t.favorites.chooseTitle} />
             <View style={styles.mealBox}>
               <Text numberOfLines={3} style={styles.rowTitle}>{picked.title}</Text>
               <Text style={styles.meta}>
