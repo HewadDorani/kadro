@@ -256,6 +256,7 @@ function scanScreenHarness() {
     'expo-image-manipulator': { manipulateAsync: async uri => ({ uri }), SaveFormat: { JPEG: 'jpeg' } }, '@/utils/cameraCrop': { frameToPhotoCrop: () => null },
     '@/services/mealAnalysis': { MealAnalysisError: class extends Error {}, searchProducts: async () => ({ generic: [], products: [] }), deleteTemporaryPhoto() {} },
     '@/services/productSearch': { productSearchHint: () => ({ brandQuery: false, brands: [] }), productsFirst: () => false },
+    '@/services/region': { getMarketRegion: () => 'de' },
     '@/context/SubscriptionContext': { useSubscription: () => ({ status: 'active' }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ locale: 'en-GB', t: { scan: copy, common: copy, errors: copy } }) },
     '@/services/haptics': { primaryHaptic() {}, successHaptic() {} },

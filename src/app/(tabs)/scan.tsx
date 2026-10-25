@@ -22,6 +22,7 @@ import { frameToPhotoCrop, type Rect } from '@/utils/cameraCrop';
 import { useApp } from '@/context/AppContext';
 import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, searchProducts } from '@/services/mealAnalysis';
 import { productSearchHint, productsFirst } from '@/services/productSearch';
+import { getMarketRegion } from '@/services/region';
 import { foodSourceBadge, foodUsage, frequentFoods, mergeSuggestions, recentFoods, suggestFoods, type FoodSourceBadge } from '@/services/foodSuggest';
 import { customFoodResult, deleteCustomFood, isCustomFoodResult, matchCustomFoods } from '@/services/customFoods';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
@@ -430,8 +431,9 @@ export default function ScanScreen() {
     setSearchError(null);
     // Products are always asked for, however many generic foods matched:
     // "Donut" or "Skyr" match the catalogue and still mean a product for many.
-    // "lidl skyr" sends Lidl's own brands (Milbona, …) as a hint.
-    const hint = productSearchHint(term);
+    // "lidl skyr" sends Lidl's own brands (Milbona, …) as a hint; which
+    // chains exist follows the shopping region ("tesco" only in the UK).
+    const hint = productSearchHint(term, getMarketRegion());
     searchTimer.current = setTimeout(() => {
       const request = term;
       latestSearch.current = request;
@@ -650,7 +652,7 @@ export default function ScanScreen() {
   // "Lebensmittel" and "Produkte & Marken". A store or brand in the query
   // ("milbona skyr", "lidl") puts the products first.
   const typedQuery = searchQuery.trim();
-  const productsLead = productsFirst(typedQuery, searchResults.length, productResults.length);
+  const productsLead = productsFirst(typedQuery, searchResults.length, productResults.length, getMarketRegion());
   const showProductEmpty = typedQuery.length >= 2 && !searching && !productError && !searchError && !productResults.length;
   const foodSection = searchResults.length ? <>
     <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionFoods}</Text>
