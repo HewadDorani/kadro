@@ -42,7 +42,7 @@ for (const [language, source] of Object.entries(dictionaries)) {
 // A stated slot must win over the clock in both logging paths. The clock is
 // the one shared daypart helper; no path keeps its own copy of the hours.
 const daypart = readFileSync(new URL('../src/utils/daypart.ts', import.meta.url), 'utf8');
-if (!/breakfastUntil: 11, lunchUntil: 15, dinnerUntil: 21/.test(daypart) || !/consumePlannedMealType\(\) \?\? mealTypeForHour\(now\.getHours\(\)\)/.test(context)) {
+if (!/breakfastUntil: 11, lunchUntil: 15, dinnerUntil: 21/.test(daypart) || !/(?:consumePlannedMealType\(\)|target\?\.type \?\? plannedType) \?\? mealTypeForHour\(now\.getHours\(\)\)/.test(context)) {
   problems.push('AppContext: the clock fallback is gone, so an unstated slot has no answer');
 }
 for (const [file, source] of [['AppContext.tsx', context], ['mealDay.ts', mealDay]]) {

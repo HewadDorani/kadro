@@ -63,7 +63,9 @@ for (const [label, contents] of [['plan', plan], ['today', today]]) {
 if (!repeatSource.includes('availableRepeats') || !repeatSource.includes('eatenToday')) {
   failures.push('repeat suggestions do not exclude meals already logged today');
 }
-if (!today.includes('logRepeatMeal')) failures.push('Today offers no one-tap repeat');
+// The tap opens the slot sheet ("Als … eintragen"), which logs through logRepeatMeal.
+const favoriteSheet = await read('src/components/FavoriteLogSheet.tsx');
+if (!today.includes('<FavoriteLogSheet') || !favoriteSheet.includes('logRepeatMeal(picked')) failures.push('Today offers no one-tap repeat');
 
 // 4. Target maths.
 const activity = { low: 1.2, light: 1.375, high: 1.6 };

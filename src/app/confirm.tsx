@@ -21,6 +21,8 @@ import { FoodSearchResult, searchIngredientReplacement } from '@/services/mealAn
 import { milkCorrectionQuery } from '@/utils/foodCorrectionQuery';
 import { MealItem } from '@/types/nutrition';
 import { LogTargetRow } from '@/components/LogTargetPicker';
+import { FavoriteToggle } from '@/components/FavoriteToggle';
+import { useToast } from '@/components/Toast';
 import { draftConfidence } from '@/utils/confidence';
 
 export default function ConfirmScreen() {
@@ -38,6 +40,7 @@ export default function ConfirmScreen() {
   const correctionRequired = detectedItems.some(needsIngredientCorrection);
   const canConfirm = canSaveMealDraft(detectedItems);
   const { locale, t } = useLanguage();
+  const { toast, show: showToast } = useToast();
   // Estimates are normal and need no disclaimer wall. Only hints the person
   // can act on are shown, each as one short line. The amount hint is folded
   // into the "Portion geschätzt" banner when that is showing.
@@ -87,7 +90,7 @@ export default function ConfirmScreen() {
   };
 
   return (
-    <Screen>
+    <Screen overlay={toast}>
       <View style={styles.topBar}>
         <Pressable accessibilityLabel={t.common.back} accessibilityRole="button" hitSlop={8} onPress={() => router.back()} style={styles.iconButton}>
           <Ionicons color={colors.text} name="arrow-back" size={22} />
@@ -286,6 +289,8 @@ export default function ConfirmScreen() {
       </Card>}
 
       {!hasIncludedFood ? <Text style={styles.subtitle}>{t.confirm.emptyMeal}</Text> : null}
+      {/* Starred here, stored by the save: the meal exactly as confirmed. The example meal never enters the diary. */}
+      {scanMode !== 'demo' && canConfirm ? <FavoriteToggle onToast={showToast} /> : null}
       <PrimaryButton disabled={!canConfirm} icon="arrow-forward" label={t.confirm.proceed} onPress={confirm} />
       <PrimaryButton
         label={scanMode === 'plan' ? t.confirm.otherOption : scanMode === 'search' ? t.confirm.searchAgain : scanMode === 'description' ? t.confirm.editDescription : scanMode === 'barcode' ? t.confirm.scanAgain : t.confirm.retake}

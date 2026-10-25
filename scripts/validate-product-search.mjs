@@ -202,6 +202,7 @@ function searchScreen({ local, productReply }) {
     '@/hooks/useHardWall': { useFreeScanAllowance: () => ({ hardWall: false, allowance: 3 }) },
     '@/services/localRepository': { subscribePrivateDataInvalidation: () => () => {} },
     '@/components/CaptureSearchHelp': { CaptureSearchHelp: 'CaptureSearchHelp' },
+    '@/components/ScanFavorites': { ScanFavoritesButton: 'ScanFavoritesButton', ScanFavoritesSheet: 'ScanFavoritesSheet' },
     '@/components/ManualFoodForm': { ManualFoodForm: 'ManualFoodForm' },
     '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: suggest.mergeSuggestions, recentFoods: () => [], frequentFoods: () => [], suggestFoods: () => local, foodSourceBadge: suggest.foodSourceBadge },
     '@/services/productSearch': hints,
