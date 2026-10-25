@@ -5,6 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ChainComboCard } from '@/components/ChainComboCard';
 import { PlanOptionCard, PlanOptionItem } from '@/components/PlanOptionCard';
 import { Card, Eyebrow, IconCircle, PageTitle, PrimaryButton, Screen } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
@@ -13,7 +14,9 @@ import { getRecipe, hasRecipe } from '@/services/recipes';
 import { knownPreferences } from '@/services/preferences';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { recordRecommendationFeedback, recordRecommendationSet } from '@/services/cloudRepository';
+import { ChainCombo, chainComboSearchEntries, chainCombos } from '@/services/chainCombos';
 import { recommendMeals } from '@/services/recommendations';
+import { useMarketRegion } from '@/services/region';
 import { ComboItem, ComboPortion, comboSearchEntries, productName, StoreId, SUPERMARKET_DATA, supermarketCombos, SupermarketCombo } from '@/services/supermarketCombos';
 import { optionFits, SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
 import { trackEvent } from '@/services/telemetry';
@@ -64,7 +67,15 @@ export default function PlanScreen() {
     [profile.preferences, remaining, selected],
   );
   const marketMode = selected === 'supermarket' && combos.length === 3;
-  const options: { id: string; calories: number; protein: number }[] = marketMode ? combos : suggestions;
+  // Unterwegs shows real chains of the person's market; the dish catalogue
+  // stays the fallback when a market or a diet leaves fewer than three orders.
+  const region = useMarketRegion();
+  const orders = useMemo(
+    () => (selected === 'eating-out' ? chainCombos(remaining, { market: region, hour: new Date().getHours(), preferences: profile.preferences }) : []),
+    [profile.preferences, region, remaining, selected],
+  );
+  const chainMode = selected === 'eating-out' && orders.length === 3;
+  const options: { id: string; calories: number; protein: number }[] = marketMode ? combos : chainMode ? orders : suggestions;
   const range = (key: 'calories' | 'protein') => {
     const values = options.map((option) => option[key]);
     const low = Math.min(...values), high = Math.max(...values);
@@ -77,13 +88,13 @@ export default function PlanScreen() {
     if (recordedSet.current === key) return;
     recordedSet.current = key;
     trackEvent('recommendation set viewed', { meal_context: selected });
-    const recorded: MealSuggestion[] = marketMode
-      ? combos.map((combo) => ({ id: combo.id, title: '', detail: '', time: '', calories: combo.calories, protein: combo.protein, carbs: combo.carbs, fat: combo.fat }))
+    const recorded: MealSuggestion[] = marketMode || chainMode
+      ? (marketMode ? combos : orders).map((combo) => ({ id: combo.id, title: '', detail: '', time: '', calories: combo.calories, protein: combo.protein, carbs: combo.carbs, fat: combo.fat }))
       : suggestions;
     void recordRecommendationSet(selected, remaining, recorded).catch(() => {
       recordedSet.current = '';
     });
-  }, [combos, marketMode, options, remaining, selected, suggestions]);
+  }, [chainMode, combos, marketMode, options, orders, remaining, selected, suggestions]);
 
   const portionAmount = (portion: ComboPortion) => {
     const [one, many] = t.plan.marketPortion[portion.container];
@@ -124,6 +135,7 @@ export default function PlanScreen() {
     : t.plan.adaptedNone;
   // Badges compare the three options as offered (the chosen portion included).
   const comboFits = optionFits(combos, availableCalories);
+  const orderFits = optionFits(orders, availableCalories);
   const suggestionFits = optionFits(
     suggestions.map((suggestion) => suggestedNutrition(suggestion, chosen === suggestion.id ? portion : 1)),
     availableCalories,
@@ -141,6 +153,16 @@ export default function PlanScreen() {
     void recordRecommendationFeedback(selected, combo.id, 'accepted').catch(() => undefined);
     // Confirm and the portion sheet print the grams themselves.
     startPlannedDraft(comboSearchEntries(combo, language, portionAmount));
+    router.push('/confirm');
+  };
+
+  /** A chain order opens the confirm screen prefilled with every menu item, like a basket. */
+  const takeOrder = (order: ChainCombo, rank: number) => {
+    if (!selected) return;
+    void selectionHaptic();
+    trackEvent('recommendation selected', { meal_context: selected, rank: rank as 1 | 2 | 3 });
+    void recordRecommendationFeedback(selected, order.id, 'accepted').catch(() => undefined);
+    startPlannedDraft(chainComboSearchEntries(order, (chain) => t.plan.chainSourceLabel(chain.name)));
     router.push('/confirm');
   };
 
@@ -284,7 +306,16 @@ export default function PlanScreen() {
             <Text style={styles.adaptedEdit}>{t.plan.adaptedEdit}</Text>
           </Pressable>
 
-          {marketMode ? combos.map((combo, index) => (
+          {chainMode ? orders.map((order, index) => (
+            <ChainComboCard
+              availableCalories={availableCalories}
+              combo={order}
+              fit={orderFits[index]}
+              key={order.id}
+              onTake={() => takeOrder(order, index + 1)}
+              rank={index + 1}
+            />
+          )) : marketMode ? combos.map((combo, index) => (
             <PlanOptionCard
               footer={{
                 action: { icon: 'basket-outline', label: t.plan.marketTake, onPress: () => takeCombo(combo, index + 1) },
@@ -397,7 +428,9 @@ export default function PlanScreen() {
             );
           })}
 
-          {marketMode ? (
+          {chainMode ? (
+            <Text style={styles.catalogNote}>{t.plan.chainNote}</Text>
+          ) : marketMode ? (
             <>
               <Text style={styles.catalogNote}>{t.plan.marketNote}</Text>
               <Text style={styles.catalogNote}>{t.plan.marketAttribution(formatDataDate(SUPERMARKET_DATA.fetchedAt, locale))}</Text>
