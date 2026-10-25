@@ -9,6 +9,15 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-10-25 – Plan → Unterwegs mit echten Ketten (`wip4/chains`, 1.0.6)
+
+- [x] Offizielle Nährwerte je Markt in `src/data/chains/{de,gb,us}.json` (Quelle-URL und Prüfdatum je Artikel, Atwater-geprüft): DE 8 Ketten/180 Artikel, GB 15/391, US 16/412; zusammen ~400 KB. Ohne offizielle Daten ausgelassen: DE Pizza Hut, Domino's, Dunkin', Vapiano, L'Osteria, Haus des Döners, Nordsee, Ditsch, Kamps, Lila Bäcker (geschlossen); GB Domino's (Geo-Sperre); US Dunkin' (Geo-Sperre), Jersey Mike's (nicht erreichbar).
+- [x] `services/chainCombos.ts`: drei Bestellungen aus drei Ketten des Markts (`useMarketRegion`), Hauptgericht + optional Beilage/proteinhaltiges Getränk + kalorienfreies Getränk, ≤ 10 % über dem Restbudget, Diäten über `meetsDiet`, Ziele über `preferenceBonus`, Frühstück nur vor 11 Uhr, deterministisch, < 20 ms.
+- [x] `ChainComboCard` aus den PlanOptionCard-Bausteinen; „Das bestelle ich“ öffnet die Bestätigung mit allen Artikeln als eine Mahlzeit. Ohne veröffentlichtes Portionsgewicht zählt die App in Portionen („1 × 1 Burger“), nie in erfundenen Gramm (`unitOnly`).
+- [x] Weniger als drei passende Bestellungen (z. B. vegan in den USA) → der Unterwegs-Katalog bleibt, genau drei Optionen.
+- [x] `scripts/validate-chain-combos.mjs` in `verify`; Hinweise in `THIRD_PARTY_NOTICES.md`.
+- [ ] Offen (Mensch): Stichprobe je Kette gegen die Quelle; Nando's UK (Makros aus Datei von 01/2022, nur Artikel mit identischen kcal im aktuellen Menü), Taco Bell US (Werte aus dem Nutritionix-Panel der offiziellen Produktseiten), Shake Shack US (PDF 04/2025), Burger King UK (gescanntes PDF, per Auge gelesen); Gerätetest der Karten (Dark Mode, große Schrift); Daten vor jedem Release neu prüfen.
+
 ## 2026-10-12 – Deutscher Produktindex `products_de` (Branch `wip3/productdb`, nicht deployt)
 
 - Build (2026-10-12, OFF Parquet-Export): 228.540 in Deutschland verkaufte Produkte (21.788 davon pro 100 ml), 14,4 MB gzip; 25 % mit Store-Tag. Verworfen: 19.651 ohne vollständige Nährwerte, 5.636 Atwater-unplausibel, 6.064 ohne Namen u. a.

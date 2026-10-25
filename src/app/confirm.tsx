@@ -15,7 +15,7 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { successHaptic } from '@/services/haptics';
 import { PortionFactor } from '@/types/nutrition';
 import { formatNumber } from '@/utils/format';
-import { initialSelection, itemNutritionPer100g } from '@/utils/portions';
+import { formatItemAmount, initialSelection, itemNutritionPer100g, servingOnlyAmount } from '@/utils/portions';
 import { canSaveMealDraft, needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { FoodSearchResult, searchIngredientReplacement } from '@/services/mealAnalysis';
 import { milkCorrectionQuery } from '@/utils/foodCorrectionQuery';
@@ -160,6 +160,7 @@ export default function ConfirmScreen() {
           >
             <Text style={styles.amountFieldValue}>{(() => {
               const selection = initialSelection(singleItem.amountG, singleItem.portions, { chosen: true });
+              if (servingOnlyAmount(singleItem)) return formatItemAmount(singleItem, locale);
               return selection.unitIndex >= 0 ? `${formatNumber(Number(selection.amount), locale)} × ${singleItem.portions![selection.unitIndex].label}` : `${formatNumber(singleItem.amountG, locale)} g`;
             })()}</Text>
             <Ionicons color={colors.muted} name="create-outline" size={20} />
@@ -205,7 +206,11 @@ export default function ConfirmScreen() {
         // "2 Eier · 116 g" reads naturally; a generic "1 Portion" adds nothing.
         const unit = selection.unitIndex >= 0 ? item.portions![selection.unitIndex].label : null;
         const count = Number(selection.amount);
-        const amount = unit && unit !== t.scan.portionServing
+        const servingOnly = servingOnlyAmount(item);
+        // Restaurant servings without a published weight never show grams.
+        const amount = servingOnly
+          ? formatItemAmount(item, locale)
+          : unit && unit !== t.scan.portionServing
           ? `${count === 1 ? unit : `${formatNumber(count, locale)} × ${unit}`} · ${formatNumber(item.amountG, locale)} g`
           : `${formatNumber(item.amountG, locale)} g`;
         return (

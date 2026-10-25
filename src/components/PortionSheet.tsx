@@ -62,6 +62,9 @@ export function PortionSheet({
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const portions = target?.portions?.length ? target.portions : [];
+  // Restaurant servings without a published weight: counted in servings only,
+  // never in grams (the stored grams are a stand-in).
+  const servingOnly = portions.length > 0 && portions.every((portion) => portion.unitOnly);
   // A named portion is the friendlier default when the food has one.
   const [unitIndex, setUnitIndex] = useState(0);
   const [amount, setAmount] = useState('');
@@ -75,7 +78,11 @@ export function PortionSheet({
   // with an empty amount field.
   const [seen, setSeen] = useState('\u0000');
   if (seen !== signature) {
-    const opening = initialSelection(target?.defaultGrams ?? 100, target?.preferGrams ? [] : portions, { chosen: target?.amountIsChosen });
+    const opening = initialSelection(target?.defaultGrams ?? 100, target?.preferGrams && !servingOnly ? [] : portions, { chosen: target?.amountIsChosen });
+    if (servingOnly && opening.unitIndex < 0) {
+      opening.unitIndex = 0;
+      opening.amount = String(Math.round(((target?.defaultGrams ?? portions[0].grams) / portions[0].grams) * 10) / 10);
+    }
     setSeen(signature);
     setUnitIndex(initialDraft?.unitIndex ?? opening.unitIndex);
     setAmount(initialDraft?.amount ?? opening.amount);
@@ -164,10 +171,10 @@ export function PortionSheet({
                   <Text numberOfLines={1} style={[styles.unitChipText, unitIndex === index && styles.unitChipTextOn]}>
                     {portion.label}
                   </Text>
-                  <Text style={styles.unitChipGrams}>{portion.estimated ? '~' : ''}{Math.round(portion.grams)} g</Text>
+                  {portion.unitOnly ? null : <Text style={styles.unitChipGrams}>{portion.estimated ? '~' : ''}{Math.round(portion.grams)} g</Text>}
                 </Pressable>
               ))}
-              <Pressable
+              {servingOnly ? null : <Pressable
                 aria-checked={unitIndex === -1}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: unitIndex === -1 }}
@@ -176,7 +183,7 @@ export function PortionSheet({
               >
                 <Text style={[styles.unitChipText, unitIndex === -1 && styles.unitChipTextOn]}>{t.portion.grams}</Text>
                 <Text style={styles.unitChipGrams}>g</Text>
-              </Pressable>
+              </Pressable>}
             </View>
           ) : null}
 
@@ -184,7 +191,7 @@ export function PortionSheet({
             <Text style={styles.previewValue}>{preview ? `~${formatNumber(preview.calories, locale)} kcal` : ':'}</Text>
             {preview ? (
               <Text style={styles.previewMacros}>
-                {preview.protein} g P · {preview.carbs} g C · {preview.fat} g F · {formatNumber(grams!, locale)} g
+                {preview.protein} g P · {preview.carbs} g C · {preview.fat} g F{activePortion?.unitOnly ? '' : ` · ${formatNumber(grams!, locale)} g`}
               </Text>
             ) : (
               <Text style={styles.previewMacros}>{grams !== null && !valid ? t.errors.gatewayNutritionRange : t.portion.invalid}</Text>

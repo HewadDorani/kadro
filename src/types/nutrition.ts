@@ -32,7 +32,8 @@ export type MealItem = Nutrition & {
   optional?: boolean;
   included: boolean;
   /** Named household portions from the source, when it has any. */
-  portions?: { label: string; grams: number; estimated?: boolean }[];
+  /** `unitOnly`: values per serving, no published weight; grams are a stand-in (see utils/portions). */
+  portions?: { label: string; grams: number; estimated?: boolean; unitOnly?: boolean }[];
   source: NutritionSource;
 };
 

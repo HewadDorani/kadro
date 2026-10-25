@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/ui';
 import { PortionSheet } from '@/components/PortionSheet';
-import { itemNutritionPer100g } from '@/utils/portions';
+import { formatItemAmount, itemNutritionPer100g } from '@/utils/portions';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
@@ -175,7 +175,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
                     <Text numberOfLines={1} style={styles.itemName}>{item.name}</Text>
                     <Text numberOfLines={1} style={styles.sourceNote}>{friendlySource(item.source.label) ?? ''}</Text>
                   </View>
-                  <Text style={styles.itemAmount}>{formatNumber(item.amountG, locale)} g · ~{formatNumber(item.calories, locale)} kcal</Text>
+                  <Text style={styles.itemAmount}>{formatItemAmount(item, locale)} · ~{formatNumber(item.calories, locale)} kcal</Text>
                   <Ionicons color={colors.muted} name="create-outline" size={16} />
                 </Pressable>
               ))}
