@@ -5,15 +5,17 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PlanOptionCard, PlanOptionItem } from '@/components/PlanOptionCard';
 import { Card, Eyebrow, IconCircle, PageTitle, PrimaryButton, Screen } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
-import { hasRecipe } from '@/services/recipes';
+import { getRecipe, hasRecipe } from '@/services/recipes';
+import { knownPreferences } from '@/services/preferences';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { recordRecommendationFeedback, recordRecommendationSet } from '@/services/cloudRepository';
 import { recommendMeals } from '@/services/recommendations';
-import { ComboPortion, comboSearchEntries, productDisplayName, StoreId, SUPERMARKET_DATA, supermarketCombos, SupermarketCombo } from '@/services/supermarketCombos';
-import { SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
+import { ComboItem, ComboPortion, comboSearchEntries, productName, StoreId, SUPERMARKET_DATA, supermarketCombos, SupermarketCombo } from '@/services/supermarketCombos';
+import { optionFits, SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
 import { trackEvent } from '@/services/telemetry';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { MealContext, MealSuggestion, PortionFactor } from '@/types/nutrition';
@@ -87,7 +89,45 @@ export default function PlanScreen() {
     const [one, many] = t.plan.marketPortion[portion.container];
     return portion.kind === 'half' ? t.plan.marketHalf(one) : t.plan.marketCount(portion.count, portion.count === 1 ? one : many);
   };
-  const portionLabel = (portion: ComboPortion) => `${portionAmount(portion)} · ${t.plan.marketGrams(formatNumber(portion.grams, locale), portion.estimated)}`;
+
+  /** "Skyr & Banane": what kind of thing each product is, loose fruit by name. */
+  const comboTitle = (combo: SupermarketCombo) => t.plan.marketTitle([...new Set(combo.items.map(({ product }) => (
+    product.category === 'fruit' ? productName(product, language) : t.plan.marketCategory[product.category] ?? productName(product, language)
+  )))]);
+  const comboItem = (item: ComboItem): PlanOptionItem => {
+    const name = productName(item.product, language);
+    return {
+      key: item.product.id,
+      name,
+      detail: [
+        item.product.brand && !name.toLowerCase().includes(item.product.brand.toLowerCase()) ? item.product.brand : '',
+        t.plan.marketItemMacros(formatNumber(item.calories, locale), item.protein),
+        item.portion.estimated ? t.plan.marketEstimatedPiece : '',
+      ].filter(Boolean).join(' · '),
+      amount: portionAmount(item.portion),
+      amountDetail: t.plan.marketGrams(formatNumber(item.portion.grams, locale), item.portion.estimated),
+      stores: item.product.stores.map((store) => {
+        const label = t.plan.marketStores[store as StoreId] ?? store;
+        return { id: store, label, accessibilityLabel: t.plan.marketStore(label) };
+      }),
+    };
+  };
+  /** A home dish lists what goes into the pan, at the portion offered. */
+  const recipeItems = (mealId: string, scale: number): PlanOptionItem[] => (getRecipe(mealId, scale)?.ingredients ?? []).map((ingredient) => ({
+    key: ingredient.key,
+    name: ingredient.name,
+    amount: `${formatNumber(Math.round(ingredient.grams), locale)} g`,
+  }));
+  const chosenPreferences = knownPreferences(profile.preferences);
+  const preferenceSummary = chosenPreferences.length
+    ? t.plan.adaptedTo(chosenPreferences.map((id) => t.plan.preferenceNames[id] ?? id).join(', '))
+    : t.plan.adaptedNone;
+  // Badges compare the three options as offered (the chosen portion included).
+  const comboFits = optionFits(combos, availableCalories);
+  const suggestionFits = optionFits(
+    suggestions.map((suggestion) => suggestedNutrition(suggestion, chosen === suggestion.id ? portion : 1)),
+    availableCalories,
+  );
 
   /**
    * A basket is several products eaten as one meal. It opens the normal
@@ -233,93 +273,75 @@ export default function PlanScreen() {
             <Ionicons color={colors.accentText} name="checkmark-done" size={24} />
           </View>
 
-          {marketMode ? combos.map((combo, index) => {
-            const afterMeal = Math.round(availableCalories - combo.calories);
-            const estimated = combo.items.some((item) => item.portion.estimated);
-            const prefix = estimated ? '~' : '';
-            return (
-              <Card key={combo.id} style={styles.suggestion}>
-                <View style={styles.suggestionTop}>
-                  <View style={styles.rank}><Text style={styles.rankText}>0{index + 1}</Text></View>
-                  <View style={styles.comboItems}>
-                    {combo.items.map((item) => (
-                      <View key={item.product.id} style={styles.comboItem}>
-                        <Text style={styles.suggestionTitle}>{productDisplayName(item.product, language)}</Text>
-                        <Text style={styles.suggestionDetail}>
-                          {portionLabel(item.portion)} · {t.plan.marketItemMacros(formatNumber(item.calories, locale), item.protein)}
-                        </Text>
-                        {item.portion.estimated ? <Text style={styles.source}>{t.plan.marketEstimatedPiece}</Text> : null}
-                        {item.product.stores.length ? (
-                          <View style={styles.storeRow}>
-                            {item.product.stores.map((store) => {
-                              const storeName = t.plan.marketStores[store as StoreId] ?? store;
-                              return (
-                                <View
-                                  accessibilityLabel={t.plan.marketStore(storeName)}
-                                  accessible
-                                  key={store}
-                                  style={styles.storeChip}
-                                >
-                                  <Ionicons color={colors.muted} name="storefront-outline" size={12} />
-                                  <Text style={styles.storeChipText}>{storeName}</Text>
-                                </View>
-                              );
-                            })}
-                          </View>
-                        ) : null}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                <View style={styles.nutritionRow}>
-                  <NutritionStat label="kcal" value={`${prefix}${formatNumber(combo.calories, locale)}`} />
-                  <NutritionStat label={t.common.protein} value={`${prefix}${combo.protein} g`} />
-                  <NutritionStat label={t.common.carbs} value={`${prefix}${combo.carbs} g`} />
-                  <NutritionStat label={t.common.fat} value={`${prefix}${combo.fat} g`} />
-                </View>
-                <Text style={styles.portionResult}>
-                  {afterMeal < 0 ? t.plan.afterOver(formatNumber(-afterMeal, locale)) : t.plan.afterLeft(formatNumber(afterMeal, locale))}
-                </Text>
-                <PrimaryButton
-                  icon="basket-outline"
-                  label={t.plan.marketTake}
-                  onPress={() => takeCombo(combo, index + 1)}
-                  variant="secondary"
-                />
-              </Card>
-            );
-          }) : suggestions.map((suggestion, index) => {
+          <Pressable
+            accessibilityHint={t.plan.adaptedEditHint}
+            accessibilityRole="button"
+            onPress={() => router.push('/onboarding?edit=1&step=preferences' as never)}
+            style={styles.adapted}
+          >
+            <Ionicons color={colors.accentText} name="options-outline" size={16} />
+            <Text style={styles.adaptedText}>{preferenceSummary}</Text>
+            <Text style={styles.adaptedEdit}>{t.plan.adaptedEdit}</Text>
+          </Pressable>
+
+          {marketMode ? combos.map((combo, index) => (
+            <PlanOptionCard
+              footer={{
+                action: { icon: 'basket-outline', label: t.plan.marketTake, onPress: () => takeCombo(combo, index + 1) },
+                availableCalories,
+                calories: combo.calories,
+                carbs: combo.carbs,
+                estimated: combo.items.some((item) => item.portion.estimated),
+                fat: combo.fat,
+              }}
+              header={{
+                calories: combo.calories,
+                estimated: combo.items.some((item) => item.portion.estimated),
+                fit: comboFits[index],
+                protein: combo.protein,
+                rank: index + 1,
+                title: comboTitle(combo),
+              }}
+              items={combo.items.map(comboItem)}
+              key={combo.id}
+            />
+          )) : suggestions.map((suggestion, index) => {
             const isChosen = chosen === suggestion.id;
             const relativePortion = isChosen ? portion : 1;
             const nutrition = suggestedNutrition(suggestion, relativePortion);
             const recipeScale = (suggestion.portionScale ?? 1) * relativePortion;
-            const afterMeal = Math.round(availableCalories - nutrition.calories);
             return (
-              <Card key={suggestion.id} style={[styles.suggestion, isChosen && styles.suggestionChosen]}>
-                <View style={styles.suggestionTop}>
-                  <View style={styles.rank}><Text style={styles.rankText}>0{index + 1}</Text></View>
-                  <View style={styles.suggestionCopy}>
-                    <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
-                    <Text style={styles.suggestionDetail}>{suggestion.detail}</Text>
-                    <Text style={styles.source}>{suggestion.source?.label}</Text>
-                  </View>
-                  <Text numberOfLines={2} style={styles.time}>{suggestion.time}</Text>
-                </View>
-                <View style={styles.nutritionRow}>
-                  <NutritionStat label="kcal" value={`~${nutrition.calories}`} />
-                  <NutritionStat label={t.common.protein} value={`~${nutrition.protein} g`} />
-                  <NutritionStat label={t.common.carbs} value={`~${nutrition.carbs} g`} />
-                </View>
-                {recipeScale !== 1 ? <Text style={styles.source}>{t.plan.portionOfStandard(formatNumber(Math.round(recipeScale * 100), locale))}</Text> : null}
-                <Text style={styles.portionResult}>
-                  {afterMeal < 0 ? t.plan.afterOver(formatNumber(-afterMeal, locale)) : t.plan.afterLeft(formatNumber(afterMeal, locale))}
-                </Text>
-                <PrimaryButton
-                  icon={isChosen ? 'chevron-up' : 'arrow-forward'}
-                  label={isChosen ? t.plan.dropIt : t.plan.take}
-                  onPress={() => chooseMeal(suggestion.id)}
-                  variant={isChosen ? 'ghost' : 'secondary'}
-                />
+              <PlanOptionCard
+                chosen={isChosen}
+                footer={{
+                  action: {
+                    icon: isChosen ? 'chevron-up' : 'arrow-forward',
+                    label: isChosen ? t.plan.dropIt : t.plan.take,
+                    onPress: () => chooseMeal(suggestion.id),
+                    variant: isChosen ? 'ghost' : 'secondary',
+                  },
+                  availableCalories,
+                  calories: nutrition.calories,
+                  carbs: nutrition.carbs,
+                  estimated: true,
+                  fat: nutrition.fat,
+                  macroExtra: suggestion.source?.label,
+                  notes: recipeScale !== 1 ? [t.plan.portionOfStandard(formatNumber(Math.round(recipeScale * 100), locale))] : [],
+                }}
+                header={{
+                  calories: nutrition.calories,
+                  estimated: true,
+                  fit: suggestionFits[index],
+                  meta: suggestion.time,
+                  protein: nutrition.protein,
+                  rank: index + 1,
+                  subtitle: suggestion.detail,
+                  title: suggestion.title,
+                }}
+                items={recipeItems(suggestion.id, recipeScale)}
+                key={suggestion.id}
+                moreLabel={t.plan.moreIngredients}
+              >
                 {/*
                   Picking a dish used to end here, which leaves the reader with
                   the question they actually had: how do I make this.
@@ -371,7 +393,7 @@ export default function PlanScreen() {
                     />
                   </View>
                 ) : null}
-              </Card>
+              </PlanOptionCard>
             );
           })}
 
@@ -410,17 +432,6 @@ function formatDataDate(isoDate: string, locale: string) {
   return Number.isNaN(date.getTime()) ? isoDate : date.toLocaleDateString(locale, { month: 'short', year: 'numeric' });
 }
 
-function NutritionStat({ label, value }: { label: string; value: number | string }) {
-  const { colors } = useTheme();
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.nutritionStat}>
-      <Text style={styles.nutritionValue}>{value}</Text>
-      <Text style={styles.nutritionLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   headerCopy: { flex: 1, gap: 8 },
@@ -443,29 +454,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dayDone: { alignItems: 'center', gap: 12 },
   dayDoneTitle: { color: colors.text, fontSize: 19, lineHeight: 24, fontWeight: '700' },
   dayDoneText: { ...typeScale.subhead, color: colors.muted, textAlign: 'center' },
-  results: { gap: 12 },
+  results: { gap: 14 },
   resultsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
   resultsTitle: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
   resultsMeta: { ...typeScale.caption, color: colors.muted, marginTop: 4 },
-  suggestion: { gap: 16 },
-  suggestionChosen: { borderColor: colors.accentText, backgroundColor: colors.accentSoft },
-  suggestionTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  rank: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-  rankText: { ...typeScale.caption, color: colors.muted, fontWeight: '800' },
-  suggestionCopy: { flex: 1, minWidth: 0, gap: 4 },
-  comboItems: { flex: 1, minWidth: 0, gap: 12 },
-  comboItem: { gap: 4 },
-  storeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
-  storeChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radii.pill, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, paddingVertical: 3 },
-  storeChipText: { ...typeScale.caption, color: colors.text, fontWeight: '700' },
-  suggestionTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
-  suggestionDetail: { ...typeScale.footnote, color: colors.muted },
-  source: { ...typeScale.caption, color: colors.muted, marginTop: 2 },
-  time: { ...typeScale.caption, flexShrink: 0, maxWidth: 100, color: colors.accentText, fontWeight: '600', textAlign: 'right' },
-  nutritionRow: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: 16, paddingVertical: 10 },
-  nutritionStat: { flex: 1, alignItems: 'center', gap: 2 },
-  nutritionValue: { ...typeScale.subhead, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  nutritionLabel: { ...typeScale.caption, color: colors.muted },
+  adapted: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radii.input, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 8 },
+  adaptedText: { ...typeScale.footnote, color: colors.text, flex: 1 },
+  adaptedEdit: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
   portionBlock: { gap: 10, marginTop: 2 },
   portionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '700' },
   portionSelector: { flexDirection: 'row', borderRadius: radii.input, backgroundColor: colors.background, padding: 4, gap: 4 },

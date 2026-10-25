@@ -42,7 +42,9 @@ assert.match(plan, /selected \? recommendMeals\(/);
 assert.doesNotMatch(plan, /selected && !dayIsDone/);
 assert.match(plan, /smallBudget \? \(/);
 assert.match(plan, /t.plan.dayDoneText/);
-assert.match(plan, /t.plan.afterOver/);
+// The overage line lives in the shared option card every situation renders.
+assert.match(read('src/components/PlanOptionCard.tsx'), /t\.plan\.afterOver/);
+assert.match(plan, /<PlanOptionCard[\s\S]*availableCalories/);
 const result = read('src/app/result.tsx');
 assert.match(result, /label=\{t.plan.smallIdeas\}/);
 

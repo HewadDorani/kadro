@@ -352,6 +352,7 @@ export const en: typeof de = {
     rateBrisk: 'Brisk, asks more discipline',
     perDay: 'kcal per day',
     prefHighProtein: 'High protein',
+    prefLowCarb: 'Low carb',
     prefVegetarian: 'Vegetarian',
     prefVegan: 'Vegan',
     prefPorkFree: 'No pork',
@@ -797,6 +798,31 @@ export const en: typeof de = {
     marketItemMacros: (kcal: string, protein: number) => `${kcal} kcal · ${protein} g protein`,
     marketNote: 'Nutrition from the package label for the amount shown, rounded. Range and recipes can differ between stores.',
     marketAttribution: (date: string) => `Product data: Open Food Facts (ODbL) · as of ${date}`,
+    optionRank: (rank: number) => `Option ${rank}`,
+    optionProtein: (grams: string) => `${grams} g protein`,
+    fit: { exact: 'Just right', protein: 'High protein', light: 'Light' },
+    moreItems: (count: number) => `+${count} more`,
+    moreIngredients: (count: number) => (count === 1 ? '+1 more ingredient' : `+${count} more ingredients`),
+    showFewer: 'Show fewer',
+    macroLine: (carbs: string, fat: string) => `${carbs} g carbs · ${fat} g fat`,
+    adaptedTo: (list: string) => `Tailored to: ${list}`,
+    adaptedNone: 'No food preferences chosen yet',
+    adaptedEdit: 'Change',
+    adaptedEditHint: 'Opens your food preferences for suggestions',
+    preferenceNames: {
+      'high-protein': 'high protein', 'low-carb': 'low carb', vegetarian: 'vegetarian', vegan: 'vegan',
+      'pork-free': 'no pork', 'lactose-free': 'lactose free', quick: 'quick',
+    } as Record<string, string>,
+    marketCategory: {
+      skyr: 'Skyr', quark: 'Quark', 'cottage-cheese': 'Cottage cheese', pudding: 'Protein pudding', yogurt: 'Yogurt',
+      tuna: 'Tuna', fish: 'Fish', poultry: 'Poultry', jerky: 'Jerky', eggs: 'Eggs', 'protein-bar': 'Protein bar',
+      tofu: 'Tofu', legumes: 'Pulses', wrap: 'Wrap', sandwich: 'Sandwich', salad: 'Salad', 'ready-meal': 'Ready meal',
+      cheese: 'Cheese', hummus: 'Hummus', nuts: 'Nuts', bread: 'Bread', 'fruit-puree': 'Fruit purée', fruit: 'Fruit', vegetable: 'Vegetables',
+    } as Record<string, string>,
+    marketTitle: (parts: string[]) => {
+      const words = parts.map((part, index) => (index ? part.toLowerCase() : part));
+      return words.length < 2 ? words[0] ?? '' : `${words.slice(0, -1).join(', ')} & ${words[words.length - 1]}`;
+    },
   },
   progress: {
     weekTitle: 'THIS WEEK', weekChartLabel: (avg: string, target: string, logged: number) => `Calories over the last 7 days: ${logged} days logged, ${avg} kcal on average, target ${target} kcal`,

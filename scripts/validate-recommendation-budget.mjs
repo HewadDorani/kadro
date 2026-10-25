@@ -93,7 +93,8 @@ assert.equal(getRecipe('not-a-recipe', 0.5), null);
 
 const plan = read('src/app/(tabs)/plan.tsx');
 assert.match(plan, /availableCalories = targets.calories - consumed.calories/, 'Overage uses unclamped remaining calories');
-assert.match(plan, /t.plan.afterOver/);
+assert.match(read('src/components/PlanOptionCard.tsx'), /t\.plan\.afterOver/, 'Option cards disclose an overage');
+assert.match(plan, /availableCalories,\n\s*calories: nutrition\.calories/, 'The after-meal line uses the chosen portion against unclamped calories');
 assert.match(plan, /suggestedNutrition\(suggestion, relativePortion\)/);
 assert.match(plan, /portion=\$\{recipeScale\}/, 'Recipe receives the actual chosen portion');
 assert.match(read('src/app/recipe.tsx'), /getRecipe\(id, portionScale\)/);
