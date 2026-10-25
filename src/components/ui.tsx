@@ -145,7 +145,8 @@ export function Screen({
   scroll = true,
   style,
   refreshControl,
-}: PropsWithChildren<{ scroll?: boolean; style?: StyleProp<ViewStyle>; refreshControl?: ReactElement<RefreshControlProps> }>) {
+  overlay,
+}: PropsWithChildren<{ scroll?: boolean; style?: StyleProp<ViewStyle>; refreshControl?: ReactElement<RefreshControlProps>; /** Floats above the content, e.g. a toast. */ overlay?: ReactNode }>) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
@@ -163,6 +164,7 @@ export function Screen({
     return (
       <SafeAreaView edges={['top']} style={[styles.safe, style]}>
         {children}
+        {overlay}
       </SafeAreaView>
     );
   }
@@ -180,6 +182,7 @@ export function Screen({
       >
         {children}
       </ScrollView>
+      {overlay}
     </SafeAreaView>
   );
 }

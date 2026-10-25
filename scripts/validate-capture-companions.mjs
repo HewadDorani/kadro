@@ -228,6 +228,7 @@ function scanScreenHarness() {
     '@/hooks/useHardWall': { useFreeScanAllowance: () => ({ hardWall: false, allowance: 3 }) },
     '@/services/localRepository': { subscribePrivateDataInvalidation: fn => { privacy.add(fn); return () => privacy.delete(fn); } },
     '@/components/CaptureSearchHelp': { CaptureSearchHelp: 'CaptureSearchHelp' },
+    '@/components/ScanFavorites': { ScanFavoritesButton: 'ScanFavoritesButton', ScanFavoritesSheet: 'ScanFavoritesSheet' },
     '@/components/ManualFoodForm': { ManualFoodForm: 'ManualFoodForm' },
     '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: (a, b) => [...a, ...b], recentFoods: () => [], frequentFoods: () => [], suggestFoods: () => [], foodSourceBadge: () => 'bls' },
     '@/services/customFoods': { customFoodResult: x => x, deleteCustomFood: async () => {}, isCustomFoodResult: () => false, matchCustomFoods: () => [] },

@@ -36,6 +36,7 @@ import { localDateKey } from '@/utils/date';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { subscribePrivateDataInvalidation } from '@/services/localRepository';
+import { ScanFavoritesButton, ScanFavoritesSheet } from '@/components/ScanFavorites';
 
 /** Generic foods shown before "more"; the catalogue answers most words. */
 const GENERIC_PREVIEW = 5;
@@ -74,6 +75,9 @@ export default function ScanScreen() {
   // database does not know; the sheet should already be open for them.
   const [showDescription, setShowDescription] = useState(requestedMode === 'description');
   const [showSearch, setShowSearch] = useState(requestedMode === 'search');
+  // "Favoriten" next to Foto/Beschreiben/Barcode/Suchen: a sheet over the
+  // camera, not a capture mode, so the input draft and its modes stay as they are.
+  const [showFavorites, setShowFavorites] = useState(requestedMode === 'favorites');
   const [searchQuery, setSearchQuery] = useState(restoredInput?.searchQuery ?? '');
   // Two lists: generic foods (own products, BLS, USDA) and branded products.
   const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
@@ -164,6 +168,7 @@ export default function ScanScreen() {
     && mode !== 'description'
     && mode !== 'search'
     && !showBarcodeEntry
+    && !showFavorites
     && permission?.granted === true;
 
   // Tabs stay mounted. Without a focus reset, returning from a previous text
@@ -193,6 +198,7 @@ export default function ScanScreen() {
     setShowDescription(nextMode === 'description');
     setShowSearch(nextMode === 'search');
     setShowBarcodeEntry(false);
+    setShowFavorites(requestedMode === 'favorites');
     setTorchOn(false);
     setCapturing(false);
     setBarcodeBusy(false);
@@ -206,6 +212,7 @@ export default function ScanScreen() {
       setShowDescription(false);
       setShowSearch(false);
       setShowBarcodeEntry(false);
+      setShowFavorites(false);
       setTorchOn(false);
     };
   }, [requestedMode]));
@@ -367,6 +374,23 @@ export default function ScanScreen() {
   const runDemo = () => {
     startDemoScan();
     router.push('/analyzing');
+  };
+
+  /**
+   * Favourites as an equal way in: one tap on a favourite, check the portion,
+   * and it is saved into the slot and day this scan was opened for (Today's
+   * "+ Abendessen" or the day switcher), else the slot chosen in the sheet.
+   */
+  const openFavorites = () => {
+    if (!scanFocused.current || captureLock.current) return;
+    setTorchOn(false);
+    setShowFavorites(true);
+  };
+  const favoriteLogged = () => {
+    setShowFavorites(false);
+    setPlannedMealType(null); setPlannedMealDate(null);
+    Keyboard.dismiss();
+    router.replace('/(tabs)/today');
   };
 
   const chooseMode = (nextMode: 'photo' | 'description' | 'barcode' | 'search') => {
@@ -790,6 +814,7 @@ export default function ScanScreen() {
               </Text>
             </View>
           ) : null}
+          <ScanFavoritesButton onPress={openFavorites} />
           <View accessibilityRole="radiogroup" style={styles.modeLabel}>
             <ModeButton active={mode === 'photo'} label={t.scan.modePhoto} onPress={() => chooseMode('photo')} />
             <ModeButton active={mode === 'description'} label={t.scan.modeDescribe} onPress={() => chooseMode('description')} />
@@ -979,6 +1004,8 @@ export default function ScanScreen() {
         </Animated.View>
         )}
       </Modal>
+
+      <ScanFavoritesSheet onClose={() => setShowFavorites(false)} onLogged={favoriteLogged} visible={showFavorites} />
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => { setShowDescription(false); setMode('photo'); }} transparent visible={showDescription}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>

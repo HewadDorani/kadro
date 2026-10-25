@@ -6,12 +6,14 @@ import type { ThemeColors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Alert, PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { MealSyncStatus } from '@/components/MealSyncStatus';
 import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
 import { MealDetailSheet } from '@/components/MealDetailSheet';
-import { Card, Eyebrow, IconCircle, MacroCard, PressableScale, PrimaryButton, Screen, SectionTitle, SkeletonBlock } from '@/components/ui';
+import { FavoriteLogSheet } from '@/components/FavoriteLogSheet';
+import { useToast } from '@/components/Toast';
+import { Card, Eyebrow, IconCircle, MacroCard, PressableScale, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
 import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
@@ -19,8 +21,8 @@ import { recommendationPreview } from '@/services/recommendations';
 import { Meal } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
-import { greetingForHour } from '@/utils/daypart';
-import { availableRepeats, withFavorites, yesterdayBreakfast } from '@/services/repeatMeals';
+import { greetingForHour, mealTypeForHour } from '@/utils/daypart';
+import { availableRepeats, RepeatCandidate, withFavorites, yesterdayBreakfast } from '@/services/repeatMeals';
 import { useLocalDay } from '@/hooks/useLocalDay';
 import { sumMeals } from '@/services/mockNutrition';
 import { MAX_BACKDATE_DAYS, shiftDateKey } from '@/utils/mealDay';
@@ -33,8 +35,11 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { consumed: consumedToday, favoriteMeals, hasLoggedScan, logRepeatMeal, mealHistory, meals, pendingAnalysisCount, profile, refreshCloudState, remaining, repeatMeals, resetScan, resumeLatestAnalysis, setPlannedMealDate, setPlannedMealType, syncMode, targets, userName } = useApp();
-  const [repeating, setRepeating] = useState<string | null>(null);
+  const { consumed: consumedToday, favoriteMeals, hasLoggedScan, mealHistory, meals, pendingAnalysisCount, profile, refreshCloudState, remaining, repeatMeals, resetScan, resumeLatestAnalysis, setPlannedMealDate, setPlannedMealType, syncMode, targets, userName } = useApp();
+  // "Nochmal essen" asks which slot ("Als … eintragen") instead of guessing it from the clock.
+  const [choosing, setChoosing] = useState<{ candidate: RepeatCandidate; slot: Meal['type'] } | null>(null);
+  const repeating = choosing?.candidate.key ?? null;
+  const { toast, show: showToast } = useToast();
   const [openMeal, setOpenMeal] = useState<Meal | null>(null);
   const [sharing, setSharing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,25 +132,20 @@ export default function TodayScreen() {
   };
 
   // People eat the same things over and over. One tap beats a new scan, costs
-  // no analysis call and no waiting.
-  const repeat = async (key: string) => {
+  // no analysis call and no waiting. The tap opens "Als … eintragen" with the
+  // four slots, preselected by the clock (yesterday's breakfast: Breakfast),
+  // so a late breakfast is not filed as lunch. Logging happens in the sheet,
+  // on the day shown (the day switcher), never on a stale slot chosen earlier.
+  const repeat = (key: string) => {
     const candidate = repeatChoices.find((entry) => entry.key === key);
     if (!candidate || repeating) return;
-    setRepeating(key);
-    try {
-      if (candidate === yesterday) setPlannedMealType('Breakfast');
-      if (!isToday) setPlannedMealDate(viewDay);
-      await logRepeatMeal(candidate);
-    } catch {
-      Alert.alert(t.result.saveFailed);
-    } finally {
-      setRepeating(null);
-    }
+    setChoosing({ candidate, slot: candidate === yesterday ? 'Breakfast' : mealTypeForHour(new Date().getHours()) });
   };
+  const repeatDate = isToday ? null : viewDay;
 
   const { width } = useWindowDimensions();
   return (
-    <Screen refreshControl={canRefresh ? <RefreshControl colors={[colors.accentText]} onRefresh={() => void refresh()} refreshing={refreshing} tintColor={colors.muted} /> : undefined}>
+    <Screen overlay={toast} refreshControl={canRefresh ? <RefreshControl colors={[colors.accentText]} onRefresh={() => void refresh()} refreshing={refreshing} tintColor={colors.muted} /> : undefined}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.date}>{isToday ? dateLabel : formatDateParts(viewDay, { weekday: 'short', day: 'numeric', month: 'long' }, locale)}</Text>
@@ -340,7 +340,7 @@ export default function TodayScreen() {
                 accessibilityState={{ disabled: repeating !== null }}
                 disabled={repeating !== null}
                 key={candidate.key}
-                onPress={() => void repeat(candidate.key)}
+                onPress={() => repeat(candidate.key)}
                 style={[styles.repeatCard, candidate.favorite && styles.repeatFavorite, repeating !== null && repeating !== candidate.key && styles.repeatBusy]}
               >
                 <View style={styles.repeatTop}>
@@ -351,10 +351,7 @@ export default function TodayScreen() {
                 </View>
                 {candidate === yesterday ? <Text style={styles.repeatYesterday}>{t.today.yesterdayBreakfast}</Text> : null}
                 <Text numberOfLines={2} style={styles.repeatTitle}>{candidate.title}</Text>
-                {/* While it is being logged the numbers make way for a calm placeholder, not a blank. */}
-                {repeating === candidate.key
-                  ? <SkeletonBlock height={14} style={styles.repeatSkeleton} width="70%" />
-                  : <Text style={styles.repeatMacros}>~{formatNumber(candidate.calories, locale)} kcal · {candidate.protein} g P</Text>}
+                <Text style={styles.repeatMacros}>~{formatNumber(candidate.calories, locale)} kcal · {candidate.protein} g P</Text>
               </PressableScale>
             ))}
           </ScrollView>
@@ -438,6 +435,14 @@ export default function TodayScreen() {
       ) : null}
 
       <MealDetailSheet meal={openMeal} onClose={() => setOpenMeal(null)} />
+      <FavoriteLogSheet
+        candidate={choosing?.candidate ?? null}
+        date={repeatDate}
+        defaultSlot={choosing?.slot ?? 'Snack'}
+        onClose={() => setChoosing(null)}
+        onLogged={(_meal, slot) => { setChoosing(null); showToast(t.favorites.loggedAs(mealTypeLabel(slot, t.common))); }}
+        visible={choosing !== null}
+      />
       {isToday ? (
         <ShareDayModal
           input={{
@@ -529,7 +534,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   repeatBusy: { opacity: 0.5 },
   repeatIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   repeatIconFavorite: { backgroundColor: colors.accent },
-  repeatSkeleton: { marginTop: 6 },
   repeatTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '800', fontVariant: ['tabular-nums'] },
   repeatYesterday: { ...typeScale.caption, color: colors.text, fontWeight: '700', marginTop: 6 },

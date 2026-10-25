@@ -10,6 +10,8 @@ import Svg, { Circle } from 'react-native-svg';
 import { mealPhotoPlaceholder } from '@/utils/format';
 import { Card, ConfidenceBadge, Eyebrow, MealPhoto, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
+import { FavoriteToggle } from '@/components/FavoriteToggle';
+import { useToast } from '@/components/Toast';
 import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
@@ -58,6 +60,7 @@ export default function ResultScreen() {
   const [sharing, setSharing] = useState(false);
   const revealDone = useRef(false);
   const { language, locale, t } = useLanguage();
+  const { toast, show: showToast } = useToast();
   const nextMeal = useMemo(() => recommendationPreview(projected, profile.preferences),
     [language, profile.preferences, projected.calories, projected.protein, projected.carbs, projected.fat]);
   const [calorieLow, calorieHigh] = nextMeal.calories;
@@ -209,7 +212,7 @@ export default function ResultScreen() {
   );
 
   return (
-    <Screen>
+    <Screen overlay={toast}>
       <View style={styles.topBar}>
         <Pressable accessibilityLabel={t.common.back} accessibilityRole="button" hitSlop={8} onPress={() => router.back()} style={styles.iconButton}>
           <Ionicons color={colors.text} name="arrow-back" size={22} />
@@ -254,6 +257,9 @@ export default function ResultScreen() {
         <MacroResult label={t.common.fat} value={scannedMeal.fat} unit="g" />
         <MacroResult label={t.common.fiber} value={scannedMeal.fiber ?? 0} unit="g" />
       </View>
+
+      {/* One tap keeps this meal as logged (items and grams) for "Nochmal essen". */}
+      {demo ? null : <FavoriteToggle onToast={showToast} />}
 
       <View style={styles.section}>
         <SectionTitle action={largeText ? undefined : ingredientEditAction}>{t.result.ingredients}</SectionTitle>
