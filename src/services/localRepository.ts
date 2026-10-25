@@ -503,8 +503,9 @@ export async function saveWeightEntry(entry: WeightEntry): Promise<WeightEntry[]
 }
 
 /**
- * Starred meals, on this device only. They are wellness data like the diary,
- * so every reset and account switch below removes them too.
+ * Starred meals, on this device (the cloud copy lives in
+ * services/favoriteMeals). They are wellness data like the diary, so every
+ * reset and account switch below removes them too. At most 100 (MAX_FAVORITES).
  */
 export async function loadFavoriteMeals(): Promise<FavoriteMeal[]> {
   const stored = await readJson<unknown>(FAVORITES_KEY, []);
@@ -514,11 +515,11 @@ export async function loadFavoriteMeals(): Promise<FavoriteMeal[]> {
     && typeof entry.starredAt === 'string'
     && Boolean(entry.meal) && typeof entry.meal.title === 'string' && Array.isArray(entry.meal.items)
     && [entry.meal.calories, entry.meal.protein, entry.meal.carbs, entry.meal.fat].every((value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0))
-    .slice(0, 50);
+    .slice(0, 100);
 }
 
 export function saveFavoriteMeals(favorites: FavoriteMeal[]) {
-  return mutateAuxiliary(() => AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites.slice(0, 50))));
+  return mutateAuxiliary(() => AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites.slice(0, 100))));
 }
 
 /**

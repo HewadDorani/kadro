@@ -16,12 +16,29 @@ export type RepeatCandidate = {
   favorite?: boolean;
 };
 
-/** A starred meal, stored on this device only (not synced). */
+/**
+ * A starred meal: exactly the meal as it was logged (items and grams), so it
+ * re-logs 1:1. Stored on the device first and, with wellness consent and an
+ * active cloud, written through to public.meal_favorites.
+ */
 export type FavoriteMeal = {
+  /** UUID; older device-only entries get one on first load. */
+  id?: string;
+  /** favoriteKey(meal.title); the star state of a logged meal matches on it. */
   key: string;
   meal: Meal;
   starredAt: string;
+  /** Last local change (add, rename); the newest change wins on sync. */
+  updatedAt?: string;
+  /** Last confirmed cloud write; absent while the change is only local. */
+  syncedAt?: string;
+  /** Removed on this device; the cloud delete is retried on the next sync. */
+  pendingDelete?: boolean;
 };
+
+/** A personal shortlist, not a second diary. */
+export const MAX_FAVORITES = 100;
+export const MAX_FAVORITE_TITLE = 160;
 
 function bucket(calories: number) {
   // 50 kcal buckets, so "Skyr mit Beeren" at 340 and 355 is one entry rather
@@ -136,42 +153,111 @@ export function favoriteKey(meal: Pick<Meal, 'title'>) {
   return meal.title?.trim().toLowerCase() ?? '';
 }
 
-/** What a favourite keeps: the meal itself, never its sync identity or day. */
-export function favoriteSnapshot(meal: Meal): Meal {
-  const { sync: _sync, ...rest } = meal;
-  return { ...rest, origin: 'plan' };
+/**
+ * What a favourite keeps: the meal exactly as logged (its included items with
+ * their grams, sources and per-100 g references), never its sync identity,
+ * day or clock time.
+ */
+export function favoriteSnapshot(meal: Meal, title = meal.title): Meal {
+  const { sync: _sync, date: _date, savedAt: _savedAt, ...rest } = meal;
+  const items = meal.items.filter((item) => item.included);
+  return { ...rest, title: title.trim().slice(0, MAX_FAVORITE_TITLE), items, origin: 'plan' };
+}
+
+/** Favourites the user still sees (a pending cloud delete is already gone). */
+export function visibleFavorites(favorites: FavoriteMeal[]) {
+  return favorites.filter((entry) => !entry.pendingDelete);
+}
+
+/** The favourite a logged or drafted meal belongs to, by its name. */
+export function findFavorite(favorites: FavoriteMeal[], meal: Pick<Meal, 'title'>) {
+  const key = favoriteKey(meal);
+  if (!key) return null;
+  return favorites.find((entry) => !entry.pendingDelete && entry.key === key) ?? null;
+}
+
+/** One favourite as a repeat candidate: its stored snapshot, 1:1. */
+export function favoriteCandidate(entry: FavoriteMeal, history: Meal[] = []): RepeatCandidate {
+  const source = entry.meal;
+  const count = history.filter((meal) => favoriteKey(meal) === entry.key).length;
+  return {
+    key: `favorite|${entry.id ?? entry.key}`,
+    title: source.title.trim(),
+    calories: source.calories,
+    protein: source.protein,
+    carbs: source.carbs,
+    fat: source.fat,
+    fiber: source.fiber ?? 0,
+    count: Math.max(1, count),
+    lastEatenAt: entry.starredAt,
+    source,
+    favorite: true,
+  };
 }
 
 /**
- * Favourites first, then the usual repeats. A favourite takes the numbers of
- * its most recent logged version, so a corrected portion is what repeats.
+ * Favourites first, then the usual repeats. A favourite repeats exactly what
+ * was stored when it was starred (items and grams), not whatever portion was
+ * logged last: "Zu Favoriten hinzufügen" promises that meal, 1:1.
  */
 export function withFavorites(candidates: RepeatCandidate[], favorites: FavoriteMeal[], history: Meal[], limit = 8): RepeatCandidate[] {
-  if (!favorites.length) return candidates.slice(0, limit);
-  const starred = new Set(favorites.map((entry) => entry.key));
-  const latest = new Map<string, Meal>();
-  for (const meal of history) {
-    const key = favoriteKey(meal);
-    if (!starred.has(key) || (meal.origin !== 'scan' && meal.origin !== 'plan')) continue;
-    const known = latest.get(key);
-    if (!known || (meal.savedAt ?? '') > (known.savedAt ?? '')) latest.set(key, meal);
-  }
-  const first = favorites.map((entry): RepeatCandidate => {
-    const source = latest.get(entry.key) ?? entry.meal;
-    const count = history.filter((meal) => favoriteKey(meal) === entry.key).length;
+  const shown = visibleFavorites(favorites);
+  if (!shown.length) return candidates.slice(0, limit);
+  const starred = new Set(shown.map((entry) => entry.key));
+  const first = shown.map((entry) => favoriteCandidate(entry, history));
+  return [...first, ...candidates.filter((candidate) => !starred.has(favoriteKey(candidate)))].slice(0, Math.max(limit, first.length));
+}
+
+const foldText = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Favourites whose name or ingredients contain every typed word. */
+export function filterFavoriteCandidates(candidates: RepeatCandidate[], query: string) {
+  const words = foldText(query).split(' ').filter(Boolean);
+  if (!words.length) return candidates;
+  return candidates.filter((candidate) => {
+    const haystack = foldText(`${candidate.title} ${candidate.source.items.map((item) => item.name).join(' ')}`);
+    return words.every((word) => haystack.includes(word));
+  });
+}
+
+const round1 = (value: number) => Math.round(value * 10) / 10;
+
+/**
+ * "Weniger / Passt / Mehr" on a favourite, relative to the stored grams.
+ * Each item is rescaled from its own per-100 g reference, so the totals stay
+ * the sum of the items; 1x returns the stored meal unchanged.
+ */
+export function scaleMealPortion(meal: Meal, factor: number): Meal {
+  if (factor === 1 || !Number.isFinite(factor) || factor <= 0) return meal;
+  const items = meal.items.map((item) => {
+    if (!item.included || !(item.amountG > 0)) return item;
+    const amountG = Math.min(5000, Math.max(1, round1(item.amountG * factor)));
+    const reference = item.nutritionPer100g ?? {
+      calories: item.calories * 100 / item.amountG,
+      protein: item.protein * 100 / item.amountG,
+      carbs: item.carbs * 100 / item.amountG,
+      fat: item.fat * 100 / item.amountG,
+      fiber: (item.fiber ?? 0) * 100 / item.amountG,
+    };
+    const ratio = amountG / 100;
     return {
-      key: `favorite|${entry.key}`,
-      title: source.title.trim(),
-      calories: source.calories,
-      protein: source.protein,
-      carbs: source.carbs,
-      fat: source.fat,
-      fiber: source.fiber ?? 0,
-      count: Math.max(1, count),
-      lastEatenAt: source.savedAt ?? entry.starredAt,
-      source,
-      favorite: true,
+      ...item,
+      amountG,
+      nutritionPer100g: reference,
+      portionFactor: item.baseAmountG > 0 ? amountG / item.baseAmountG : 1,
+      calories: Math.round(reference.calories * ratio),
+      protein: Math.round(reference.protein * ratio),
+      carbs: Math.round(reference.carbs * ratio),
+      fat: Math.round(reference.fat * ratio),
+      fiber: Math.round((reference.fiber ?? 0) * ratio),
     };
   });
-  return [...first, ...candidates.filter((candidate) => !starred.has(favoriteKey(candidate)))].slice(0, Math.max(limit, first.length));
+  const totals = items.filter((item) => item.included).reduce((sum, item) => ({
+    calories: sum.calories + item.calories,
+    protein: sum.protein + item.protein,
+    carbs: sum.carbs + item.carbs,
+    fat: sum.fat + item.fat,
+    fiber: sum.fiber + (item.fiber ?? 0),
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+  return { ...meal, items, ...totals };
 }

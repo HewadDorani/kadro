@@ -28,8 +28,6 @@ import {
   loadLocalAccountSwitch,
   replaceLocalAccountData,
   subscribeLocalMeals, getLocalDataGeneration,
-  loadFavoriteMeals,
-  saveFavoriteMeals,
 } from '@/services/localRepository';
 import {
   createPlannedMeal,
@@ -43,7 +41,8 @@ import {
 } from '@/services/mockNutrition';
 import { useFreeScanAllowance } from '@/hooks/useHardWall';
 import { calculateDailyTargets, DEFAULT_PROFILE } from '@/services/personalization';
-import { availableRepeats, FavoriteMeal, favoriteKey, favoriteSnapshot, RepeatCandidate } from '@/services/repeatMeals';
+import { availableRepeats, FavoriteMeal, findFavorite, RepeatCandidate, scaleMealPortion } from '@/services/repeatMeals';
+import { addFavorite, getFavoriteMealsSnapshot, loadFavorites, removeFavorite, renameFavorite, setFavoriteCloudEnabled, subscribeFavoriteMeals, syncFavorites } from '@/services/favoriteMeals';
 import { deleteSyncedMeal, hydrateCloudState, hydrateExistingCloudAccount, saveSyncedMeal, syncUserSetup, SyncMode } from '@/services/syncRepository';
 import { getCurrentSessionUserId, isSupabaseConfigured, rememberSupabaseUser, startSupabaseAuthLifecycle, supabase } from '@/services/supabaseClient';
 import { applyAnalyticsAgePolicy, captureOperationalError, clearTelemetryForAccountSwitch, countBucket, durationBucket, trackEvent } from '@/services/telemetry';
@@ -154,10 +153,16 @@ type AppContextValue = {
   toggleItem: (id: string) => void;
   resetScan: () => void;
   resetAfterAccountDeletion: () => void;
-  logScannedMeal: () => Promise<void>;
+  /** Saves the confirmed draft and returns the meal as stored. */
+  logScannedMeal: () => Promise<Meal>;
   logPlannedMeal: (suggestion: MealSuggestion, portion: PortionFactor) => Promise<Meal>;
   repeatMeals: RepeatCandidate[];
-  logRepeatMeal: (candidate: RepeatCandidate) => Promise<Meal>;
+  /**
+   * Logs a meal again for free. `target` states the slot and day chosen in a
+   * sheet ("Als Abendessen eintragen"); without it the slot chosen on Today,
+   * else the clock. `portion` scales the stored grams (Weniger / Passt / Mehr).
+   */
+  logRepeatMeal: (candidate: RepeatCandidate, target?: RepeatTarget) => Promise<Meal>;
   deleteLoggedMeal: (id: string) => Promise<void>;
   adjustLoggedMealPortion: (id: string, factor: PortionFactor) => Promise<void>;
   /** Corrects one ingredient of a saved meal; the other ingredients keep their amounts. */
@@ -173,7 +178,19 @@ type AppContextValue = {
   scanTarget: { type: Meal['type']; date: string };
   favoriteMeals: FavoriteMeal[];
   toggleFavoriteMeal: (meal: Meal) => Promise<void>;
+  /** Stars a meal exactly as logged (items and grams); replaces an older portion of the same name. */
+  addFavoriteMeal: (meal: Meal) => Promise<void>;
+  removeFavoriteMeal: (id: string) => Promise<void>;
+  renameFavoriteMeal: (id: string, title: string) => Promise<void>;
+  /**
+   * The star on Confirm and Result. Before the draft is saved it is a wish
+   * that the save fulfils with the meal as stored; once saved it writes now.
+   */
+  scanFavorite: boolean;
+  setScanFavorite: (on: boolean) => Promise<void>;
 };
+
+export type RepeatTarget = { type?: Meal['type']; date?: string | null; portion?: PortionFactor };
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -236,7 +253,9 @@ export function AppProvider({ children }: PropsWithChildren) {
   const plannedMealTypeRef = useRef<Meal['type'] | null>(null);
   const [plannedMealDate, setPlannedMealDateState] = useState<string | null>(null);
   const plannedMealDateRef = useRef<string | null>(null);
-  const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
+  const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>(getFavoriteMealsSnapshot);
+  // The star on Confirm/Result for the current draft, by scan id.
+  const [favoriteDraftScanId, setFavoriteDraftScanId] = useState<string | null>(null);
   const [queuedInput, setQueuedInput] = useState<MealAnalysisInput | null>(null);
   const [descriptionInput, setDescriptionInput] = useState('');
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -553,17 +572,18 @@ export function AppProvider({ children }: PropsWithChildren) {
     return () => { active = false; unsubscribe(); };
   }, [hydrationReady, wellnessConsentGranted]);
 
-  // Favorites are a local convenience and are not synced. Reload them whenever
-  // the diary is hydrated again, which includes every account switch.
+  // Favourites live in services/favoriteMeals (device first). The screen
+  // follows that store; it resets itself on every account switch or reset.
+  useEffect(() => subscribeFavoriteMeals(() => setFavoriteMeals(getFavoriteMealsSnapshot())), []);
+  // Reload whenever the diary is hydrated again (every account switch), and
+  // sync with the cloud copy only with wellness consent, like the diary.
   useEffect(() => {
+    setFavoriteCloudEnabled(hydrationReady && wellnessConsentGranted);
     if (!hydrationReady) return;
-    let active = true;
-    const generation = getLocalDataGeneration();
-    void loadFavoriteMeals().then((stored) => {
-      if (active && generation === getLocalDataGeneration()) setFavoriteMeals(stored);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, [hydrationReady]);
+    void loadFavorites()
+      .then(() => (wellnessConsentGranted ? syncFavorites() : undefined))
+      .catch(() => undefined);
+  }, [hydrationReady, wellnessConsentGranted]);
 
   const refreshCloudState = useCallback(async () => {
     if (!wellnessConsentGranted) {
@@ -1351,6 +1371,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     // Only today's meals belong in `meals`; a past day lives in the history.
     setMeals((current) => [...current.filter((meal) => meal.id !== persistedMeal.id), ...(persistedMeal.date === today ? [persistedMeal] : [])]);
     setMealHistory((current) => [...current.filter((meal) => meal.id !== persistedMeal.id), persistedMeal]);
+    return persistedMeal;
   }, [analysisStatus, detectedItems, mealHistory, scannedMeal]);
 
   /**
@@ -1393,17 +1414,21 @@ export function AppProvider({ children }: PropsWithChildren) {
    * Logs a meal the user has eaten before. Costs no analysis call, so like a
    * planned meal it never spends part of the free allowance.
    */
-  const logRepeatMeal = useCallback((candidate: RepeatCandidate) => {
+  const logRepeatMeal = useCallback((candidate: RepeatCandidate, target?: RepeatTarget) => {
     const generation = getLocalDataGeneration();
     const key = `${generation}:${candidate.key}`;
     const inFlight = repeatInFlightRef.current.get(key);
     if (inFlight) return inFlight;
     const operation = (async () => {
       const now = new Date();
-      const type = consumePlannedMealType() ?? mealTypeForHour(now.getHours());
-      const moment = mealMoment(consumePlannedMealDate(), type, now);
+      // Both choices are spent either way; a slot picked in the sheet wins.
+      const plannedType = consumePlannedMealType();
+      const plannedDate = consumePlannedMealDate();
+      const type = target?.type ?? plannedType ?? mealTypeForHour(now.getHours());
+      const moment = mealMoment(target && target.date !== undefined ? target.date : plannedDate, type, now);
+      const portioned = target?.portion && target.portion !== 1 ? scaleMealPortion(candidate.source, target.portion) : candidate.source;
       const repeated: Meal = {
-        ...candidate.source,
+        ...portioned,
         id: `repeat-${candidate.key.replace(/[^a-z0-9]+/gi, '-')}-${now.getTime()}`,
         origin: 'plan',
         sync: undefined,
@@ -1462,21 +1487,50 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, []);
 
   /**
-   * Favourites live on this device only. The star is keyed by the meal's
-   * title, so "Skyr mit Beeren" stays a favourite across days and portions.
+   * The star is keyed by the meal's title, so "Skyr mit Beeren" stays a
+   * favourite across days; what it stores is this meal exactly as logged.
    */
   const toggleFavoriteMeal = useCallback(async (meal: Meal) => {
-    const generation = getLocalDataGeneration();
-    const key = favoriteKey(meal);
-    if (!key) return;
-    const current = await loadFavoriteMeals();
-    const next = current.some((entry) => entry.key === key)
-      ? current.filter((entry) => entry.key !== key)
-      : [{ key, meal: favoriteSnapshot(meal), starredAt: new Date().toISOString() }, ...current];
-    await saveFavoriteMeals(next);
-    if (generation !== getLocalDataGeneration()) throw new Error('cloud_identity_changed');
-    setFavoriteMeals(next);
+    const existing = findFavorite(await loadFavorites(), meal);
+    if (existing?.id) await removeFavorite(existing.id);
+    else await addFavorite(meal);
   }, []);
+
+  const addFavoriteMeal = useCallback(async (meal: Meal) => { await addFavorite(meal); }, []);
+  const removeFavoriteMeal = useCallback((id: string) => removeFavorite(id), []);
+  const renameFavoriteMeal = useCallback((id: string, title: string) => renameFavorite(id, title), []);
+
+  // A star set on Confirm belongs to that draft only; a new scan starts unstarred.
+  const scanFavorite = favoriteDraftScanId === scanId || Boolean(findFavorite(favoriteMeals, scannedMeal));
+  // One write per save of the starred draft: "id|savedAt|kcal" of the stored meal.
+  const favoriteFulfilledRef = useRef<string | null>(null);
+  const favoriteSignature = (meal: Meal) => `${meal.id}|${meal.savedAt ?? ''}|${meal.calories}`;
+  const setScanFavorite = useCallback(async (on: boolean) => {
+    const logged = mealHistory.find((meal) => meal.id === scanId);
+    if (on) {
+      setFavoriteDraftScanId(scanId);
+      // Already saved (Result): store it now, exactly as logged.
+      if (logged) {
+        favoriteFulfilledRef.current = favoriteSignature(logged);
+        await addFavorite(logged);
+      }
+      return;
+    }
+    setFavoriteDraftScanId(null);
+    const existing = findFavorite(await loadFavorites(), logged ?? scannedMeal);
+    if (existing?.id) await removeFavorite(existing.id);
+  }, [mealHistory, scanId, scannedMeal]);
+
+  // The save fulfils a star set before it: the favourite is the meal as
+  // stored, and a correction re-saved under the same scan id updates it.
+  // Removing the favourite elsewhere afterwards is not undone by this.
+  useEffect(() => {
+    if (!favoriteDraftScanId) return;
+    const logged = mealHistory.find((meal) => meal.id === favoriteDraftScanId);
+    if (!logged || favoriteFulfilledRef.current === favoriteSignature(logged)) return;
+    favoriteFulfilledRef.current = favoriteSignature(logged);
+    void addFavorite(logged).catch(() => undefined);
+  }, [favoriteDraftScanId, mealHistory]);
 
   /**
    * Removes a meal from the day. Until this existed a mis-scan, a wrong portion
@@ -1552,6 +1606,11 @@ export function AppProvider({ children }: PropsWithChildren) {
       scanTarget,
       favoriteMeals,
       toggleFavoriteMeal,
+      addFavoriteMeal,
+      removeFavoriteMeal,
+      renameFavoriteMeal,
+      scanFavorite,
+      setScanFavorite,
       analysisPhase,
       portionEstimated,
       autoMatchedItemIds,
@@ -1618,7 +1677,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       adjustLoggedMealPortion,
       setLoggedMealType,
     }),
-    [descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
+    [descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
