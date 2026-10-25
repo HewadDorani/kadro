@@ -72,6 +72,31 @@ Food Facts answers whatever it does not contain.
   provided on request or published alongside the supermarket extract
   (`https://getkandro.com/data/`) whenever it is rebuilt.
 
+## Restaurant chain nutrition (Plan → Unterwegs)
+
+`src/data/chains/de.json`, `gb.json` and `us.json` list menu items of
+restaurant and fast-food chains in Germany, the United Kingdom and the United
+States with the nutrition facts each chain publishes for that country (its
+national website, nutrition PDF or the data its own website loads). Every item
+carries the URL it was read from (`source`) and the date it was checked
+(`checked`); each file lists the chains' publications under `chains[].sources`.
+
+- Values are reproduced as published, per serving. Where a chain publishes
+  per 100 g plus a serving weight, the per-serving value is computed and the
+  item is marked `computedFromPer100g`. Nothing is estimated or invented;
+  chains without an official publication for a country are left out.
+- For build-your-own chains (Chipotle US) only per-component values are
+  published; the standard builds in the data list those components and the
+  app shows and logs each component with its own published values.
+- Nutrition facts are factual information; no menu text, images or logos are
+  copied. The app shows "Nährwerte laut Hersteller · Stand …" /
+  "Nutrition as published by the chain · as of …".
+- Chain and product names are trademarks of their respective owners and are
+  used only to identify the products. Kandro is not affiliated with, endorsed
+  or sponsored by any of these chains.
+- Recipes change; the data is re-checked from the cited sources before each
+  release that ships it.
+
 ## Demo meal photo
 
 The bundled demo meal photo is by Markus Winkler and is used under the Unsplash
