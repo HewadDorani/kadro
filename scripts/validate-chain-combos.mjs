@@ -259,6 +259,19 @@ if (!read('src/services/chainCombos.ts').includes("from '@/services/preferences'
 for (const [name, dictionary] of [['de', read('src/i18n/de.ts')], ['en', read('src/i18n/en.ts')]]) {
   for (const key of ['chainTake', 'chainSource', 'chainSourceLabel', 'chainNote']) if (!dictionary.includes(`${key}:`)) problems.push(`${name}: plan.${key} missing`);
 }
+// The Unterwegs subtitle names chains of the chosen market only, so a country switch is visible before tapping.
+if (!/detail: t\.plan\.ctxOutChains\[region\]/.test(read('src/app/(tabs)/plan.tsx'))) problems.push('plan.tsx: Unterwegs subtitle must follow the market (ctxOutChains[region])');
+for (const [name, dictionary] of [['de', read('src/i18n/de.ts')], ['en', read('src/i18n/en.ts')]]) {
+  const line = dictionary.match(/ctxOutChains: \{ de: '([^']+)', gb: '([^']+)', us: '([^']+)' \}/);
+  if (!line) { problems.push(`${name}: plan.ctxOutChains missing`); continue; }
+  MARKETS.forEach((market, index) => {
+    const known = new Set(datasets[market].chains.map((chain) => chain.name.replace(/[’']/g, "'").toLowerCase()));
+    for (const chain of line[index + 1].split(', ')) {
+      const key = chain.replace(/[’']/g, "'").toLowerCase();
+      if (![...known].some((value) => value === key || value.startsWith(key + ' '))) problems.push(`${name}: ctxOutChains.${market} names ${chain}, which is not in src/data/chains/${market}.json`);
+    }
+  });
+}
 const notices = read('THIRD_PARTY_NOTICES.md');
 if (!/src\/data\/chains/.test(notices) || !/not affiliated/i.test(notices)) problems.push('THIRD_PARTY_NOTICES.md must describe the chain nutrition data and non-affiliation');
 

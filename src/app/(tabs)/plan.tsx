@@ -39,7 +39,7 @@ export default function PlanScreen() {
   const contexts: { id: MealContext; title: string; detail: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'home', title: t.plan.ctxHome, detail: t.plan.ctxHomeDetail, icon: 'home-outline' },
     { id: 'supermarket', title: t.plan.ctxMarket, detail: t.plan.ctxMarketStores[region], icon: 'basket-outline' },
-    { id: 'eating-out', title: t.plan.ctxOut, detail: t.plan.ctxOutDetail, icon: 'restaurant-outline' },
+    { id: 'eating-out', title: t.plan.ctxOut, detail: t.plan.ctxOutChains[region], icon: 'restaurant-outline' },
   ];
   const { status: subscriptionStatus } = useSubscription();
   const [selected, setSelected] = useState<MealContext | null>(null);
