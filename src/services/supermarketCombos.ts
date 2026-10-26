@@ -181,9 +181,11 @@ export function productPortions(product: SupermarketProduct): ComboPortion[] {
     portions.push({ kind: 'pack', count: 1, grams: Math.round(product.packageG * TUNA_DRAINED_SHARE), container, estimated: true });
   } else if (product.packageG && !(product.category === 'tuna' && product.servingG)) {
     // Where a tuna label names its drained serving, that serving (below) is the amount.
-    portions.push({ kind: 'pack', count: 1, grams: product.packageG, container, estimated: false });
+    // Fruit without a unit weight is a punnet or bag (berries, grapes): "1 pack", not "1 piece".
+    const packContainer: PortionContainer = product.category === 'fruit' ? 'pack' : container;
+    portions.push({ kind: 'pack', count: 1, grams: product.packageG, container: packContainer, estimated: false });
     if (HALVES.has(product.category) && product.packageG >= 200) {
-      portions.push({ kind: 'half', count: 1, grams: Math.round(product.packageG / 2), container, estimated: false });
+      portions.push({ kind: 'half', count: 1, grams: Math.round(product.packageG / 2), container: packContainer, estimated: false });
     }
   }
   if (product.servingG) {
