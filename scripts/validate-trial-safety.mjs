@@ -94,6 +94,31 @@ await test('Cancellation, paid renewal, revoked permission and shortened sandbox
   await f.reminders.scheduleTrialEndingReminder(trial); f.setPermission(1);
   await f.reminders.scheduleTrialEndingReminder(trial); assert.equal(f.scheduled.size, 0);
 });
+await test('Cancelled trial: one notice a day before the end, with the meals so far, never for a renewing trial', async () => {
+  const f = reminderFixture();
+  const cancelled = { ...trial, willRenew: false };
+  assert.equal(await f.reminders.scheduleCancelledTrialNotice(trial, 4), false, 'renewing trial: the promised reminder only');
+  assert.equal(f.scheduled.has('kandro-trial-cancelled-ending'), false);
+  assert.equal(await f.reminders.scheduleCancelledTrialNotice(cancelled, 4), true);
+  const note = f.scheduled.get('kandro-trial-cancelled-ending');
+  assert.equal(note.trigger.date.getTime(), currentTime + 4 * day, 'expiry minus one day');
+  assert.equal(note.content.title, dict.retention.trialEndingPushTitle);
+  assert.equal(note.content.body, dict.retention.trialEndingPushBody(4));
+  assert.equal(await f.reminders.scheduleCancelledTrialNotice(cancelled, 4), true); assert.equal(f.counts().writes, 1, 'deduped');
+  await f.reminders.scheduleCancelledTrialNotice(cancelled, 6);
+  assert.equal(f.scheduled.get('kandro-trial-cancelled-ending').content.body, dict.retention.trialEndingPushBody(6), 'count stays current');
+  await f.reminders.scheduleCancelledTrialNotice(cancelled, 0);
+  assert.equal(f.scheduled.get('kandro-trial-cancelled-ending').content.body, dict.retention.trialEndingPushBodyEmpty);
+  assert.equal(await f.reminders.scheduleCancelledTrialNotice(trial, 6), false, 'renewal turned back on removes it');
+  assert.equal(f.scheduled.has('kandro-trial-cancelled-ending'), false);
+  const late = { ...cancelled, expiresAt: new Date(currentTime + 12 * 3_600_000).toISOString() };
+  assert.equal(await f.reminders.scheduleCancelledTrialNotice(late, 3), false, 'never in the past');
+  f.setPermission(1); assert.equal(await f.reminders.scheduleCancelledTrialNotice(cancelled, 3), false);
+  assert.equal(f.counts().requests, 0, 'never prompts');
+  f.setPermission(2); await f.reminders.scheduleCancelledTrialNotice(cancelled, 3);
+  await f.reminders.clearRemindersForAccountSwitch();
+  assert.equal(f.scheduled.size, 0); assert.equal(f.memory.size, 0);
+});
 await test('Account deletion wins against an in-flight trial scheduling permission read', async () => {
   const f = reminderFixture(); let release; const wait = new Promise(resolve => { release = resolve; });
   f.blockPermission(wait); const pending = f.reminders.scheduleTrialEndingReminder(trial);

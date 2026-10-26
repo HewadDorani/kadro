@@ -102,7 +102,8 @@ function subscriptionFixture() {
   const provider = load('src/context/SubscriptionContext.tsx', {
     react: h.react, 'react/jsx-runtime': { jsx: (type, props) => ({ type, props }) },
     '@/services/subscription': service,
-    '@/services/reminders': { scheduleTrialEndingReminder: async (trial, isCurrent) => { if (isCurrent()) reminderCalls.push(trial); return Boolean(trial?.willRenew); } },
+    '@/services/reminders': { scheduleTrialEndingReminder: async (trial, isCurrent) => { if (isCurrent()) reminderCalls.push(trial); return Boolean(trial?.willRenew); }, scheduleCancelledTrialNotice: async () => false },
+    '@/services/retention': { mealsSince: () => 0 },
     'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
     '@/services/supabaseClient': { supabase: { auth: { onAuthStateChange: (callback) => { authCallback = callback; return { data: { subscription: { unsubscribe() {} } } }; } } } },
     '@/services/serverEntitlement': { refreshServerEntitlement: async () => { if (responses.serverError) throw new Error('timeout'); return responses.serverActive; } },

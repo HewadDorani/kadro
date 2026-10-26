@@ -347,6 +347,50 @@ export function scheduleTrialEndingReminder(trial: SubscriptionTrial | null, isC
     } catch { return false; }
   });
 }
+const TRIAL_ENDING_ID = 'kandro-trial-cancelled-ending';
+const TRIAL_ENDING_KEY = '@kandro/trial-cancelled-notice:v1';
+const TRIAL_ENDING_LEAD_MS = 86_400_000;
+async function cancelTrialEnding() {
+  await Notifications.cancelScheduledNotificationAsync(TRIAL_ENDING_ID);
+  await AsyncStorage.removeItem(TRIAL_ENDING_KEY);
+}
+/**
+ * A trial that was turned off at Apple still runs to its end. One calm note
+ * a day before, with what the person already logged; never for a renewing
+ * trial (that one gets the promised reminder above), never re-prompting.
+ * `mealsSoFar` is re-read on every reconcile, so the text stays current.
+ */
+export function scheduleCancelledTrialNotice(trial: SubscriptionTrial | null, mealsSoFar: number, isCurrent: () => boolean = () => true): Promise<boolean> {
+  return serialize(async epoch => {
+    if (!remindersSupported || !current(epoch) || !isCurrent()) return false;
+    try {
+      configureNotifications();
+      const expiresAt = trial ? Date.parse(trial.expiresAt) : NaN;
+      const noticeAt = expiresAt - TRIAL_ENDING_LEAD_MS;
+      const permission = await getReminderPermission();
+      if (!current(epoch) || !isCurrent()) return false;
+      if (!trial || trial.willRenew || !Number.isFinite(noticeAt) || noticeAt <= Date.now()
+        || (permission !== 'authorized' && permission !== 'quiet')) {
+        await cancelTrialEnding();
+        return false;
+      }
+      const t = getDictionary().retention;
+      const count = Math.max(0, Math.floor(mealsSoFar));
+      const body = count > 0 ? t.trialEndingPushBody(count) : t.trialEndingPushBodyEmpty;
+      const signature = JSON.stringify({ expiresAt, noticeAt, title: t.trialEndingPushTitle, body });
+      const saved = await AsyncStorage.getItem(TRIAL_ENDING_KEY);
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      if (!current(epoch) || !isCurrent()) return false;
+      if (saved === signature && scheduled.some(item => item.identifier === TRIAL_ENDING_ID)) return true;
+      await cancelTrialEnding();
+      if (!current(epoch) || !isCurrent()) return false;
+      await Notifications.scheduleNotificationAsync({ identifier: TRIAL_ENDING_ID, content: { title: t.trialEndingPushTitle, body }, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(noticeAt), ...(Platform.OS === 'android' ? { channelId: 'evening-summary' } : {}) } });
+      if (!current(epoch) || !isCurrent()) { await cancelTrialEnding(); return false; }
+      await AsyncStorage.setItem(TRIAL_ENDING_KEY, signature);
+      return true;
+    } catch { return false; }
+  });
+}
 const FIRST_MEAL_KEY = '@kandro/first-meal-celebrated:v1';
 const STREAK_KEY = '@kandro/three-day-milestone:v1';
 const STREAK_ID = 'kandro-three-days';
@@ -388,8 +432,8 @@ export function clearRemindersAfterAccountDeletion() {
   generation += 1;
   publishOnboardingPending(false);
   return serialize(async () => {
-    if (remindersSupported) { await cancelOwn(); await cancelTrial().catch(() => undefined); await cancelReengagement().catch(() => undefined); await Notifications.cancelScheduledNotificationAsync(STREAK_ID).catch(() => undefined); }
-    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY]);
+    if (remindersSupported) { await cancelOwn(); await cancelTrial().catch(() => undefined); await cancelTrialEnding().catch(() => undefined); await cancelReengagement().catch(() => undefined); await Notifications.cancelScheduledNotificationAsync(STREAK_ID).catch(() => undefined); }
+    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, TRIAL_ENDING_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY]);
   });
 }
 export const clearRemindersForAccountSwitch = clearRemindersAfterAccountDeletion;

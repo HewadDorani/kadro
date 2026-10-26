@@ -394,7 +394,53 @@ await check('Purchase steps: winback_* and retention_offer_* need the written (u
   assert.match(sql, /revoke all on private\.paywall_steps_daily from public, anon, authenticated;/);
   assert.doesNotMatch(sql.replace(/--[^\n]*/g, ''), /price|plan_id|amount|reason/i, 'no price, plan or reason data');
   const exposure = read('src/services/paywallExposure.ts');
-  assert.match(exposure, /export type PurchaseStepKind = 'purchase' \| 'winback' \| 'retention_offer';/);
+  assert.match(exposure, /export type PurchaseStepKind = 'purchase' \| 'winback' \| 'retention_offer' \| 'trial_offer';/);
+});
+
+await check('Cancelled trial: Today card only in the last 48 h of a trial turned off at Apple', () => {
+  const trialCustomer = { ...retention.NO_CUSTOMER, productId: 'kandro_monthly', periodType: 'TRIAL', willRenew: false, expiresAt: new Date(NOW + 30 * 3_600_000).toISOString() };
+  const base = { status: 'active', customer: trialCustomer, now: NOW, dismissedDay: null, today: '2026-10-25' };
+  assert.deepEqual(retention.cancelledTrialEnding(base), { expiresAt: trialCustomer.expiresAt });
+  assert.equal(retention.cancelledTrialEnding({ ...base, customer: { ...trialCustomer, willRenew: true } }), null, 'renewing trial');
+  assert.equal(retention.cancelledTrialEnding({ ...base, customer: { ...trialCustomer, periodType: 'NORMAL' } }), null, 'paid period');
+  assert.equal(retention.cancelledTrialEnding({ ...base, customer: { ...trialCustomer, expiresAt: new Date(NOW + 60 * 3_600_000).toISOString() } }), null, 'more than 48 h left');
+  assert.equal(retention.cancelledTrialEnding({ ...base, customer: { ...trialCustomer, expiresAt: new Date(NOW - 1000).toISOString() } }), null, 'already ended');
+  assert.equal(retention.cancelledTrialEnding({ ...base, status: 'ready' }), null, 'server does not confirm Pro');
+  assert.equal(retention.cancelledTrialEnding({ ...base, dismissedDay: '2026-10-25' }), null, 'hidden for today');
+  assert.ok(retention.cancelledTrialEnding({ ...base, dismissedDay: '2026-10-24' }), 'back the next day');
+  assert.equal(retention.cancelledTrialEnding({ ...base, customer: null }), null);
+});
+
+await check('Cancelled trial: meals counted from the trial start, copy without pressure in both languages', () => {
+  const meals = [{ savedAt: '2026-10-20T08:00:00Z' }, { savedAt: '2026-10-22T08:00:00Z' }, { savedAt: '2026-10-24T19:00:00Z' }, { date: '2026-10-23' }, {}];
+  assert.equal(retention.mealsSince(meals, '2026-10-21T10:00:00Z'), 3);
+  assert.equal(retention.mealsSince(meals, null), 0);
+  assert.equal(retention.mealsSince([], '2026-10-21T10:00:00Z'), 0);
+  for (const dict of [de, en]) {
+    const r = dict.retention;
+    for (const text of [r.trialEndingToday, r.trialEndingTomorrow, r.trialEndingOn('Dienstag, 28. Oktober'), r.trialEndingMeals(1), r.trialEndingMeals(12), r.trialEndingNoMeals, r.trialEndingOffer('x'), r.trialEndingKeep, r.trialEndingPushTitle, r.trialEndingPushBody(3), r.trialEndingPushBodyEmpty]) {
+      assert.ok(typeof text === 'string' && text.length > 0);
+      assert.doesNotMatch(text, /unbegrenzt|unlimited|letzte Chance|last chance|verpass|miss out|!/i, text);
+    }
+  }
+  assert.match(de.retention.trialEndingMeals(1), /1 Mahlzeit /); assert.match(en.retention.trialEndingMeals(1), /1 meal /);
+  const card = read('src/components/TrialEndingCard.tsx');
+  assert.match(card, /loadPromotionalDiscount\(currentPlan, model\.promoDiscounts\)/, 'offer only when RevenueCat signs it');
+  assert.match(card, /openSubscriptionManagement\(\)/, 'Apple page is always offered');
+  assert.match(card, /markPurchaseStep\('started', 'trial_offer'\)/);
+  assert.match(read('src/app/(tabs)/today.tsx'), /<TrialEndingCard \/>/);
+});
+
+await check('Cancelled-trial measurement: steps and outcome view, counts only', () => {
+  const sql = read('supabase/migrations/20261026120000_trial_cancellation_measurement.sql');
+  for (const context of ['trial_ending', 'trial_keep', 'trial_offer_started', 'trial_offer_cancelled', 'trial_offer_failed', 'trial_offer_pending', 'trial_offer_completed']) {
+    assert.ok(sql.split(`'${context}'`).length - 1 >= 2, `${context} in the check constraint and the function`);
+  }
+  for (const previous of ['purchase_completed', 'winback_completed', 'retention_offer_completed']) assert.ok(sql.includes(`'${previous}'`), `${previous} kept`);
+  assert.match(sql, /create view private\.trial_outcomes_daily/);
+  assert.match(sql, /environment = 'PRODUCTION'/);
+  assert.match(sql, /revoke all on private\.trial_outcomes_daily from public, anon, authenticated;/);
+  assert.doesNotMatch(sql.replace(/--[^\n]*/g, ''), /price|plan_id|amount|reason/i, 'no price, plan or reason data');
 });
 
 Date.now = realNow;

@@ -67,6 +67,34 @@ export function billingIssueBannerVisible(input: { status: string; customer: Sub
   return input.status === 'active' && Boolean(input.customer?.billingIssueDetectedAt) && input.dismissedDay !== input.today;
 }
 
+/** A cancelled trial shows the Today card only in its last 48 hours. */
+export const TRIAL_ENDING_WINDOW_MS = 48 * 3_600_000;
+
+/**
+ * Trial started, then turned off at Apple (willRenew false). Access stays
+ * until the trial ends; the card only says when and how to keep going.
+ * Null for a renewing trial, a paid period, an expired trial or after
+ * "hide for today".
+ */
+export function cancelledTrialEnding(input: { status: string; customer: SubscriptionCustomer | null | undefined; now: number; dismissedDay: string | null; today: string }) {
+  const customer = input.customer;
+  if (input.status !== 'active' || !customer || customer.periodType !== 'TRIAL' || customer.willRenew) return null;
+  if (input.dismissedDay === input.today) return null;
+  const expiresAt = customer.expiresAt ? Date.parse(customer.expiresAt) : NaN;
+  if (!Number.isFinite(expiresAt) || expiresAt <= input.now || expiresAt - input.now > TRIAL_ENDING_WINDOW_MS) return null;
+  return { expiresAt: customer.expiresAt as string };
+}
+
+/** Meals saved since the trial started (savedAt, falling back to the meal date). */
+export function mealsSince(meals: readonly { savedAt?: string; date?: string }[], startedAt: string | null | undefined) {
+  const start = startedAt ? Date.parse(startedAt) : NaN;
+  if (!Number.isFinite(start)) return 0;
+  return meals.filter(meal => {
+    const at = Date.parse(meal.savedAt ?? meal.date ?? '');
+    return Number.isFinite(at) && at >= start;
+  }).length;
+}
+
 type PlanLike = { id: PlanId; price: string; priceAmount: number; package: { product: { identifier: string; priceString: string; pricePerMonthString?: string | null; discounts?: PurchasesStoreProductDiscount[] | null } } };
 type Plans = Record<PlanId, PlanLike | null>;
 

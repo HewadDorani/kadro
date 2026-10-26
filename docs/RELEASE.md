@@ -45,7 +45,10 @@ steps the new blocks simply stay hidden; nothing breaks.
    Retry* enabled), notice shows and hides after "dismiss for today";
    "Your subscription" → *Cancel anyway* opens Apple's sheet; monthly → annual
    switch; promotional offer purchase; lapsed sandbox account on iOS 18 sees the
-   win-back card. Record in `docs/qa/`.
+   win-back card; a sandbox trial turned off in Settings shows the Today card
+   in its last 48 hours (accelerated sandbox trials end within minutes, so check
+   the card right after cancelling) and whether Apple accepts the promotional
+   offer during a cancelled trial. Record in `docs/qa/`.
 
 **Status 25.10.2026 (set up in App Store Connect, read back via API):**
 grace period 16 days, all renewals, production and sandbox. Win-back

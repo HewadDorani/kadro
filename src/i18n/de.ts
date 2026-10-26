@@ -1089,6 +1089,16 @@ export const de = {
     offerOnce: (duration: string, price: string) => `${duration} für ${price}`,
     offerPerPeriod: (price: string, unit: 'day' | 'week' | 'month' | 'year', duration: string) =>
       `${price} pro ${{ day: 'Tag', week: 'Woche', month: 'Monat', year: 'Jahr' }[unit]} für ${duration}`,
+    trialEndingToday: 'Deine Testphase endet heute',
+    trialEndingTomorrow: 'Deine Testphase endet morgen',
+    trialEndingOn: (date: string) => `Deine Testphase endet am ${date}`,
+    trialEndingMeals: (count: number) => `In deiner Testphase hast du ${count} ${count === 1 ? 'Mahlzeit' : 'Mahlzeiten'} eingetragen. Mit Kandro Pro geht es ohne Pause weiter.`,
+    trialEndingNoMeals: 'Mit Kandro Pro schätzt Kandro weiter jede Mahlzeit und zeigt dir, was als Nächstes passt.',
+    trialEndingOffer: (offer: string) => `Bleib dabei: ${offer}`,
+    trialEndingKeep: 'Kandro Pro behalten',
+    trialEndingPushTitle: 'Deine Testphase endet morgen',
+    trialEndingPushBody: (count: number) => `Du hast schon ${count} ${count === 1 ? 'Mahlzeit' : 'Mahlzeiten'} mit Kandro eingetragen. In der App siehst du, wie es ohne Pause weitergeht.`,
+    trialEndingPushBodyEmpty: 'In der App siehst du, wie es mit Kandro Pro ohne Pause weitergeht.',
     offerRepeated: (cycles: number, period: string, price: string) => `${cycles} × ${period} für je ${price}`,
   },
   evening: {

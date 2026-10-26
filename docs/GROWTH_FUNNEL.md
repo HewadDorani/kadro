@@ -96,3 +96,11 @@ group by 1 order by 2 desc;
 ```sql
 select * from private.paywall_steps_daily order by signup_day desc;
 ```
+
+## Cancelled trials (2026-10-26, migration 20261026120000)
+
+`private.trial_outcomes_daily` groups accounts by the day of their first production purchase (`INITIAL_PURCHASE`, trial or direct purchase; the webhook does not store `period_type`). Per day: cancelled within 1 hour, within 24 hours, at all; turned renewal back on (`UNCANCELLATION`); renewed at least once (`RENEWAL`, i.e. paid); and the 1.0.6 Today card for a cancelled trial: shown (`trial_ending`), "Keep Kandro Pro" tapped (`trial_keep`), promotional offer bought from the card (`trial_offer_completed`). Webhook rows are purged after 90 days, so older days shrink.
+
+```sql
+select * from private.trial_outcomes_daily order by start_day desc;
+```

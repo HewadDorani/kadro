@@ -10,6 +10,7 @@ import { PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, 
 
 import { MealSyncStatus } from '@/components/MealSyncStatus';
 import { BillingIssueBanner } from '@/components/BillingIssueBanner';
+import { TrialEndingCard } from '@/components/TrialEndingCard';
 import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
 import { MealDetailSheet } from '@/components/MealDetailSheet';
 import { FavoriteLogSheet } from '@/components/FavoriteLogSheet';
@@ -197,6 +198,7 @@ export default function TodayScreen() {
 
       <MealSyncStatus />
       <BillingIssueBanner />
+      <TrialEndingCard />
 
       {pendingAnalysisCount > 0 ? (
         <Pressable

@@ -21,7 +21,8 @@ import { confirmServerEntitlementWithRetry } from '@/services/entitlementConfirm
 import { captureOperationalError } from '@/services/telemetry';
 import { getDictionary } from '@/i18n/active';
 import { useApp } from '@/context/AppContext';
-import { scheduleTrialEndingReminder } from '@/services/reminders';
+import { scheduleCancelledTrialNotice, scheduleTrialEndingReminder } from '@/services/reminders';
+import { mealsSince } from '@/services/retention';
 import type { PurchasesStoreProductDiscount, PurchasesWinBackOffer } from 'react-native-purchases';
 
 type PurchaseOutcome = 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted';
@@ -48,7 +49,7 @@ type SubscriptionContextValue = {
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
 
 export function SubscriptionProvider({ children }: PropsWithChildren) {
-  const { hydrationReady, wellnessConsentGranted } = useApp();
+  const { hydrationReady, wellnessConsentGranted, mealHistory } = useApp();
   const [snapshot, setSnapshot] = useState<SubscriptionSnapshot | null>(null);
   const [status, setStatus] = useState<SubscriptionStatus>('loading');
   const [busy, setBusy] = useState(false);
@@ -138,6 +139,15 @@ export function SubscriptionProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (hydrationReady) void refresh();
   }, [hydrationReady, refresh]);
+
+  // Cancelled trial: one note a day before it ends, with the meals logged so far.
+  const currentTrial = snapshot?.currentTrial ?? null;
+  const trialMeals = mealsSince(mealHistory ?? [], currentTrial?.startedAt);
+  useEffect(() => {
+    if (!snapshot || !wellnessConsentGranted) return;
+    const generation = refreshGenerationRef.current;
+    void scheduleCancelledTrialNotice(currentTrial, trialMeals, () => refreshGenerationRef.current === generation).catch(() => undefined);
+  }, [currentTrial?.expiresAt, currentTrial?.willRenew, trialMeals, Boolean(snapshot), wellnessConsentGranted]);
 
   useEffect(() => {
     if (!supabase || !wellnessConsentGranted) return;

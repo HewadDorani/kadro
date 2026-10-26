@@ -1,9 +1,10 @@
 import { getCurrentSessionUserId, supabase } from '@/services/supabaseClient';
 
-export type PaywallContext = 'entry' | 'blocked' | 'hard' | 'manual';
+/** 'trial_ending' / 'trial_keep': the cancelled-trial card was shown / its Apple button tapped. */
+export type PaywallContext = 'entry' | 'blocked' | 'hard' | 'manual' | 'trial_ending' | 'trial_keep';
 type StepOutcome = 'started' | 'cancelled' | 'failed' | 'pending' | 'completed';
-/** 'winback' and 'retention_offer' need migration 20261025140000 (written, not applied). */
-export type PurchaseStepKind = 'purchase' | 'winback' | 'retention_offer';
+/** 'trial_offer' (and the trial_* contexts) need migration 20261026120000. */
+export type PurchaseStepKind = 'purchase' | 'winback' | 'retention_offer' | 'trial_offer';
 export type PurchaseStep = `${PurchaseStepKind}_${StepOutcome}`;
 
 const sent = new Set<string>();
