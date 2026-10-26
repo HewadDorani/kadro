@@ -156,6 +156,7 @@ function manageScreen({ status = 'active', customer, snapshotPlans = plans(null)
   };
   const Screen = compile('src/app/subscription-manage.tsx', {
     react: h.react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': rn,
+    '@/components/KandroMark': { KandroMark: 'KandroMark' },
     'expo-router': { useRouter: () => ({ back() {}, canGoBack: () => true, replace() {} }) },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 0 }) },
     '@expo/vector-icons/Ionicons': 'Icon', '@/components/ui': ui, '@/constants/theme': theme,
@@ -175,7 +176,7 @@ function manageScreen({ status = 'active', customer, snapshotPlans = plans(null)
 }
 const monthlyCustomer = { ...retention.NO_CUSTOMER, productId: 'kandro_monthly', willRenew: true, expiresAt: '2026-11-10T10:00:00Z', periodType: 'NORMAL' };
 
-await check('Manage screen always shows "Trotzdem kündigen", outside the scroll view, opening Apple immediately', async () => {
+await check('Manage screen always shows "Abo kündigen", outside the scroll view, opening Apple immediately', async () => {
   const cases = [
     manageScreen({ customer: monthlyCustomer }),
     manageScreen({ status: 'loading' }),
@@ -186,7 +187,7 @@ await check('Manage screen always shows "Trotzdem kündigen", outside the scroll
   ];
   for (const screen of cases) {
     screen.render(); await settle(); const tree = screen.render();
-    const cancel = buttons(tree).filter(b => b.props.label === de.retention.cancelAnyway);
+    const cancel = buttons(tree).filter(b => b.props.label === de.retention.cancelSubscription);
     assert.equal(cancel.length, 1, 'exactly one cancel button in every state');
     assert.notEqual(cancel[0].props.disabled, true, 'never disabled');
     assert.equal(cancel[0].props.variant, 'secondary', 'same weight as a secondary button');
@@ -198,7 +199,15 @@ await check('Manage screen always shows "Trotzdem kündigen", outside the scroll
   const cancelled = manageScreen({ customer: { ...monthlyCustomer, willRenew: false } });
   cancelled.render(); await settle();
   assert.ok(buttons(cancelled.render()).some(b => b.props.label === de.retention.manageAtApple), 'already cancelled: same button, "Bei Apple verwalten"');
-  assert.equal(de.retention.cancelAnyway, 'Trotzdem kündigen');
+  assert.equal(de.retention.cancelSubscription, 'Abo kündigen');
+  const trial = manageScreen({ customer: { ...monthlyCustomer, periodType: 'TRIAL' } });
+  trial.render(); await settle(); let trialTree = trial.render();
+  assert.ok(buttons(trialTree).some(b => b.props.label === de.retention.cancelTrial), 'trial: "Testphase kündigen"');
+  assert.ok(texts(trialTree).includes(de.retention.statusTrial), 'trial status badge');
+  assert.ok(texts(cancelled.render()).includes(de.retention.statusCancelled), 'cancelled status badge');
+  const closeButton = nodes(trialTree).find(n => n.type === 'Pressable' && n.props.accessibilityLabel === de.common.close);
+  assert.ok(closeButton && !nodes(nodes(trialTree).find(n => n.type === 'ScrollView')).includes(closeButton), 'an X in the fixed top bar');
+  assert.doesNotMatch(read('src/app/subscription-manage.tsx'), /reason/i, 'no reason picker in the way');
   for (const dict of [de, en]) assert.doesNotMatch(Object.values(dict.retention).filter(v => typeof v === 'string').join(' '), /schade|enttäusch|sure\?|really|wirklich|verpasst|miss out|lose/i, 'no guilt wording');
 });
 
@@ -234,12 +243,6 @@ await check('Manage screen: annual switch only for monthly; promo hidden without
   const test = manageScreen({ customer: monthlyCustomer, snapshotPlans: plans([discount()]), mode: 'test-store' });
   test.render(); await settle(); tree = test.render();
   assert.ok(!texts(tree).includes(de.retention.beforeYouGo), 'Expo Go Test Store: no store offers');
-
-  const reasons = manageScreen({ customer: monthlyCustomer });
-  reasons.render(); await settle(); tree = reasons.render();
-  nodes(tree).filter(n => n.type === 'Pressable' && n.props.accessibilityRole === 'radio')[0].props.onPress();
-  assert.deepEqual(reasons.events.at(-1), ['subscription cancel reason', { reason: 'too_expensive' }], 'reason: fixed-value PostHog event (consent-gated in telemetry)');
-  assert.ok(texts(reasons.render()).includes(de.retention.reasonThanks));
 });
 
 await check('Manage entry: account help and Du route active Pro to the screen, everyone else straight to Apple', () => {

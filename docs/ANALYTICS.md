@@ -37,7 +37,6 @@ All product events include `analytics_schema=2`, `app_version`, `app_build`, `ap
 | `subscription purchase completed` | Successful activation only. Not booked revenue. |
 | `subscription restore started`, `subscription restore ended`, `subscription restore completed` | Active/no purchase/pending/interrupted/failed; restore is not a new sale. |
 | `subscription offer purchase ended` | 1.0.6 retention: offer kind (winback/promotional/annual_switch), billing mode and outcome. No price, product id or offer id. |
-| `subscription cancel reason` | Optional one-tap reason on the in-app subscription screen (too_expensive/not_using/ai_inaccurate/other). Only with analytics consent; tapping it never changes or delays cancellation. |
 | `$exception` | Explicit scrubbed JS/render/integration errors with fixed area/operation/code, only for opted-in adults. No raw error message or payload. Native and JavaScript crashes for all users are covered by Sentry, not by these events; Apple's diagnostics remain a second source. |
 
 Duration buckets: under 1s, 1–3s, 3–10s, 10–30s, over 30s. Counts: 1/2–3/4+ where applicable. No per-keystroke analytics.

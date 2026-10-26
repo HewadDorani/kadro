@@ -174,5 +174,3 @@ export function offerPercent(discount: PurchasesStoreProductDiscount | null | un
   return percent >= 5 && percent < 100 ? percent : null;
 }
 
-export const CANCEL_REASONS = ['too_expensive', 'not_using', 'ai_inaccurate', 'other'] as const;
-export type CancelReason = typeof CANCEL_REASONS[number];

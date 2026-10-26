@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PurchasesStoreProductDiscount } from 'react-native-purchases';
 
+import { KandroMark } from '@/components/KandroMark';
 import { Card, PrimaryButton, Screen } from '@/components/ui';
 import { radii, typeScale } from '@/constants/theme';
 import type { ThemeColors } from '@/constants/theme';
@@ -12,17 +13,17 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { markPurchaseStep } from '@/services/paywallExposure';
-import { CANCEL_REASONS, CancelReason, manageModel, offerPercent, offerTerms } from '@/services/retention';
+import { manageModel, offerPercent, offerTerms } from '@/services/retention';
 import { loadPromotionalDiscount, openSubscriptionManagement } from '@/services/subscription';
 import { toBillingMode, trackEvent } from '@/services/telemetry';
 import { formatDateParts } from '@/utils/format';
 
 /**
- * In-app "Abo verwalten" (1.0.6). Shows the plan and its next date, then at
- * most two real store options before leaving. The way out is a fixed footer
- * button, outside the scroll view and never conditional: it opens Apple's
- * own subscription management, where cancelling is one tap. Apple's cancel
- * flow in Settings is untouched (App Review guideline 3.1.2 / 5.6).
+ * In-app "Abo verwalten" (1.0.6). Shows the plan, its status and next date,
+ * then at most two real store options. The way out is a fixed footer button,
+ * outside the scroll view and never conditional: it opens Apple's own
+ * subscription management, where cancelling is one tap. Apple's cancel flow
+ * in Settings is untouched (App Review guideline 3.1.2 / 5.6).
  */
 export default function SubscriptionManageScreen() {
   const router = useRouter();
@@ -31,7 +32,6 @@ export default function SubscriptionManageScreen() {
   const styles = useThemedStyles(makeStyles);
   const { t, locale } = useLanguage();
   const { busy, error, purchase, purchaseOffer, refresh, snapshot, status } = useSubscription();
-  const [reason, setReason] = useState<CancelReason | null>(null);
   const [promo, setPromo] = useState<PurchasesStoreProductDiscount | null>(null);
   const billingMode = toBillingMode(snapshot?.mode);
   const offersAllowed = status === 'active' && snapshot?.mode === 'native-store';
@@ -55,14 +55,19 @@ export default function SubscriptionManageScreen() {
   const renewal = !date ? t.retention.dateAtApple
     : customer?.periodType === 'TRIAL' && customer.willRenew ? t.retention.trialUntil(date)
       : customer?.willRenew ? t.retention.renewsOn(date) : t.retention.endsOn(date);
-  const planLabel = model.planId === 'yearly' ? t.retention.planYearly : model.planId === 'monthly' ? t.retention.planMonthly : t.retention.planUnknown;
+  const planLabel = model.planId === 'yearly' ? t.retention.planYearly : model.planId === 'monthly' ? t.retention.planMonthly : null;
+  const planLine = [planLabel, currentPlan?.price].filter(Boolean).join(' · ');
   const annual = offersAllowed ? model.annualSwitch : null;
   const promoTerms = offersAllowed && promo ? offerTerms(promo, t) : null;
   const promoPercent = promo ? offerPercent(promo, model.planId, currentPlan?.priceAmount) : null;
   const promoDuration = promo ? t.billing.trialPeriod(promo.periodNumberOfUnits * promo.cycles, unitName(promo.periodUnit)) : '';
   const showOffers = Boolean(annual || promoTerms);
+  const cancelled = customer?.willRenew === false && status === 'active';
+  const trial = customer?.periodType === 'TRIAL';
+  const badge = status !== 'active' ? null : cancelled ? t.retention.statusCancelled : trial ? t.retention.statusTrial : t.retention.statusActive;
   // Already cancelled (no renewal): the same button, worded for what is left to do.
-  const exitLabel = customer?.willRenew === false && status === 'active' ? t.retention.manageAtApple : t.retention.cancelAnyway;
+  const exitLabel = cancelled ? t.retention.manageAtApple : trial ? t.retention.cancelTrial : t.retention.cancelSubscription;
+  const close = () => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile');
 
   const finish = (result: Awaited<ReturnType<typeof purchase>>, offer: 'annual_switch' | 'promotional') => {
     trackEvent('subscription offer purchase ended', { billing_mode: billingMode, offer, outcome: result });
@@ -80,22 +85,36 @@ export default function SubscriptionManageScreen() {
     markPurchaseStep('started', 'retention_offer');
     finish(await purchaseOffer({ kind: 'retention', planId: model.planId, discount: promo }), 'promotional');
   };
-  const chooseReason = (next: CancelReason) => {
-    setReason(next);
-    // Optional analytics only (consent + adult); never blocks or delays cancelling.
-    trackEvent('subscription cancel reason', { reason: next });
-  };
 
   return <Screen scroll={false}>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <PrimaryButton variant="ghost" label={t.common.back} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile')} />
-      <Text accessibilityRole="header" style={styles.title}>{t.retention.manageTitle}</Text>
-      <Text style={styles.muted}>{t.retention.manageSubtitle}</Text>
+    <View style={styles.topBar}>
+      <Pressable accessibilityLabel={t.common.close} accessibilityRole="button" hitSlop={8} onPress={close} style={styles.iconButton}>
+        <Ionicons color={colors.text} name="close" size={22} />
+      </Pressable>
+      <Text accessibilityRole="header" style={styles.topTitle}>{t.retention.manageTitle}</Text>
+      <View style={styles.iconSpacer} />
+    </View>
 
-      <Card style={styles.card}>
-        <Text style={styles.cardTitle}>{planLabel}</Text>
-        {currentPlan ? <Text style={styles.body}>{currentPlan.price}</Text> : null}
-        <Text style={styles.muted}>{status === 'loading' ? t.retention.loading : renewal}</Text>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <Card style={styles.planCard}>
+        <View style={styles.planRow}>
+          <KandroMark size={40} />
+          <View style={styles.planCopy}>
+            <View style={styles.titleRow}>
+              <Text style={styles.cardTitle}>{t.retention.planUnknown}</Text>
+              {badge ? <View style={styles.badge}>
+                <View style={[styles.badgeDot, cancelled && styles.badgeDotOff]} />
+                <Text style={styles.badgeText}>{badge}</Text>
+              </View> : null}
+            </View>
+            {planLine ? <Text style={styles.muted}>{planLine}</Text> : null}
+          </View>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.dateRow}>
+          <Ionicons color={colors.muted} name="calendar-outline" size={18} />
+          <Text style={styles.body}>{status === 'loading' ? t.retention.loading : renewal}</Text>
+        </View>
         {customer?.billingIssueDetectedAt && status === 'active' ? <Text style={styles.body}>{t.retention.bannerText}</Text> : null}
       </Card>
 
@@ -114,16 +133,6 @@ export default function SubscriptionManageScreen() {
           <PrimaryButton disabled={busy} label={t.retention.promoAction} onPress={() => void redeemPromo()} variant="secondary" />
         </Card> : null}
       </View> : null}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>{t.retention.reasonTitle}</Text>
-        <View accessibilityRole="radiogroup" style={styles.reasons}>
-          {CANCEL_REASONS.map(option => <Pressable aria-checked={reason === option} accessibilityRole="radio" accessibilityState={{ checked: reason === option }} key={option} onPress={() => chooseReason(option)} style={[styles.reason, reason === option && styles.reasonActive]}>
-            <Text style={[styles.reasonText, reason === option && styles.reasonTextActive]}>{t.retention.reasons[option]}</Text>
-          </Pressable>)}
-        </View>
-        {reason ? <Text accessibilityLiveRegion="polite" style={styles.muted}>{t.retention.reasonThanks}</Text> : null}
-      </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </ScrollView>
 
@@ -131,8 +140,8 @@ export default function SubscriptionManageScreen() {
     <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
       <PrimaryButton label={exitLabel} onPress={() => void openSubscriptionManagement()} variant="secondary" />
       <View style={styles.noteRow}>
-        <Ionicons color={colors.muted} name="open-outline" size={14} />
-        <Text style={styles.note}>{t.retention.cancelNote}</Text>
+        {cancelled ? null : <Ionicons color={colors.muted} name="open-outline" size={14} />}
+        <Text style={styles.note}>{cancelled ? t.retention.cancelledNote : t.retention.cancelNote}</Text>
       </View>
     </View>
   </Screen>;
@@ -150,22 +159,29 @@ function formatCurrency(amount: number, currency: string | undefined, locale: st
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  content: { gap: 14, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
-  title: { ...typeScale.title1, color: colors.text, fontWeight: '700' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10 },
+  iconButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  iconSpacer: { width: 42, height: 42 },
+  topTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
+  content: { gap: 14, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
+  planCard: { gap: 14, padding: 18 },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  planCopy: { flex: 1, gap: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  badgeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accentText },
+  badgeDotOff: { backgroundColor: colors.muted },
+  badgeText: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  dateRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   card: { gap: 8, padding: 16 },
   cardTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
-  body: { ...typeScale.callout, color: colors.text },
+  body: { ...typeScale.callout, color: colors.text, flexShrink: 1 },
   muted: { ...typeScale.subhead, color: colors.muted },
   section: { gap: 10, marginTop: 6 },
   sectionTitle: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
-  sectionLabel: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
-  reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  reason: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  reasonActive: { borderColor: colors.text, backgroundColor: colors.text },
-  reasonText: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
-  reasonTextActive: { color: colors.surface },
   error: { ...typeScale.subhead, color: colors.attentionText },
-  footer: { gap: 8, paddingTop: 10, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+  footer: { gap: 8, paddingTop: 12, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
   noteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   note: { ...typeScale.caption, color: colors.muted, textAlign: 'center', flexShrink: 1 },
 });

@@ -69,7 +69,6 @@ type AnalyticsEventMap = {
   'subscription restore completed': { active: boolean; billing_mode: BillingMode };
   // Retention (1.0.6): fixed values only, never price, product or free text.
   'subscription offer purchase ended': { billing_mode: BillingMode; offer: 'winback' | 'promotional' | 'annual_switch'; outcome: 'active' | 'cancelled' | 'failed' | 'pending' | 'interrupted' };
-  'subscription cancel reason': { reason: 'too_expensive' | 'not_using' | 'ai_inaccurate' | 'other' };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
@@ -109,7 +108,7 @@ const allowedEvents = new Set<string>([
     'paywall viewed', 'access paywall shown',
     'subscription purchase completed',
     'subscription restore completed',
-    'subscription offer purchase ended', 'subscription cancel reason',
+    'subscription offer purchase ended',
   ] satisfies AnalyticsEventName[]),
   '$exception',
 ]);
