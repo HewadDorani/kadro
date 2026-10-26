@@ -57,8 +57,14 @@ export function dictionaryFor(language: Language): Dictionary {
 }
 
 /** BCP 47 tag for Intl formatting and for what we ask the analysis model for. */
-export function localeTag(language: Language) {
-  return language === 'de' ? 'de-DE' : 'en-GB';
+/**
+ * Number, date and clock format. English follows the shopping country: an
+ * American reads "6:30 PM" and "October 26", everyone else the British
+ * 24-hour clock and "26 October".
+ */
+export function localeTag(language: Language, market?: 'de' | 'gb' | 'us') {
+  if (language === 'de') return 'de-DE';
+  return market === 'us' ? 'en-US' : 'en-GB';
 }
 
 export { de, en };

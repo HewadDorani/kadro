@@ -763,6 +763,7 @@ export const en: typeof de = {
     ctxMarketStores: { de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target' },
     ctxOut: 'Out and about',
     ctxOutDetail: 'Takeout, bakery, canteen',
+    chainMealTitle: (chain: string, main: string) => (main ? `${chain}: ${main}` : chain),
     ctxOutChains: { de: 'McDonald’s, Subway, dean&david', gb: 'Greggs, Pret, Nando’s', us: 'Chipotle, Chick-fil-A, Subway' },
     optionsTitle: '3 options for today',
     optionsMeta: (kcal: string, protein: string) => `~${kcal} kcal · ~${protein} g protein`,

@@ -164,7 +164,7 @@ export default function PlanScreen() {
     void selectionHaptic();
     trackEvent('recommendation selected', { meal_context: selected, rank: rank as 1 | 2 | 3 });
     void recordRecommendationFeedback(selected, order.id, 'accepted').catch(() => undefined);
-    startPlannedDraft(chainComboSearchEntries(order, (chain) => t.plan.chainSourceLabel(chain.name)));
+    startPlannedDraft(chainComboSearchEntries(order, (chain) => t.plan.chainSourceLabel(chain.name)), t.plan.chainMealTitle(order.chain.name, order.items[0]?.item.name ?? ''));
     router.push('/confirm');
   };
 

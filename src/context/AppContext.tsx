@@ -137,7 +137,8 @@ type AppContextValue = {
   startBarcodeScan: (barcode: string) => void;
   applySearchResult: (result: FoodSearchResult, grams: number) => void;
   /** Puts several known products (a Plan → Supermarkt basket) on the confirm screen as one meal. Free, no analysis. */
-  startPlannedDraft: (entries: { result: FoodSearchResult; grams: number }[]) => void;
+  /** `title` names the meal (a chain order: "Nando's: Chicken Butterfly"); else the item names. */
+  startPlannedDraft: (entries: { result: FoodSearchResult; grams: number }[], title?: string) => void;
   /** Logs the foods picked in one search session as one meal (free, no confirmation screen). */
   logFoodsDirect: (entries: { result: FoodSearchResult; grams: number }[]) => Promise<Meal>;
   replaceDetectedItem: (id: string, result: FoodSearchResult, grams: number) => void;
@@ -938,7 +939,7 @@ export function AppProvider({ children }: PropsWithChildren) {
    * every amount can still be changed, and it is logged as one meal. No
    * analysis ran, so it never spends a free analysis.
    */
-  const startPlannedDraft = useCallback((entries: { result: FoodSearchResult; grams: number }[]) => {
+  const startPlannedDraft = useCallback((entries: { result: FoodSearchResult; grams: number }[], title?: string) => {
     if (!entries.length) throw new Error('Cannot start an empty planned meal');
     const items = entries.map((entry, index) => {
       const [item] = mealFromSearch(entry.result, entry.grams).items;
@@ -955,7 +956,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     setDescriptionInput('');
     setBarcodeInput('');
     setDetectedItems(items);
-    setMealTitle(items.map((item) => item.name).join(', ').slice(0, 160));
+    setMealTitle((title?.trim() || items.map((item) => item.name).join(', ')).slice(0, 160));
     setMealPortionState(1);
     setPortionEstimated(false);
     setAutoMatchedItemIds([]);

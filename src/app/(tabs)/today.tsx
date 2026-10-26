@@ -22,7 +22,7 @@ import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { Meal } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
+import { displayClockTime, formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
 import { greetingForHour, mealTypeForHour } from '@/utils/daypart';
 import { availableRepeats, RepeatCandidate, withFavorites, yesterdayBreakfast } from '@/services/repeatMeals';
 import { useLocalDay } from '@/hooks/useLocalDay';
@@ -413,7 +413,7 @@ export default function TodayScreen() {
                 >
                   <View style={styles.mealInfo}>
                     <Text numberOfLines={1} style={styles.mealName}>{meal.title}</Text>
-                    <Text style={styles.mealTime}>{meal.time}</Text>
+                    <Text style={styles.mealTime}>{displayClockTime(meal.time, locale)}</Text>
                   </View>
                   <View style={styles.mealNumbers}>
                     <Text style={styles.mealCalories}>~{formatNumber(meal.calories, locale)}</Text>

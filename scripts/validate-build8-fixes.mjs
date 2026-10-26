@@ -76,6 +76,7 @@ assert.doesNotMatch(sheet, /\bautoFocus\b/);
 assert.match(sheet, /keyboardShouldPersistTaps="handled"/);
 assert.match(sheet, /onRequestClose=\{cancel\}/);
 assert.match(sheet, /onPress=\{cancel\} style=\{styles.close\}/);
+assert.doesNotMatch(sheet, /styles\.cancelText/, "one close action: the X top right, no second Cancel at the bottom");
 const scan = read('src/app/(tabs)/scan.tsx');
 const confirm = read('src/app/confirm.tsx');
 assert.match(confirm, /if \(!canConfirm\) return;/);

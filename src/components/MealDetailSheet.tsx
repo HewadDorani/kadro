@@ -15,7 +15,7 @@ import { useApp } from '@/context/AppContext';
 import { Meal, PortionFactor } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { selectionHaptic, warningHaptic } from '@/services/haptics';
-import { formatNumber } from '@/utils/format';
+import { displayClockTime, formatNumber } from '@/utils/format';
 import { MEAL_TYPES, mealTypeIcon, mealTypeLabel } from '@/utils/format';
 import { favoriteKey } from '@/services/repeatMeals';
 
@@ -131,7 +131,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
 
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.type}>{mealTypeLabel(meal.type, t.common)} · {meal.time}</Text>
+            <Text style={styles.type}>{mealTypeLabel(meal.type, t.common)} · {displayClockTime(meal.time, locale)}</Text>
             <Text style={styles.title}>{meal.title}</Text>
           </View>
           <Pressable

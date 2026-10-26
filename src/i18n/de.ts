@@ -764,6 +764,7 @@ export const de = {
     ctxMarketStores: { de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target' },
     ctxOut: 'Unterwegs',
     ctxOutDetail: 'Imbiss, Bäcker, Kantine',
+    chainMealTitle: (chain: string, main: string) => (main ? `${chain}: ${main}` : chain),
     ctxOutChains: { de: 'McDonald’s, Subway, dean&david', gb: 'Greggs, Pret, Nando’s', us: 'Chipotle, Chick-fil-A, Subway' },
     optionsTitle: '3 Optionen für heute',
     optionsMeta: (kcal: string, protein: string) => `~${kcal} kcal · ~${protein} g Protein`,

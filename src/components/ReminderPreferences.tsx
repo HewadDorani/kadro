@@ -9,9 +9,9 @@ import { useLanguage } from '@/i18n/LanguageProvider';
 import { selectionHaptic } from '@/services/haptics';
 import { getReminderPermission, getReminderSettings, MEAL_SLOTS, reminderSlots, updateReminder, type MealSlot, type ReminderOnboardingChoice, type ReminderPermission, type ReminderSettings, type SlotSetting } from '@/services/reminders';
 import { HERO_MAX_FONT_SCALE, typeScale } from '@/constants/theme';
+import { formatClockTime } from '@/utils/format';
 
 const STEP_MINUTES = 15;
-const pad = (value: number) => String(value).padStart(2, '0');
 
 /** Shift by whole quarter hours and wrap around midnight. */
 function shift(slot: SlotSetting, minutes: number): SlotSetting {
@@ -28,7 +28,7 @@ function shift(slot: SlotSetting, minutes: number): SlotSetting {
 export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?: (choice: ReminderOnboardingChoice) => void; initialSetup?: boolean }) {
   const { colors } = useTheme();
   const access = useAccess();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const copy = t.captureExtras;
   const labels: Record<MealSlot, string> = { breakfast: copy.slotBreakfast, lunch: copy.slotLunch, dinner: copy.slotDinner, evening: copy.slotEvening };
   const [settings, setSettings] = useState<ReminderSettings | null>(null);
@@ -106,7 +106,7 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
     {slots ? <View style={{ gap: 10, marginTop: initialSetup ? 8 : 0 }}>
       {MEAL_SLOTS.map(slot => {
         const value = slots[slot];
-        const time = `${pad(value.hour)}:${pad(value.minute)}`;
+        const time = formatClockTime(new Date(2000, 0, 1, value.hour, value.minute), locale);
         // Time nudges sit inline beside the time: one row per meal.
         const stepButton = (minutes: number, label: string, icon: 'remove' | 'add') => (
           <Pressable accessibilityRole="button" accessibilityLabel={`${labels[slot]}: ${label}`} disabled={busy} hitSlop={6} onPress={() => update(slot, shift(value, minutes))} style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.neutralSoft, opacity: pressed ? 0.6 : 1 })}>

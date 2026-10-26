@@ -10,6 +10,7 @@ import {
   saveLanguage,
 } from '@/i18n';
 import { setActiveDictionary } from '@/i18n/active';
+import { getMarketRegion, useMarketRegion } from '@/services/region';
 import { applyNotificationChannel, syncEveningReminder } from '@/services/reminders';
 import { LegalCopySet, legalDe } from '@/i18n/legal.de';
 import { legalEn } from '@/i18n/legal.en';
@@ -31,6 +32,7 @@ export function LanguageProvider({ children }: PropsWithChildren) {
   // Start from the device so the very first frame is already in the right
   // language; the stored override replaces it once storage has answered.
   const [language, setLanguageState] = useState<Language>(deviceLanguage);
+  const market = useMarketRegion();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function LanguageProvider({ children }: PropsWithChildren) {
 
   const setLanguage = useCallback(async (next: Language) => {
     setLanguageState(next);
-    setActiveDictionary(next);
+    setActiveDictionary(next, getMarketRegion());
     await saveLanguage(next);
     // A notification is written once and fires days later, so an already
     // scheduled reminder would keep speaking the old language.
@@ -64,16 +66,16 @@ export function LanguageProvider({ children }: PropsWithChildren) {
   const value = useMemo<LanguageContextValue>(() => {
     // Publish during render, not in an effect: a service called from the very
     // first screen must already see the right language.
-    setActiveDictionary(language);
+    setActiveDictionary(language, market);
     return {
     language,
     t: dictionaryFor(language),
     legal: language === 'de' ? legalDe : legalEn,
-    locale: localeTag(language),
+    locale: localeTag(language, market),
     ready,
     setLanguage,
     };
-  }, [language, ready, setLanguage]);
+  }, [language, market, ready, setLanguage]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

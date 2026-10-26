@@ -365,6 +365,7 @@ function reminderPreferencesHarness({ onboarding = true } = {}) {
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: { captureExtras: uiCopy, access: uiCopy, common: uiCopy } }) },
     '@/services/haptics': { selectionHaptic() {} },
     '@/services/reminders': reminders,
+    '@/utils/format': { formatClockTime: (date) => `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` },
   }, process.env.REMINDER_PREFERENCES_SOURCE ? fs.readFileSync(process.env.REMINDER_PREFERENCES_SOURCE, 'utf8') : null).ReminderPreferences;
   const Setup = compile('src/app/reminder-setup.tsx', {
     react: { useRef: value => ({ current: value }) }, 'react/jsx-runtime': { jsx, jsxs: jsx },

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PrimaryButton } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatNumber } from '@/utils/format';
@@ -115,7 +116,7 @@ export function PortionSheet({
           <View style={styles.grabber} />
           <View style={styles.header}>
           <Text accessibilityRole="header" numberOfLines={2} style={styles.title}>{target?.name}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={t.common.cancel} onPress={cancel} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t.common.close} hitSlop={8} onPress={cancel} style={styles.close}><Ionicons color={colors.text} name="close" size={20} /></Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.body}>
           {friendlySource(target?.sourceLabel) ? <Text style={styles.source}>{friendlySource(target?.sourceLabel)}</Text> : null}
@@ -200,9 +201,6 @@ export function PortionSheet({
 
           </ScrollView>
           <PrimaryButton disabled={!valid} icon="checkmark" label={target?.amountIsChosen && !target.adding ? t.portion.save : t.portion.add} onPress={() => { if (grams !== null) { Keyboard.dismiss(); onConfirm(grams); } }} />
-          <Pressable accessibilityRole="button" onPress={cancel} style={styles.cancel}>
-            <Text style={styles.cancelText}>{t.common.cancel}</Text>
-          </Pressable>
         </View>
       </KeyboardAvoidingView>
   );
@@ -238,6 +236,4 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   preview: { borderRadius: radii.input, backgroundColor: colors.neutralSoft, padding: 14, gap: 3 },
   previewValue: { ...typeScale.title2, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   previewMacros: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
-  cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { ...typeScale.subhead, color: colors.muted, fontWeight: '600' },
 });

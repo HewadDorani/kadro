@@ -15,9 +15,9 @@ let active: Dictionary = dictionaryFor('en');
 let activeLocale = localeTag('en');
 let activeLanguage: Language = 'en';
 
-export function setActiveDictionary(language: Language) {
+export function setActiveDictionary(language: Language, market?: 'de' | 'gb' | 'us') {
   active = dictionaryFor(language);
-  activeLocale = localeTag(language);
+  activeLocale = localeTag(language, market);
   activeLanguage = language;
 }
 

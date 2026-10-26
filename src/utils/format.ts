@@ -62,6 +62,19 @@ export function formatClockTime(date: Date, locale = getLocale()) {
 }
 
 /**
+ * A meal's stored "18:52" in the reader's clock ("6:52 PM" in the US). Meals
+ * keep the time as written when they were saved; anything that is not a plain
+ * 24-hour time is shown unchanged.
+ */
+export function displayClockTime(stored: string, locale = getLocale()) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(stored.trim());
+  if (!match) return stored;
+  const hour = Number(match[1]), minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return stored;
+  return formatClockTime(new Date(2000, 0, 1, hour, minute), locale);
+}
+
+/**
  * Date formatting that cannot take a screen down.
  *
  * Intl throws a RangeError on an Invalid Date, and one corrupted stored entry
