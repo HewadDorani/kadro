@@ -7,6 +7,7 @@ import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { KeyboardBackfill } from '@/components/KeyboardBackfill';
 import { PrimaryButton } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatNumber } from '@/utils/format';
@@ -111,6 +112,7 @@ export function PortionSheet({
 
   const content = (
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.scrim}>
+        <KeyboardBackfill color={colors.surface} />
         <Pressable accessibilityRole="button" accessibilityLabel={t.common.cancel} onPress={cancel} style={StyleSheet.absoluteFill} />
         <View accessibilityViewIsModal style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), marginTop: insets.top + 8 }]}>
           <View style={styles.grabber} />

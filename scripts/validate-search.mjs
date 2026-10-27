@@ -104,8 +104,11 @@ assert.match(searchFn, /language === 'de'/, 'the German dish names must only be 
 
 // --- Database gap: German synonyms, dedupe, source badges, empty-field picks ---
 // Local first (own products, then the on-device BLS catalogue), remote after the debounce.
-assert.match(runFn, /const local = mergeSuggestions\(matchCustomFoods\(term, customFoods\), suggestFoods\(term, usage\)\);[\s\S]*setSearchResults\(local\);[\s\S]*searchTimer\.current = setTimeout\(/,
+assert.match(runFn, /mergeSuggestions\(matchCustomFoods\(query, customFoods\), suggestFoods\(query, usage\)\)[\s\S]*setSearchResults\(localFor\(term\)\)[\s\S]*LOCAL_SUGGEST_DELAY_MS\);[\s\S]*searchTimer\.current = setTimeout\(/,
   'own products and on-device suggestions must show before the debounced gateway search');
+// The catalogue pass runs once typing pauses (well before the product debounce), never per key.
+assert.match(screen, /const LOCAL_SUGGEST_DELAY_MS = (\d+);/);
+assert.ok(Number(screen.match(/const LOCAL_SUGGEST_DELAY_MS = (\d+);/)[1]) < 300, 'local suggestions come before products');
 assert.match(screen, /const generic = mergeSuggestions\(local, results\.generic\);\s*setSearchResults\(generic\);/, 'gateway rows are merged without duplicates');
 assert.match(screen, /setProductResults\(mergeSuggestions\(generic, results\.products\)\.slice\(generic\.length\)\)/, 'a product that is also a generic row is shown once');
 assert.match(screen, /foodSourceBadge\(result\)/, 'every row shows where its values come from');

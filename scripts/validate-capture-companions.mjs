@@ -252,7 +252,7 @@ function scanScreenHarness() {
       Keyboard: { dismiss() {} }, Alert: { alert() {} }, Linking: { openSettings() {} } },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ bottom: 0 }) },
     '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/components/ui': { PrimaryButton: 'PrimaryButton' }, '@/components/SheetHeader': { SheetHeader: 'SheetHeader' },
-    '@/components/PortionSheet': { PortionSheet: 'PortionSheet' }, '@/context/AppContext': { useApp: () => app },
+    '@/components/PortionSheet': { PortionSheet: 'PortionSheet' }, '@/components/KeyboardBackfill': { KeyboardBackfill: () => null }, '@/context/AppContext': { useApp: () => app },
     '@/components/VoiceInputButton': { VoiceInputButton: 'VoiceInputButton' }, '@/hooks/useKeyboardInset': { useKeyboardInset: () => 0, useKeyboardVisible: () => false },
     'expo-image-manipulator': { manipulateAsync: async uri => ({ uri }), SaveFormat: { JPEG: 'jpeg' } }, '@/utils/cameraCrop': { frameToPhotoCrop: () => null },
     '@/services/mealAnalysis': { MealAnalysisError: class extends Error {}, searchProducts: async () => ({ generic: [], products: [] }), deleteTemporaryPhoto() {} },

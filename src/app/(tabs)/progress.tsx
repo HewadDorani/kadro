@@ -1,3 +1,4 @@
+import { KeyboardBackfill } from '@/components/KeyboardBackfill';
 import { WeeklyReviewCard } from '@/components/WeeklyReviewCard';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
@@ -249,6 +250,7 @@ export default function ProgressScreen() {
 
       <Modal animationType="fade" onRequestClose={() => setShowWeightEntry(false)} transparent visible={showWeightEntry}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalScrim}>
+          <KeyboardBackfill color={colors.surface} />
           <ScrollView accessibilityViewIsModal keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={styles.modalScroll} contentContainerStyle={[styles.modalCard, { paddingBottom: insets.bottom + 22 }]}>
             <Text accessibilityRole="header" style={styles.modalTitle}>{t.progress.weightModalTitle}</Text>
             <Text style={styles.modalText}>{t.progress.weightModalText}</Text>

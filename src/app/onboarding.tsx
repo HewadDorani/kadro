@@ -627,6 +627,28 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
+            {step === 'about' ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t.onboarding.nameOptional}</Text>
+                <TextInput
+                  accessibilityLabel={t.onboarding.nameTitle}
+                  autoCapitalize="words"
+                  // A first name is not a dictionary word: autocorrect turned "Hewad" into "Head".
+                  autoComplete="given-name"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  textContentType="givenName"
+                  maxLength={40}
+                  onChangeText={setDisplayName}
+                  placeholder={t.onboarding.namePlaceholder}
+                  placeholderTextColor={colors.muted}
+                  returnKeyType="done"
+                  submitBehavior="blurAndSubmit"
+                  style={styles.smallInput}
+                  value={displayName}
+                />
+              </View>
+            ) : null}
             {step === 'about' && !editing ? (
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>{t.onboarding.birthYearLabel}</Text>
@@ -663,23 +685,6 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {step === 'about' ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>{t.onboarding.nameOptional}</Text>
-                <TextInput
-                  accessibilityLabel={t.onboarding.nameTitle}
-                  autoCapitalize="words"
-                  maxLength={40}
-                  onChangeText={setDisplayName}
-                  placeholder={t.onboarding.namePlaceholder}
-                  placeholderTextColor={colors.muted}
-                  returnKeyType="done"
-                  submitBehavior="blurAndSubmit"
-                  style={styles.smallInput}
-                  value={displayName}
-                />
-              </View>
-            ) : null}
             {step === 'about' && editing ? <Text style={styles.subtitle}>{t.onboarding.ageLocked}</Text> : null}
             {step === 'body' ? (
               <View style={styles.section}>
@@ -1169,7 +1174,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   skipAction: { flexShrink: 1, maxWidth: '38%' },
   skip: { ...typeScale.footnote, color: colors.muted, fontWeight: '600', textAlign: 'right' },
   skipPlaceholder: { width: 92 },
-  content: { flexGrow: 1, paddingTop: 26, paddingBottom: 8 },
+  content: { flexGrow: 1, paddingTop: 26, paddingBottom: 28 },
   contentCompact: { paddingTop: 12, paddingBottom: 6 },
   headingBlock: { gap: 10 },
   headingBlockCompact: { gap: 6 },

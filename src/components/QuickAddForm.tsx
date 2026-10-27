@@ -70,6 +70,7 @@ export function QuickAddForm({ initialName, onCancel, onConfirm }: {
       <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, backgroundColor: colors.surface }}>
         <TextInput
           accessibilityLabel={label}
+          autoCorrect={false}
           keyboardType={numeric ? 'decimal-pad' : 'default'}
           maxLength={numeric ? 7 : 80}
           onChangeText={next => { setError(false); onChange(next); }}

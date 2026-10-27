@@ -71,6 +71,7 @@ function render(profile=base, meals=[], weightEntries=[], review={ status:'activ
     'react-native-safe-area-context':{useSafeAreaInsets:()=>({bottom:0})},
     'react-native-svg':{default:'Svg',Circle:'Circle',Line:'Line',Path:'Path',Rect:'Rect'},
     '@/components/ui':Object.fromEntries(['Card','Eyebrow','IconCircle','PageTitle','PrimaryButton','Screen','SectionTitle'].map(k=>[k,k])),
+    '@/components/KeyboardBackfill':{KeyboardBackfill:()=>null},
     '@/context/AppContext':{useApp:()=>({addWeightEntry:async()=>{},mealHistory:meals,profile,targets:personalization.calculateDailyTargets(profile),weightEntries,hydrationReady:true})},
     '@/i18n/LanguageProvider':{useLanguage:()=>({locale,t:dictionary})}, '@/hooks/useLocalDay':{useLocalDay:()=> '2026-09-26'},
     '@/utils/format':{ formatDateParts: (s,opts)=>new Date(s+'T12:00:00').toLocaleDateString(locale,opts), formatNumber: (value, loc)=>Number(value).toLocaleString(loc) },

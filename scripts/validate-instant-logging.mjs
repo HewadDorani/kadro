@@ -134,7 +134,7 @@ await test('own foods and direct logging are wired end to end', () => {
   assert.ok(form.includes("provider: 'manual', referenceId: id"));
   const scan = fs.readFileSync(new URL('../src/app/(tabs)/scan.tsx', import.meta.url), 'utf8');
   // Everything picked in one open search sheet is saved together as ONE meal.
-  assert.ok(scan.includes('await logFoodsDirect(added.map(entry => ({ result: entry.food, grams: entry.grams })))') && scan.includes('suggestFoods(term, usage)') && scan.includes('parseLocalDescription(value, usage)'));
+  assert.ok(scan.includes('await logFoodsDirect(added.map(entry => ({ result: entry.food, grams: entry.grams })))') && scan.includes('suggestFoods(query, usage)') && scan.includes('parseLocalDescription(value, usage)'));
   assert.ok(scan.includes('t.scan.saveAs(mealTypeLabel(saveSlot, t.common))'), 'the save button names the slot');
   const context = fs.readFileSync(new URL('../src/context/AppContext.tsx', import.meta.url), 'utf8');
   assert.ok(/&& !localDescription\s*&& result\.correctionRequired/.test(context), 'local descriptions never spend a free analysis');

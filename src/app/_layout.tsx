@@ -2,6 +2,9 @@ import { wrapRoot } from '@/services/crashReporting';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -20,6 +23,10 @@ export const unstable_settings = {
   initialRouteName: 'index',
 };
 
+// Expo Router hides the native splash once the first screen is mounted; the
+// fade then reveals Kandro's own canvas instead of a blank white frame.
+SplashScreen.setOptions({ duration: 250, fade: true });
+
 function RootLayout() {
   return <ThemeProvider><ThemedRootLayout /></ThemeProvider>;
 }
@@ -28,6 +35,9 @@ export default wrapRoot(RootLayout);
 function ThemedRootLayout() {
   const { colors, mode: themeMode } = useTheme();
   const reduceMotion = useReducedMotion();
+  // The native root view sits behind every screen and modal; white showed as
+  // a flash between the splash and the first screen.
+  useEffect(() => { void SystemUI.setBackgroundColorAsync(colors.background).catch(() => undefined); }, [colors.background]);
 
 
   return (

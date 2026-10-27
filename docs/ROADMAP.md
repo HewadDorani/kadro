@@ -9,6 +9,13 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-10-27 – Eingabe-Feinschliff (1.0.6)
+
+- [x] Fenster mit Tastatur (Suche, Barcode, Beschreiben, Menge, Gewicht): `KeyboardBackfill` füllt den Streifen hinter der iOS-Tastatur mit der Fensterfarbe; keine dunklen Ecken mehr.
+- [x] Suche: Katalog-Vorschläge erst nach 90 ms Tipp-Pause statt bei jedem Buchstaben (30–40 ms pro Abfrage am Mac, auf dem Gerät mehr); der getippte Text erscheint sofort.
+- [x] Onboarding: Vorname zuerst, ohne Autokorrektur („Hewad“ wurde zu „Head“); Lebensmittel-/Marken-Felder ebenfalls ohne Autokorrektur.
+- [x] Kein weißer Blitz zwischen Startbild und erster Seite: `expo-splash-screen` hält das Startbild (nur das Kandro-Zeichen, 56 pt wie der Ladebildschirm, hell und dunkel) bis zur ersten Seite und blendet in 250 ms über; `expo-system-ui` setzt den nativen Hintergrund passend zum Theme.
+
 ## 2026-10-25 – Retention: Grace Period, Abo-Seite, Win-Back (`wip4/retention`, 1.0.6)
 
 - [x] Billing Grace Period: Eintrag bleibt aktiv (SDK `entitlements.active`, Server `gives_access` mit 15-min-Recheck, Lock bei `EXPIRATION`); ruhiger Hinweis auf Heute und in Du bei `billingIssueDetectedAt`, „Zahlungsmethode prüfen“ öffnet Apples Abo-Verwaltung, pro Tag ausblendbar (`BillingIssueBanner`).

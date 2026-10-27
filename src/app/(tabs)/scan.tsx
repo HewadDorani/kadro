@@ -14,6 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFreeScanAllowance } from '@/hooks/useHardWall';
 import { SheetHeader } from '@/components/SheetHeader';
 import { PrimaryButton } from '@/components/ui';
+import { KeyboardBackfill } from '@/components/KeyboardBackfill';
 import { PortionSheet } from '@/components/PortionSheet';
 import { ManualFoodForm } from '@/components/ManualFoodForm';
 import { VoiceInputButton } from '@/components/VoiceInputButton';
@@ -45,6 +46,10 @@ const GENERIC_PREVIEW = 5;
 const PRODUCT_PREVIEW = 8;
 /** Pause after typing before the product search asks the network. */
 const PRODUCT_SEARCH_DEBOUNCE_MS = 300;
+// The on-device catalogue pass takes tens of milliseconds per query on a
+// phone. Run it once typing pauses, not on every key, so the field never
+// stutters; the typed text itself updates immediately.
+const LOCAL_SUGGEST_DELAY_MS = 90;
 
 export default function ScanScreen() {
   const { colors } = useTheme();
@@ -106,6 +111,8 @@ export default function ScanScreen() {
   const [showBarcodeEntry, setShowBarcodeEntry] = useState(false);
   const [barcodeEntry, setBarcodeEntry] = useState(restoredInput?.barcodeEntry ?? '');
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localSuggestions = useRef<{ term: string; results: FoodSearchResult[] }>({ term: '', results: [] });
   const latestSearch = useRef('');
   const searchGeneration = useRef(0);
   const confirmAfterSearchDismiss = useRef(false);
@@ -450,10 +457,16 @@ export default function ScanScreen() {
       setSearching(false);
       return;
     }
-    // Instant on-device suggestions (own products first, then the German
-    // catalogue); the branded products follow after the debounce.
-    const local = mergeSuggestions(matchCustomFoods(term, customFoods), suggestFoods(term, usage));
-    setSearchResults(local);
+    // On-device suggestions (own products first, then the German catalogue)
+    // as soon as typing pauses; the branded products follow after the debounce.
+    const localFor = (query: string) => {
+      if (localSuggestions.current.term !== query) localSuggestions.current = { term: query, results: mergeSuggestions(matchCustomFoods(query, customFoods), suggestFoods(query, usage)) };
+      return localSuggestions.current.results;
+    };
+    if (localTimer.current) clearTimeout(localTimer.current);
+    localTimer.current = setTimeout(() => {
+      if (generation === searchGeneration.current) setSearchResults(localFor(term));
+    }, submitted ? 0 : LOCAL_SUGGEST_DELAY_MS);
     setSearching(true);
     setProductError(false);
     setSearchError(null);
@@ -470,6 +483,7 @@ export default function ScanScreen() {
       void searchProducts(request, { brands: hint.brands })
         .then((results) => {
           if (latestSearch.current !== request || generation !== searchGeneration.current) return;
+          const local = localFor(request);
           const count = results.generic.length + results.products.length;
           trackEvent('food search completed', { result_count: count === 0 ? '0' : count <= 15 ? '1-15' : count <= 30 ? '16-30' : '31+', duration: durationBucket(startedAt) });
           setSearchNotice(results.searchStatus === 'partial' ? t.errors.searchPartial : null);
@@ -482,6 +496,7 @@ export default function ScanScreen() {
         })
         .catch((error: unknown) => {
           if (latestSearch.current !== request || generation !== searchGeneration.current) return;
+          const local = localFor(request);
           setSearchResults(local);
           setProductResults([]);
           setProductError(true);
@@ -859,6 +874,7 @@ export default function ScanScreen() {
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => setShowBarcodeEntry(false)} transparent visible={showBarcodeEntry}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+          <KeyboardBackfill color={colors.surface} />
           <View accessibilityViewIsModal style={[styles.barcodeSheet, { paddingBottom: sheetBottom(20) }]}>
             <SheetHeader onClose={() => setShowBarcodeEntry(false)} title={t.scan.barcodeManualTitle} />
             <Text style={styles.describeText}>{t.scan.barcodeManualHint}</Text>
@@ -903,6 +919,7 @@ export default function ScanScreen() {
           visible
         /> : (
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+          <KeyboardBackfill color={colors.background} />
           <View accessibilityViewIsModal style={[styles.searchSheet, { marginTop: insets.top + 12, paddingBottom: sheetBottom(16) }]}>
             {manualFor === null && quickAddFor === null ? <View style={styles.searchTop}>
             <SheetHeader
@@ -1010,6 +1027,7 @@ export default function ScanScreen() {
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => { setShowDescription(false); setMode('photo'); }} transparent visible={showDescription}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+          <KeyboardBackfill color={colors.surface} />
           <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: sheetBottom(22) }]}>
             <SheetHeader onClose={() => { setShowDescription(false); setMode('photo'); }} title={t.scan.describeTitle} />
             <Text style={styles.describeText}>{t.scan.describeText}</Text>

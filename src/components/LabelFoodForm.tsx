@@ -75,6 +75,7 @@ export function LabelFoodForm({ initial, notices, saving, saveError, showBarcode
       <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, minHeight: 48, backgroundColor: colors.surface }}>
         <TextInput
           accessibilityLabel={unit ? `${label} (${unit})` : label}
+          autoCorrect={false}
           keyboardType={key === 'barcode' ? 'number-pad' : numeric ? 'decimal-pad' : 'default'}
           maxLength={numeric ? 8 : key === 'brand' ? 60 : 80}
           onChangeText={set(key)}
