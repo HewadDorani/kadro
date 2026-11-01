@@ -196,7 +196,7 @@ check('first-scan: "Deine kostenlose Probe-Analyse", example → hard paywall, l
       useEffect(fn, deps) { const n = cursor++; if (!same(slots[n]?.deps, deps)) { slots[n] = { deps }; effects.push(fn); } },
     };
     const jsx = (type, props) => ({ type, props });
-    const Guard = compile('src/components/AppRouteGuard.tsx', {
+    const Guard = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { reportRedirectLoop() {} },
       react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, 'expo-apple-authentication': { isAvailableAsync: async () => false },
       'expo-router': { usePathname: () => path, useSegments: () => [path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
       '@/components/KandroMark': { KandroMark: 'Brand' }, '@/constants/theme': { typeScale: {} }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
@@ -245,6 +245,9 @@ console.log(`PASS ${passed.length} hard-paywall checks.`);
   assertOk(/mode: 'search', icon: 'search-outline'/.test(firstScan), 'first-scan offers food search');
   assertOk(/mode === 'search' \? \{ mode, first: '1' \}/.test(firstScan), 'first-run search is marked for the result reveal');
   assertOk(/router\.push\('\/first-sample'/.test(firstScan) && !/router\.replace\('\/paywall'\)/.test(firstScan), 'the first scan has no direct way to the paywall');
+  const guard = read('src/components/AppRouteGuard.tsx');
+  assertOk(/recent\.length >= REDIRECT_LIMIT/.test(guard) && (guard.match(/router\.replace/g) ?? []).length === 1, 'every guard redirect passes the loop limit');
+  assertOk(/hardWall && freeScansLeft > 0/.test(firstScan), 'a crash that lost the stage cannot bounce between first scan and Today');
   const sample = read('src/app/first-sample.tsx');
   assertOk(/markHardWallUsed\(\)/.test(sample) && /setFirstRunStage\('paywall'\)/.test(sample) && !/saveSyncedMeal|logScannedMeal|analyze/.test(sample), 'the example ends the free scope but analyses and saves nothing');
   assertOk(/later: 'Erst ein Beispiel ansehen'/.test(de), 'the way past the first scan says it shows an example');

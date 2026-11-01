@@ -167,11 +167,12 @@ export async function reminderQuestionSettled() {
   const decision = JSON.parse(await AsyncStorage.getItem(DECISION_KEY).catch(() => null) ?? '{}') as { onboarding?: ReminderOnboardingChoice };
   return decision.onboarding === 'enabled';
 }
+/** One at a time: dozens of parallel native calls for a change nobody waits on. */
 async function cancelOwn() {
-  await Promise.all(OWN_IDS.map(async id => {
+  for (const id of OWN_IDS) {
     await Notifications.cancelScheduledNotificationAsync(id);
     await Notifications.dismissNotificationAsync(id);
-  }));
+  }
 }
 type ScheduledReminder = { id: string; title: string; body: string; data: Record<string, string>; trigger: Notifications.NotificationTriggerInput };
 /**

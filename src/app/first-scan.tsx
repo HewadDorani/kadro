@@ -36,7 +36,10 @@ export default function FirstScanScreen() {
   const stage = useFirstRun();
   const { hardWall } = useFreeScanAllowance();
   const leaving = useRef(false);
-  if (stage === null && !leaving.current) return <Redirect href="/(tabs)/today" />;
+  // A hard-wall install with its free scan left is still in the first run even
+  // when a crash lost the stage: the route guard sends it here, so leaving
+  // again would be a loop.
+  if (stage === null && !leaving.current && !(hardWall && freeScansLeft > 0)) return <Redirect href="/(tabs)/today" />;
 
   const copy = t.onboarding.firstScan;
   const options: Option[] = [

@@ -889,7 +889,7 @@ export default function ScanScreen() {
       </SafeAreaView>
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => setShowBarcodeEntry(false)} transparent visible={showBarcodeEntry}>
-        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset, paddingTop: insets.top + 8 }]}>
           <KeyboardBackfill color={colors.surface} />
           <View accessibilityViewIsModal style={[styles.barcodeSheet, { paddingBottom: sheetBottom(20) }]}>
             <SheetHeader onClose={() => setShowBarcodeEntry(false)} title={t.scan.barcodeManualTitle} />
@@ -973,7 +973,7 @@ export default function ScanScreen() {
               value={searchQuery}
             />
             </View> : null}
-            <ScrollView automaticallyAdjustKeyboardInsets={!searchRides} keyboardDismissMode={searchRides ? 'on-drag' : 'interactive'} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.searchResults} contentContainerStyle={[styles.searchContent, !searchRides && { paddingBottom: insets.bottom + 16 }]}>
+            <ScrollView automaticallyAdjustKeyboardInsets={!searchRides} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.searchResults} contentContainerStyle={[styles.searchContent, !searchRides && { paddingBottom: insets.bottom + 16 }]}>
             {manualFor !== null ? <>
               {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
               <ManualFoodForm initialName={manualFor} onCancel={() => { setAddError(null); setManualFor(null); }} onConfirm={finishFood} />
@@ -1043,10 +1043,12 @@ export default function ScanScreen() {
       <ScanFavoritesSheet onClose={() => setShowFavorites(false)} onLogged={favoriteLogged} visible={showFavorites} />
 
       {showNote ? <Modal animationType="none" onRequestClose={() => setShowNote(false)} transparent visible>
-        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset, paddingTop: insets.top + 8 }]}>
           <KeyboardBackfill color={colors.surface} />
           <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: sheetBottom(22) }]}>
-            <SheetHeader onClose={() => setShowNote(false)} title={t.scan.noteTitle} />
+            <SheetHeader onClose={() => setShowNote(false)} size="medium" title={t.scan.noteTitle} />
+            {/* The sheet shrinks to the space above the keyboard: header and action stay put, this part scrolls. */}
+            <ScrollView contentContainerStyle={styles.sheetBodyContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.sheetBody}>
             <Text style={styles.describeText}>{t.scan.noteText}</Text>
             <TextInput
               accessibilityLabel={t.scan.noteTitle}
@@ -1056,7 +1058,7 @@ export default function ScanScreen() {
               onChangeText={setPhotoNote}
               placeholder={t.scan.notePlaceholder}
               placeholderTextColor={colors.muted}
-              style={styles.describeInput}
+              style={[styles.describeInput, styles.noteInput]}
               value={photoNote}
             />
             <View style={styles.noteChips}>
@@ -1067,6 +1069,7 @@ export default function ScanScreen() {
               ))}
             </View>
             <VoiceInputButton onChange={setPhotoNote} value={photoNote} />
+            </ScrollView>
             <Pressable accessibilityRole="button" onPress={() => setShowNote(false)} style={styles.describeSubmit}>
               <Text style={styles.describeSubmitText}>{t.scan.noteDone}</Text>
               <Ionicons color={colors.white} name="checkmark" size={18} />
@@ -1076,10 +1079,11 @@ export default function ScanScreen() {
       </Modal> : null}
 
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => { setShowDescription(false); setMode('photo'); }} transparent visible={showDescription}>
-        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset, paddingTop: insets.top + 8 }]}>
           <KeyboardBackfill color={colors.surface} />
           <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: sheetBottom(22) }]}>
             <SheetHeader onClose={() => { setShowDescription(false); setMode('photo'); }} title={t.scan.describeTitle} />
+            <ScrollView contentContainerStyle={styles.sheetBodyContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.sheetBody}>
             <Text style={styles.describeText}>{t.scan.describeText}</Text>
             <TextInput
               accessibilityLabel={t.scan.describeTitle}
@@ -1093,6 +1097,7 @@ export default function ScanScreen() {
               value={description}
             />
             <VoiceInputButton onChange={setDescription} value={description} />
+            </ScrollView>
             <Pressable accessibilityRole="button" onPress={submitDescription} style={styles.describeSubmit}>
               <Text style={styles.describeSubmitText}>{t.scan.describeSubmit}</Text>
               <Ionicons color={colors.white} name="arrow-forward" size={18} />
@@ -1161,7 +1166,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   noteChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   noteChip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
   noteChipText: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
-  demoControl: { minWidth: 62, paddingHorizontal: 10, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 3 },
+  demoControl: { width: 92, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 3 },
   demoControlText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
   barcodeState: { minHeight: 92, alignItems: 'center', justifyContent: 'center', gap: 7 },
   barcodeText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
@@ -1171,7 +1176,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   describeButtonText: { ...typeScale.footnote, color: colors.onAccent, fontWeight: '800' },
   privacy: { ...typeScale.caption, color: 'rgba(255,255,255,0.48)' },
   modalScrim: { flex: 1, backgroundColor: 'rgba(20,21,15,0.58)', justifyContent: 'flex-end' },
-  barcodeSheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
+  barcodeSheet: { flexShrink: 1, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
   barcodeInput: { minHeight: 56, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 15 },
   // Full height above the keyboard: the results get every row the screen has.
   searchSheet: { flex: 1, borderTopLeftRadius: radii.card, borderTopRightRadius: radii.card, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, gap: 12 },
@@ -1211,11 +1216,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   skeletonLine: { height: 14, borderRadius: 7, backgroundColor: colors.neutralSoft },
   skeletonLineShort: { width: '38%', height: 12 },
   productEmpty: { gap: 0 },
-  describeSheet: { borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
+  sheetBody: { flexShrink: 1 },
+  sheetBodyContent: { gap: 13 },
+  noteInput: { minHeight: 84 },
+  describeSheet: { flexShrink: 1, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet, backgroundColor: colors.surface, paddingHorizontal: 22, paddingTop: 22, gap: 13 },
   describeTitle: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '700' },
   describeText: { ...typeScale.footnote, color: colors.muted },
   describeInput: { minHeight: 128, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: 16, lineHeight: 23, padding: 14, textAlignVertical: 'top' },
-  describeSubmit: { minHeight: 54, borderRadius: radii.button, backgroundColor: colors.camera, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  describeSubmit: { minHeight: 54, borderRadius: radii.button, backgroundColor: colors.accentDeep, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   describeSubmitText: { ...typeScale.callout, color: colors.white, fontWeight: '800' },
   describeCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   describeCancelText: { ...typeScale.footnote, color: colors.muted, fontWeight: '700' },

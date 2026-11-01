@@ -28,7 +28,7 @@ function Reveal({ children, still }: PropsWithChildren<{ still: boolean }>) {
   const progress = useRef(new Animated.Value(still ? 1 : 0)).current;
   useEffect(() => {
     if (still) return;
-    Animated.timing(progress, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(progress, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [progress, still]);
   return (
     <Animated.View style={{ opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
@@ -86,7 +86,6 @@ export default function FirstSampleScreen() {
     setPhase('scan');
     items.forEach((_, index) => after(ITEM_MS * (index + 1), () => {
       setFound(index + 1);
-      void selectionHaptic();
     }));
     const countStart = ITEM_MS * (items.length + 1) + 300;
     after(countStart, () => {
@@ -105,9 +104,9 @@ export default function FirstSampleScreen() {
     if (leaving.current) return;
     leaving.current = true;
     void selectionHaptic();
-    markUsage('demo');
     await markHardWallUsed();
     await setFirstRunStage('paywall');
+    markUsage('demo');
     router.replace('/paywall');
   };
 

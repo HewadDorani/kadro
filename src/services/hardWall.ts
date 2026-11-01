@@ -55,8 +55,10 @@ export async function startHardWallInstall() {
 export async function markHardWallUsed() {
   await loadHardWall();
   if (state.used) return;
+  // Disk first: the app can die in the reaction to this flag, and the wall
+  // has to hold on the next launch.
+  await AsyncStorage.setItem(KEY, JSON.stringify({ cohort: state.cohort, used: true })).catch(() => undefined);
   publish({ ...state, used: true });
-  await persist();
 }
 export function setHardWallServerMode(mode: AccessMode | null) {
   publish({ ...state, serverMode: mode });

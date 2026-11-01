@@ -62,4 +62,10 @@ export function reportError(error: unknown, context?: string) {
   Sentry.captureException(error, context ? { tags: { area: context } } : undefined);
 }
 
+/** Fixed route names only: `usePathname` carries no parameters. */
+export function reportRedirectLoop(from: string, to: string) {
+  if (!crashReportingEnabled) return;
+  Sentry.captureMessage('Route guard redirect loop', { level: 'error', tags: { area: 'route_guard', loop_from: from.slice(0, 60), loop_to: to.slice(0, 60) } });
+}
+
 export const wrapRoot = <T,>(component: T): T => (crashReportingEnabled ? Sentry.wrap(component as never) as T : component);

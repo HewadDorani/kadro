@@ -12,6 +12,7 @@ import { useAccess } from '@/context/AccessContext';
 import { firstMealRevealOpen, rememberAccessDestination, routeRequiresAccess } from '@/services/accessPolicy';
 import { useReminderOnboarding } from '@/hooks/useReminderOnboarding';
 import { useFirstRun } from '@/hooks/useFirstRun';
+import { reportRedirectLoop } from '@/services/crashReporting';
 import { firstRunRedirect } from '@/services/firstRun';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -21,6 +22,9 @@ import { typeScale } from '@/constants/theme';
 
 const publicBeforeConsent = new Set(['index', 'account-help', 'saved-meals', 'onboarding', 'data-consent', 'privacy', 'terms', 'sources', 'account-deletion']);
 // Every other root segment needs a completed profile: 'first-scan' included.
+
+const REDIRECT_WINDOW_MS = 2000;
+const REDIRECT_LIMIT = 6;
 
 export function AppRouteGuard({ children }: PropsWithChildren) {
   const { colors } = useTheme();
@@ -71,20 +75,37 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
   const accessRedirect = accessApplies && reminderPending === false && access.ready && firstRunStage !== undefined
     ? access.enrollmentPending ? '/access-setup' : (!access.canUse || entryPaywall) ? '/paywall' : null : null;
   const accessWaiting = accessApplies && (!access.ready || reminderPending === null || firstRunStage === undefined);
+  // A hard-wall install with no entitlement and no meal is always still in the
+  // first run, even if a crash lost the local stage: never free in the tabs.
+  const runStage = firstRunStage === null && access.ready && access.hardWall && access.state === 'free' && mealHistory.length === 0 ? 'scan' as const : firstRunStage;
   const firstRunApplies = !appleReauthenticationRequired && hydrationReady && wellnessConsentGranted && !!profile.completedAt;
   const firstRunTarget = firstRunApplies && !accessRedirect && !accessWaiting
-    ? firstRunRedirect(firstRunStage, path, mealHistory.length > 0) : null;
+    ? firstRunRedirect(runStage, path, mealHistory.length > 0) : null;
+  // Two screens that keep sending each other away crash React ("Maximum update
+  // depth exceeded", seen on real devices right after onboarding). Stop
+  // redirecting instead of dying, and report the pair so it can be fixed.
+  const redirectTimes = useRef<number[]>([]);
+  const redirect = (target: string) => {
+    const now = Date.now();
+    const recent = redirectTimes.current.filter(time => now - time < REDIRECT_WINDOW_MS);
+    redirectTimes.current = [...recent, now];
+    if (recent.length >= REDIRECT_LIMIT) {
+      if (recent.length === REDIRECT_LIMIT) reportRedirectLoop(path, target);
+      return;
+    }
+    router.replace(target as never);
+  };
   useEffect(() => {
     if (accessRedirect) {
       rememberAccessDestination(path);
-      router.replace(accessRedirect as never);
+      redirect(accessRedirect);
     } else if (firstRunTarget) {
       // A tab chosen on the result (Plan or Today) is where the run ends.
       rememberAccessDestination(path);
-      router.replace(firstRunTarget as never);
+      redirect(firstRunTarget);
     } else if (accessApplies && reminderPending) {
       rememberAccessDestination(path);
-      router.replace('/reminder-setup');
+      redirect('/reminder-setup');
     }
   }, [accessRedirect, accessApplies, firstRunTarget, reminderPending, path, router]);
 
@@ -92,15 +113,15 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
     if (appleReauthenticationRequired || !hydrationReady || accessRedirect || accessWaiting) return;
     const rootSegment = segments[0] ?? 'index';
     if (!wellnessConsentGranted && !publicBeforeConsent.has(rootSegment)) {
-      router.replace((profile.completedAt ? '/data-consent' : '/onboarding') as never);
+      redirect(profile.completedAt ? '/data-consent' : '/onboarding');
       return;
     }
     if (wellnessConsentGranted && !profile.completedAt && !publicBeforeConsent.has(rootSegment)) {
-      router.replace('/onboarding');
+      redirect('/onboarding');
       return;
     }
-    if (missingMealDraft) router.replace('/(tabs)/scan');
-    else if (incompleteResult) router.replace('/confirm');
+    if (missingMealDraft) redirect('/(tabs)/scan');
+    else if (incompleteResult) redirect('/confirm');
   }, [accessRedirect, accessWaiting, appleReauthenticationRequired, hydrationReady, incompleteResult, missingMealDraft, profile.completedAt, router, segments, wellnessConsentGranted]);
 
   // Do not merely pause redirects while identity hydration is incomplete. The
