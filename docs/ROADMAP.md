@@ -23,7 +23,7 @@ Auswertung vom 01.11.: 27 von 40 Personen hinter der harten Paywall haben die KI
 - [x] Rückfrage nach dem Foto: Gebratenes ohne aufgeführtes Fett oder Blattsalat ohne Dressing. Ein Tipp ergänzt BLS-Öl, -Butter oder -Dressing als normale Zutat; keine zweite Analyse.
 - [x] Suche: ohne Scrollbalken, kompaktere Zeilen, einzeiliger Titel. Die Liste nutzt die nativen Tastatur-Abstände von iOS, statt das Fenster bei jedem Bild neu zu rechnen. Mit offenem Formular oder Speichern-Button fährt das Fenster weiter mit der Tastatur.
 - [x] Optionale Akzentfarbe Rosé unter Du → Darstellung.
-- [ ] Mehr Ketten für Unterwegs (nur mit offiziellen Nährwerten der Anbieter).
+- [x] Unterwegs Deutschland: Hans im Glück und Peter Pane mit offiziellen Nährwerten (10 Ketten, 252 Artikel). Taco Bell bewusst nicht: nur Köln. Nordsee, Domino's, Pizza Hut, Vapiano, L'Osteria, Ditsch, Kamps, Dunkin', Yorma's veröffentlichen keine nutzbaren Portionswerte.
 - [ ] Nach 2 bis 4 Wochen auswerten: Anteil KI vor Paywall, aktive Tage, Kündigungsgrund. Vorher keine Schlüsse aus Einzelfällen.
 - [ ] Downloads gegen neue Konten vergleichen: Das längere Onboarding kann vor dem ersten Konto Abbrüche kosten, die der Server nicht sieht.
 
