@@ -18,7 +18,7 @@ Use this as the source of truth when completing **App Privacy** in App Store Con
 | Contact Info → Name | App Functionality | An optional display name is stored in the Supabase profile and used for the greeting. |
 | Usage Data → Product Interaction | App Functionality | The authenticated gateway stores linked request IDs, state, access kind, failure code and short-lived structured nutrition results to enforce the three free analyses, paid access, abuse limits and idempotent retries. The access assignment (variant or exclusion reason of the paused access test) and the first paywall exposure per context are stored against the account. |
 
-These records also feed the server-side aggregate funnel (`private.growth_funnel_daily`, `private.ai_failure_daily`): counts per sign-up day, read only with the service role, never exported per person. It collects nothing new, so it adds no App Store data type; the privacy notice (2.5) discloses it under Art. 6(1)(f) GDPR.
+These records also feed the server-side aggregate funnel (`private.growth_funnel_daily`, `private.ai_failure_daily`): counts per sign-up day, read only with the service role, never exported per person. From 1.0.7 it also stores `private.usage_days` (per account and Berlin day: app opened, how a meal was captured, fixed feature signals; no content, device or value data). This stays product interaction linked to the account, the same App Store data type as the rest of this table; the privacy notice (2.5) discloses it under Art. 6(1)(f) GDPR.
 
 ## Optional analytics
 

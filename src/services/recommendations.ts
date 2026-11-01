@@ -118,6 +118,8 @@ export function recommendMeals(
   context: MealContext,
   remaining: Nutrition,
   preferences: string[] = [],
+  /** Ideas already shown ("Andere Ideen"). Ignored once too few are left, so there are always three. */
+  exclude: ReadonlySet<string> = new Set(),
 ): MealSuggestion[] {
   const catalog = (getLanguage() === 'de' ? catalogDe : catalogEn) as CatalogEntry[];
   const ranked = catalog
@@ -132,7 +134,8 @@ export function recommendMeals(
     })
     .map((entry) => ({ entry, score: score(entry, remaining, preferences) }))
     .sort((a, b) => a.score - b.score || a.entry.id.localeCompare(b.entry.id));
-  return pickVaried(ranked)
+  const fresh = ranked.filter(({ entry }) => !exclude.has(entry.id));
+  return pickVaried(fresh.length >= 3 ? fresh : ranked)
     .map(({ entry }) => ({
       ...entry,
       contexts: [entry.context],

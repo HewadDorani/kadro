@@ -22,9 +22,10 @@ import { radii, typeScale } from '@/constants/theme';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { frameToPhotoCrop, type Rect } from '@/utils/cameraCrop';
 import { useApp } from '@/context/AppContext';
-import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, searchProducts } from '@/services/mealAnalysis';
+import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, PHOTO_NOTE_MAX, searchProducts } from '@/services/mealAnalysis';
 import { productSearchHint, productsFirst } from '@/services/productSearch';
 import { getMarketRegion } from '@/services/region';
+import { markUsage } from '@/services/usageSignals';
 import { foodSourceBadge, foodUsage, frequentFoods, mergeSuggestions, recentFoods, suggestFoods, type FoodSourceBadge } from '@/services/foodSuggest';
 import { customFoodResult, deleteCustomFood, isCustomFoodResult, matchCustomFoods } from '@/services/customFoods';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
@@ -81,6 +82,9 @@ export default function ScanScreen() {
   // Arriving with ?mode=description means the user just hit a barcode the
   // database does not know; the sheet should already be open for them.
   const [showDescription, setShowDescription] = useState(requestedMode === 'description');
+  // What the camera cannot see ("in Butter gebraten"); goes with the next photo only.
+  const [showNote, setShowNote] = useState(false);
+  const [photoNote, setPhotoNote] = useState('');
   const [showSearch, setShowSearch] = useState(requestedMode === 'search');
   // "Favoriten" next to Foto/Beschreiben/Barcode/Suchen: a sheet over the
   // camera, not a capture mode, so the input draft and its modes stay as they are.
@@ -365,7 +369,9 @@ export default function ScanScreen() {
         deleteTemporaryPhoto(photoUri);
         return;
       }
-      setCapturedPhoto(photoUri);
+      setCapturedPhoto(photoUri, photoNote);
+      if (photoNote.trim()) markUsage('photo_context');
+      setPhotoNote('');
       router.push('/analyzing');
     } catch {
       if (scanFocused.current && visit === scanVisit.current && AppState.currentState === 'active') {
@@ -672,6 +678,7 @@ export default function ScanScreen() {
             <Text numberOfLines={2} style={styles.searchRowName}>{result.productName ?? result.name}</Text>
             {productLine ? <Text numberOfLines={1} style={styles.searchRowBrand}>{productLine}</Text> : null}
             {result.officialName ? <Text numberOfLines={1} style={styles.searchRowOfficial}>{result.officialName}</Text> : null}
+            <View style={styles.searchRowFacts}>
             <Text style={styles.searchRowMeta}>
               {result.lastGrams
                 ? `${t.scan.lastAmount(`${formatNumber(result.lastGrams, locale)} g`)} · ${formatNumber(Math.round(result.per100g.calories * result.lastGrams / 100), locale)} kcal`
@@ -679,6 +686,7 @@ export default function ScanScreen() {
             </Text>
             <View style={[styles.sourceBadge, own && styles.sourceBadgeOwn]}>
               <Text numberOfLines={1} style={[styles.sourceBadgeText, own && styles.sourceBadgeTextOwn]}>{badge}</Text>
+            </View>
             </View>
           </View>
           <Ionicons color={colors.accentText} name="add-circle" size={26} />
@@ -695,12 +703,17 @@ export default function ScanScreen() {
   // "Lebensmittel" and "Produkte & Marken". A store or brand in the query
   // ("milbona skyr", "lidl") puts the products first.
   const typedQuery = searchQuery.trim();
+  // A form or the save button has to stay above the keyboard, so the sheet
+  // rides on it. The plain list does not: resizing the sheet on every frame
+  // while the keyboard left during a drag is what made scrolling jump. There
+  // the sheet stays still and iOS moves the list's inset, with the finger.
+  const searchRides = manualFor !== null || quickAddFor !== null || added.length > 0;
   const productsLead = productsFirst(typedQuery, searchResults.length, productResults.length, getMarketRegion());
   const showProductEmpty = typedQuery.length >= 2 && !searching && !productError && !searchError && !productResults.length;
   const foodSection = searchResults.length ? <>
     <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionFoods}</Text>
     {searchResults.slice(0, visibleSearchCount).map(renderResult)}
-    {searchResults.length > visibleSearchCount ? <PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /> : null}
+    {searchResults.length > visibleSearchCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /></View> : null}
   </> : null;
   const productSection = typedQuery.length >= 2 ? <>
     <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionProducts}</Text>
@@ -715,7 +728,7 @@ export default function ScanScreen() {
       </View>
     ) : null}
     {productResults.slice(0, visibleProductCount).map(renderResult)}
-    {productResults.length > visibleProductCount ? <PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleProductCount((count) => count + 15)} /> : null}
+    {productResults.length > visibleProductCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleProductCount((count) => count + 15)} /></View> : null}
     {!searching && productError && !searchError ? <Text accessibilityLiveRegion="polite" style={styles.searchStatus}>{t.scan.productsUnavailable}</Text> : null}
     {showProductEmpty ? (
       <View style={styles.productEmpty}>
@@ -844,7 +857,10 @@ export default function ScanScreen() {
           </View>
           {mode === 'photo' ? (
             <View style={styles.shutterRow}>
-              <View style={styles.smallPlaceholder} />
+              <Pressable accessibilityLabel={t.scan.noteOpen} accessibilityRole="button" onPress={() => setShowNote(true)} style={[styles.demoControl, photoNote.trim() ? styles.noteControlActive : null]}>
+                <Ionicons color={photoNote.trim() ? colors.onAccent : colors.white} name={photoNote.trim() ? 'checkmark' : 'chatbubble-ellipses-outline'} size={17} />
+                <Text style={[styles.demoControlText, photoNote.trim() ? { color: colors.onAccent } : null]}>{t.scan.noteLabel}</Text>
+              </Pressable>
               <Pressable accessibilityLabel={t.scan.shutter} accessibilityRole="button" accessibilityState={{ disabled: capturing }} disabled={capturing} onPress={capture} style={({ pressed }) => [styles.shutterOuter, pressed && styles.shutterPressed]}>
                 <View style={styles.shutterInner} />
               </Pressable>
@@ -918,13 +934,14 @@ export default function ScanScreen() {
           target={{ name: pendingFood.name, per100g: pendingFood.per100g, defaultGrams: pendingFood.lastGrams ?? pendingFood.defaultGrams, amountIsChosen: Boolean(pendingFood.lastGrams), adding: true, portions: pendingFood.portions, sourceLabel: pendingFood.source.label }}
           visible
         /> : (
-        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
-          <KeyboardBackfill color={colors.background} />
-          <View accessibilityViewIsModal style={[styles.searchSheet, { marginTop: insets.top + 12, paddingBottom: sheetBottom(16) }]}>
+        <Animated.View style={[styles.modalScrim, { paddingBottom: searchRides ? keyboardInset : 0 }]}>
+          {searchRides ? <KeyboardBackfill color={colors.background} /> : null}
+          <View accessibilityViewIsModal style={[styles.searchSheet, { marginTop: insets.top + 12, paddingBottom: searchRides ? sheetBottom(16) : 0 }]}>
             {manualFor === null && quickAddFor === null ? <View style={styles.searchTop}>
             <SheetHeader
               accessory={<View style={styles.freePill}><Text style={styles.freePillText}>{t.scan.searchFree}</Text></View>}
               onClose={cancelSearch}
+              size="medium"
               title={t.scan.searchTitle}
             />
             {!searchQuery.trim() && !added.length ? <Text style={styles.describeText}>{t.scan.searchHint}</Text> : null}
@@ -956,7 +973,7 @@ export default function ScanScreen() {
               value={searchQuery}
             />
             </View> : null}
-            <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" style={styles.searchResults} contentContainerStyle={styles.searchContent}>
+            <ScrollView automaticallyAdjustKeyboardInsets={!searchRides} keyboardDismissMode={searchRides ? 'on-drag' : 'interactive'} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.searchResults} contentContainerStyle={[styles.searchContent, !searchRides && { paddingBottom: insets.bottom + 16 }]}>
             {manualFor !== null ? <>
               {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
               <ManualFoodForm initialName={manualFor} onCancel={() => { setAddError(null); setManualFor(null); }} onConfirm={finishFood} />
@@ -1025,6 +1042,39 @@ export default function ScanScreen() {
 
       <ScanFavoritesSheet onClose={() => setShowFavorites(false)} onLogged={favoriteLogged} visible={showFavorites} />
 
+      {showNote ? <Modal animationType="none" onRequestClose={() => setShowNote(false)} transparent visible>
+        <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
+          <KeyboardBackfill color={colors.surface} />
+          <View accessibilityViewIsModal style={[styles.describeSheet, { paddingBottom: sheetBottom(22) }]}>
+            <SheetHeader onClose={() => setShowNote(false)} title={t.scan.noteTitle} />
+            <Text style={styles.describeText}>{t.scan.noteText}</Text>
+            <TextInput
+              accessibilityLabel={t.scan.noteTitle}
+              autoFocus
+              maxLength={PHOTO_NOTE_MAX}
+              multiline
+              onChangeText={setPhotoNote}
+              placeholder={t.scan.notePlaceholder}
+              placeholderTextColor={colors.muted}
+              style={styles.describeInput}
+              value={photoNote}
+            />
+            <View style={styles.noteChips}>
+              {t.scan.noteChips.map((chip) => (
+                <Pressable accessibilityRole="button" key={chip} onPress={() => setPhotoNote((current) => [current.trim(), chip].filter(Boolean).join(', ').slice(0, PHOTO_NOTE_MAX))} style={styles.noteChip}>
+                  <Text style={styles.noteChipText}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <VoiceInputButton onChange={setPhotoNote} value={photoNote} />
+            <Pressable accessibilityRole="button" onPress={() => setShowNote(false)} style={styles.describeSubmit}>
+              <Text style={styles.describeSubmitText}>{t.scan.noteDone}</Text>
+              <Ionicons color={colors.white} name="checkmark" size={18} />
+            </Pressable>
+          </View>
+        </Animated.View>
+      </Modal> : null}
+
       <Modal animationType="none" onDismiss={finishSheetDismiss} onRequestClose={() => { setShowDescription(false); setMode('photo'); }} transparent visible={showDescription}>
         <Animated.View style={[styles.modalScrim, { paddingBottom: keyboardInset }]}>
           <KeyboardBackfill color={colors.surface} />
@@ -1069,7 +1119,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   fallbackBackground: { backgroundColor: colors.cameraSoft },
   fallbackScroll: { flex: 1, minHeight: 0 },
   fallback: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, paddingVertical: 18 },
-  fallbackOrb: { width: 112, height: 112, borderRadius: 56, backgroundColor: 'rgba(187,220,142,0.12)', borderWidth: 1, borderColor: 'rgba(187,220,142,0.32)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  fallbackOrb: { width: 112, height: 112, borderRadius: 56, backgroundColor: colors.accentGlow, borderWidth: 1, borderColor: 'rgba(187,220,142,0.32)', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
   fallbackTitle: { ...typeScale.title2, color: colors.white, fontWeight: '700', textAlign: 'center' },
   fallbackText: { ...typeScale.footnote, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 8 },
   permissionButton: { marginTop: 18, minHeight: 44, borderRadius: radii.pill, paddingHorizontal: 16, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -1107,8 +1157,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   shutterOuter: { width: 82, height: 82, borderRadius: 41, borderWidth: 3, borderColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 66, height: 66, borderRadius: 33, backgroundColor: colors.accent },
   shutterPressed: { transform: [{ scale: 0.92 }] },
-  smallPlaceholder: { width: 62, height: 46 },
-  demoControl: { width: 62, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 3 },
+  noteControlActive: { backgroundColor: colors.accent },
+  noteChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  noteChip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  noteChipText: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
+  demoControl: { minWidth: 62, paddingHorizontal: 10, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 3 },
   demoControlText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
   barcodeState: { minHeight: 92, alignItems: 'center', justifyContent: 'center', gap: 7 },
   barcodeText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
@@ -1142,11 +1195,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   searchResultRow: { flexDirection: 'row', alignItems: 'stretch' },
   searchRowMain: { flex: 1 },
   searchRowDelete: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
-  sourceBadge: { alignSelf: 'flex-start', marginTop: 3, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, paddingVertical: 2 },
+  sourceBadge: { alignSelf: 'flex-start', borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, paddingVertical: 2 },
   sourceBadgeOwn: { borderColor: colors.accentText, backgroundColor: colors.neutralSoft },
   sourceBadgeText: { ...typeScale.caption, color: colors.muted, fontWeight: '700' },
   sourceBadgeTextOwn: { color: colors.accentText },
+  searchMore: { marginTop: 12 },
   searchRowName: { ...typeScale.label, color: colors.text, fontWeight: '600' },
+  // Values and source on one line where they fit: a search row should not read as a form.
+  searchRowFacts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 4 },
   searchRowMeta: { ...typeScale.footnote, color: colors.muted },
   searchRowBrand: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
   searchRowOfficial: { ...typeScale.caption, color: colors.muted },

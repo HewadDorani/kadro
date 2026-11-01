@@ -37,6 +37,7 @@ import { searchBlsCatalog } from '../_shared/bls-search.mjs';
 import {
   descriptionDetectionPrompt,
   detectionSchema,
+  clarifyKind,
   photoDetectionPrompt,
 } from '../_shared/detection.mjs';
 import {
@@ -638,12 +639,14 @@ async function analyzePhoto(input: any, admin: any, claimUsda?: () => Promise<vo
   if (typeof input.imageBase64 !== 'string' || input.imageBase64.length > MAX_IMAGE_BASE64) {
     return { status: 413, body: { code: 'invalid_input', message: 'Das Foto ist zu groß.' } };
   }
-  const prompt = { type: 'input_text', text: photoDetectionPrompt(requestedLanguage(input)) };
+  const prompt = { type: 'input_text', text: photoDetectionPrompt(requestedLanguage(input), input.note) };
   const image = { type: 'input_image', image_url: `data:${input.mimeType};base64,${input.imageBase64}` };
   // The retry is the cheaper, faster path: the same photo at low detail
   // (a fraction of the image tokens), on the fallback model when configured.
   const detection = await requestDetection([prompt, { ...image, detail: imageDetail }], candidate, signal, hooks, [prompt, { ...image, detail: 'low' }]);
-  return timedLookup(hooks.timing, () => resolveDetection(forEstimateProtocol(detection, input), admin, 'photo', claimUsda, input.ingredientCorrection));
+  const result = await timedLookup(hooks.timing, () => resolveDetection(forEstimateProtocol(detection, input), admin, 'photo', claimUsda, input.ingredientCorrection));
+  const clarify = result.status === 200 ? clarifyKind(detection, input.note) : null;
+  return clarify ? { ...result, body: { ...result.body, clarify } } : result;
 }
 
 // deno-lint-ignore no-explicit-any

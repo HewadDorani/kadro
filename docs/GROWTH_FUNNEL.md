@@ -71,6 +71,25 @@ where day >= current_date - 7
 group by 1 order by 2 desc;
 ```
 
+## `private.usage_daily` and `private.active_days_distribution` (from 1.0.7)
+
+`private.usage_days` holds one row per account, Berlin day and fixed signal with a
+count: `app_open`, how a new meal was captured (`photo`, `description`, `barcode`,
+`search`, `recommendation`, `repeat`, `demo`, `queued_retry`), plus `photo_context`,
+`ideas_refreshed` and `reminders_on`. No content, device or value data. Read the
+two aggregate views, not the table. `public.meals.origin` cannot answer this: `plan`
+there means every free save (search, barcode, repeat and plan suggestion).
+
+```sql
+-- How people really log, last 30 days
+select signal, sum(users) as user_days, sum(events) as events
+from private.usage_daily where day >= current_date - 30
+group by 1 order by 3 desc;
+
+-- Active days per account (8 = eight or more)
+select * from private.active_days_distribution order by 1;
+```
+
 ## Limits
 
 - `analysis_requests` rows are purged 30 days after completion or refund
@@ -79,8 +98,10 @@ group by 1 order by 2 desc;
   `ai_failure_daily` only covers the last 30 days.
 - A refunded request ID that the client retries successfully becomes `completed`
   and leaves `ai_failure_daily`.
-- RevenueCat webhook rows are purged after 90 days. `period_type` is not stored,
-  so a trial start and a direct first purchase are counted together. RevenueCat's
+- RevenueCat webhook rows are purged after 90 days. `period_type` is missing
+  on rows before 1.0.7, so there a trial start and a direct first purchase are
+  counted together. From 1.0.7 `period_type`, `product_id` and `cancel_reason` are
+  stored; `trial_outcomes_daily` no longer counts a failed charge as a cancellation. RevenueCat's
   `app_user_id` is the Supabase user ID (`Purchases.logIn(user.id)`), so rows map
   to the cohort directly. Sandbox (TestFlight/App Review) is excluded.
 - Deleted accounts disappear from every count (cascade on `auth.users`). Deleted

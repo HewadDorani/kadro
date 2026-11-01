@@ -67,7 +67,8 @@ export function firstMealRevealOpen(path: string, firstRunStage: string | null |
 }
 
 // '/first-scan' only offers choices; the scan it leads to is checked as usual.
-const availableWithoutNewUse = new Set(['/paywall', '/account-help', '/saved-meals', '/privacy', '/terms', '/sources', '/account-deletion', '/data-consent', '/onboarding', '/reminder-setup', '/access-setup', '/first-scan']);
+// '/first-sample' shows a labelled example: no analysis, no saved meal.
+const availableWithoutNewUse = new Set(['/paywall', '/account-help', '/saved-meals', '/privacy', '/terms', '/sources', '/account-deletion', '/data-consent', '/onboarding', '/reminder-setup', '/access-setup', '/first-scan', '/first-sample']);
 export function routeRequiresAccess(path: string) { return !availableWithoutNewUse.has(path); }
 
 // Return intent is a navigation allowlist, never a URL or an automatic mutation.

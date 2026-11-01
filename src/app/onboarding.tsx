@@ -11,6 +11,9 @@ import { WeightEntry } from '@/components/WeightEntry';
 import { KandroMark } from '@/components/KandroMark';
 import { PersonalGoalSummary } from '@/components/PersonalGoalSummary';
 import { BUILDING_MS, PlanBuilder } from '@/components/PlanBuilder';
+import { MOTIVATIONS, OBSTACLES, saveMotivation, type Motivation, type Obstacle } from '@/services/motivation';
+import { DEFAULT_SLOTS, enableRhythmReminders, type MealSlot } from '@/services/reminders';
+import { markUsage } from '@/services/usageSignals';
 import { FIRST_RUN_STEPS, MINIMUM_AGE, ageFromBirthYear, birthYearNeedsBirthday, normalizePersonalGoal, onboardingSteps, personalGoalError, parsePersonalGoalWeight, type OnboardingStep } from '@/services/personalGoal';
 import { localDateKey } from '@/utils/date';
 import { PrimaryButton, ProgressBar } from '@/components/ui';
@@ -23,7 +26,7 @@ import { startHardWallInstall } from '@/services/hardWall';
 import { setAnalyticsCollectionEnabled, trackEvent } from '@/services/telemetry';
 import { errorHaptic, selectionHaptic, stepHaptic, successHaptic } from '@/services/haptics';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { formatDateParts, formatNumber } from '@/utils/format';
+import { formatClockTime, formatDateParts, formatNumber } from '@/utils/format';
 import { parseDecimalInput } from '@/utils/decimalInput';
 import { NutritionGoal, UserProfile, WeeklyRateKg } from '@/types/nutrition';
 import {
@@ -116,11 +119,30 @@ function copyFor(t: Dict): Record<StepId, { title: string; subtitle: string }> {
     activity: { title: t.onboarding.activityTitle, subtitle: t.onboarding.activitySubtitle },
     preferences: { title: t.onboarding.preferencesTitle, subtitle: t.onboarding.preferencesSubtitle },
     plan: { title: t.onboarding.planTitle, subtitle: t.onboarding.planSubtitle },
+    why: { title: t.onboarding.whyTitle, subtitle: t.onboarding.whySubtitle },
+    obstacle: { title: t.onboarding.obstacleTitle, subtitle: t.onboarding.obstacleSubtitle },
+    rhythm: { title: t.onboarding.rhythmTitle, subtitle: t.onboarding.rhythmSubtitle },
+    potential: { title: t.onboarding.tourTitle, subtitle: t.onboarding.tourSubtitle },
   };
 }
 
+const MOTIVATION_ICONS: Record<Motivation, keyof typeof Ionicons.glyphMap> = { energy: 'flash-outline', health: 'heart-outline', feel: 'happy-outline', strength: 'barbell-outline' };
+const OBSTACLE_ICONS: Record<Obstacle, keyof typeof Ionicons.glyphMap> = { time: 'time-outline', ideas: 'help-circle-outline', out: 'restaurant-outline', stop: 'refresh-outline' };
+const RHYTHM_SLOTS = ['breakfast', 'lunch', 'dinner'] as const;
+type TourFeature = { key: string; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string };
+/** What usually stops this person comes first, so the tour answers it. */
+function tourFeatures(t: Dict, obstacle: Obstacle | null): TourFeature[] {
+  const features: (TourFeature & { answers: Obstacle })[] = [
+    { key: 'capture', answers: 'time', icon: 'camera-outline', title: t.onboarding.tourCaptureTitle, detail: t.onboarding.tourCaptureDetail },
+    { key: 'next', answers: 'ideas', icon: 'sparkles-outline', title: t.onboarding.tourNextTitle, detail: t.onboarding.tourNextDetail },
+    { key: 'out', answers: 'out', icon: 'restaurant-outline', title: t.onboarding.tourOutTitle, detail: t.onboarding.tourOutDetail },
+    { key: 'rhythm', answers: 'stop', icon: 'calendar-outline', title: t.onboarding.tourRhythmTitle, detail: t.onboarding.tourRhythmDetail },
+  ];
+  return [...features.filter(feature => feature.answers === obstacle), ...features.filter(feature => feature.answers !== obstacle)];
+}
+
 /** Steps the user may leave without answering (plan editing only). */
-const skippableSteps = new Set<StepId>(['preferences']);
+const skippableSteps = new Set<StepId>(['preferences', 'rhythm']);
 
 /*
  * Kandro is 16+. The guardian-consent flow for 14–15 year olds
@@ -258,10 +280,15 @@ export default function OnboardingScreen() {
   // Optional, adults only, never preselected; applied after completion.
   const [analyticsOptIn, setAnalyticsOptIn] = useState(false);
   const [skippedAnything, setSkippedAnything] = useState(false);
+  const [motivation, setMotivation] = useState<Motivation | null>(null);
+  const [obstacle, setObstacle] = useState<Obstacle | null>(null);
+  const [rhythmSlots, setRhythmSlots] = useState<MealSlot[]>(['lunch', 'dinner']);
+  const [rhythmBusy, setRhythmBusy] = useState(false);
   const step = steps[Math.min(stepIndex, steps.length - 1)];
   useEffect(() => { trackEvent('setup step viewed', { step, editing }); }, [step, editing]);
   useEffect(() => { if (step === 'body') setBodySeen(true); }, [step]);
 
+  const goalSuggested = useRef(editing);
   // An app kill mid-setup resumes on the same step with the same answers.
   const [draftReady, setDraftReady] = useState(editing);
   useEffect(() => {
@@ -274,11 +301,16 @@ export default function OnboardingScreen() {
         setUnitSystem(draft.unitSystem); previousUnit.current = draft.unitSystem;
         setBirthYear(draft.birthYear); setHadBirthday(draft.hadBirthday);
         setHeight(draft.heightCm); setWeight(draft.weightKg); setActivity(draft.activityLevel);
-        if (draft.stepIndex > 2) setBodySeen(true);
+        if (draft.stepIndex > FIRST_RUN_STEPS.indexOf('body')) setBodySeen(true);
+        setMotivation(draft.motivation ?? null); setObstacle(draft.obstacle ?? null);
+        if (draft.preferences) setPreferences(draft.preferences);
+        if (draft.targetWeightInput !== undefined) { setTargetWeightInput(draft.targetWeightInput); goalSuggested.current = true; }
+        if (draft.targetDateInput !== undefined) setTargetDateInput(draft.targetDateInput);
+        if (draft.weeklyRateKg) setWeeklyRate(draft.weeklyRateKg);
         // Never resume past the age gate without a known, allowed age.
         const knownAge = draft.birthYear !== null && (!birthYearNeedsBirthday(draft.birthYear, currentYear) || draft.hadBirthday !== null)
           ? ageFromBirthYear(draft.birthYear, currentYear, draft.hadBirthday) : null;
-        const maxStep = knownAge !== null && knownAge >= MINIMUM_AGE ? FIRST_RUN_STEPS.length - 1 : 1;
+        const maxStep = knownAge !== null && knownAge >= MINIMUM_AGE ? FIRST_RUN_STEPS.length - 1 : FIRST_RUN_STEPS.indexOf('about');
         setStepIndex(Math.min(draft.stepIndex, maxStep));
       }
       setDraftReady(true);
@@ -287,12 +319,11 @@ export default function OnboardingScreen() {
   }, [editing]);
   useEffect(() => {
     if (editing || !draftReady) return;
-    void saveOnboardingDraft({ stepIndex, goal, displayName, sex, sexChosen, unitSystem, birthYear, hadBirthday, heightCm: height, weightKg: weight, activityLevel: activity });
-  }, [editing, draftReady, stepIndex, goal, displayName, sex, sexChosen, unitSystem, birthYear, hadBirthday, height, weight, activity]);
+    void saveOnboardingDraft({ stepIndex, goal, displayName, sex, sexChosen, unitSystem, birthYear, hadBirthday, heightCm: height, weightKg: weight, activityLevel: activity, motivation, obstacle, preferences, targetWeightInput, targetDateInput, weeklyRateKg: weeklyRate });
+  }, [editing, draftReady, stepIndex, goal, displayName, sex, sexChosen, unitSystem, birthYear, hadBirthday, height, weight, activity, motivation, obstacle, preferences, targetWeightInput, targetDateInput, weeklyRate]);
 
   // A goal makes the plan concrete (and powers the projection): the target
   // step opens with a sensible suggestion the user can adjust or remove.
-  const goalSuggested = useRef(editing);
   useEffect(() => {
     if (step !== 'target' || goalSuggested.current) return;
     goalSuggested.current = true;
@@ -359,6 +390,7 @@ export default function OnboardingScreen() {
     const firstRun = !editing && !profile.completedAt;
     // The age was chosen explicitly (birth year), never a picker default.
     if (firstRun) await prepareAccessEnrollment(ageKnown);
+    if (firstRun) await saveMotivation({ motivation, obstacle });
     // Value before the offer: the first scan comes next, then the paywall,
     // then the optional reminder question (see services/firstRun.ts).
     // A fresh install on this build: one free analysis, then the hard paywall
@@ -417,7 +449,7 @@ export default function OnboardingScreen() {
     void selectionHaptic();
     // Keep the invariant here as well as on the disabled button: navigation
     // must not persist an age the user never chose.
-    if (step !== 'goal' && !ageKnown) return;
+    if (!['goal', 'why', 'obstacle'].includes(step) && !ageKnown) return;
     if (step === 'about' && !sexChosen) return;
     if (step === 'about' && !editing && age < MINIMUM_AGE) { setUnderage(true); return; }
     if (step === 'body' && !weightInputValid) return;
@@ -431,9 +463,25 @@ export default function OnboardingScreen() {
       setShowConsent(true);
       return;
     }
+    if (step === 'rhythm' && !editing) {
+      setRhythmBusy(true);
+      try {
+        const reminders = await enableRhythmReminders(rhythmSlots);
+        if (reminders.enabled) markUsage('reminders_on');
+      } catch {
+        // Reminders are optional: setup goes on, Du keeps the same choice.
+      } finally {
+        setRhythmBusy(false);
+      }
+    }
     goNext();
   };
 
+  const rhythmTime = (slot: MealSlot) => {
+    const time = new Date();
+    time.setHours(DEFAULT_SLOTS[slot].hour, DEFAULT_SLOTS[slot].minute, 0, 0);
+    return formatClockTime(time);
+  };
   const showFooterButton = true;
   // While typing, the keyboard's own Done/Return is the action; the footer
   // would otherwise sit on top of the keyboard and hide the field.
@@ -443,7 +491,9 @@ export default function OnboardingScreen() {
     const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardOpen(false));
     return () => { show.remove(); hide.remove(); };
   }, []);
-  const footerLabel = step === 'plan' ? (editing ? t.onboarding.saveChanges : t.onboarding.openApp) : t.common.next;
+  const footerLabel = step === 'plan' ? (editing ? t.onboarding.saveChanges : t.onboarding.openApp)
+    : step === 'rhythm' ? t.onboarding.rhythmCta
+      : t.common.next;
   const underweightLose = goal === 'lose' && planGoal === 'maintain';
 
   if (!draftReady) return <SafeAreaView edges={['top', 'left', 'right']} style={styles.safe} />;
@@ -505,15 +555,83 @@ export default function OnboardingScreen() {
             {step === 'goal' ? (
               <View style={[styles.brandMark, compactHeight && styles.brandMarkCompact]}><KandroMark size={compactHeight ? 34 : 42} /></View>
             ) : null}
-            <Text accessibilityRole="header" style={[styles.title, compactHeight && styles.titleCompact]}>{step === 'plan' && building ? t.access.buildingTitle : copy[step].title}</Text>
+            <Text accessibilityRole="header" style={[styles.title, compactHeight && styles.titleCompact]}>{step === 'plan' && building ? t.access.buildingTitle : step === 'plan' && !editing && displayName.trim() ? t.onboarding.planTitleNamed(displayName.trim()) : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialTitle : copy[step].title}</Text>
             <Text style={[styles.subtitle, compactHeight && styles.subtitleCompact]}>
-              {step === 'plan' && building ? t.access.preparing : copy[step].subtitle}
+              {step === 'plan' && building ? t.access.preparing : step === 'plan' && !editing && motivation ? t.onboarding.whyEcho[motivation] : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialSubtitle : copy[step].subtitle}
             </Text>
           </View>
 
           <View style={[styles.body, compactHeight && styles.bodyCompact]}>
             {step === 'goal' ? (
               <ChoiceList choices={goalChoices} compact={compactHeight} onSelect={(value) => selectChoice(() => setGoal(value))} selected={underweight && goal === 'lose' ? 'maintain' : goal} values={['lose', 'maintain', 'gain'] as NutritionGoal[]} />
+            ) : null}
+
+            {step === 'why' ? (
+              <ChoiceList
+                choices={MOTIVATIONS.map(id => ({ icon: MOTIVATION_ICONS[id], label: t.onboarding.whyChoices[id].label, detail: t.onboarding.whyChoices[id].detail }))}
+                compact={compactHeight}
+                onSelect={(value) => selectChoice(() => setMotivation(value))}
+                selected={motivation as Motivation}
+                values={[...MOTIVATIONS]}
+              />
+            ) : null}
+
+            {step === 'obstacle' ? (
+              // The answer replaces the row's own detail: below the list the footer would cover it.
+              <ChoiceList
+                choices={OBSTACLES.map(id => ({ icon: OBSTACLE_ICONS[id], label: t.onboarding.obstacleChoices[id].label, detail: obstacle === id ? t.onboarding.obstacleChoices[id].answer : t.onboarding.obstacleChoices[id].detail }))}
+                compact={compactHeight}
+                onSelect={(value) => selectChoice(() => setObstacle(value))}
+                selected={obstacle as Obstacle}
+                values={[...OBSTACLES]}
+              />
+            ) : null}
+
+            {step === 'rhythm' ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>{t.onboarding.rhythmLabel}</Text>
+                <View style={styles.chips}>
+                  {RHYTHM_SLOTS.map((slot) => {
+                    const selected = rhythmSlots.includes(slot);
+                    return (
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        key={slot}
+                        onPress={() => selectChoice(() => setRhythmSlots(current => current.includes(slot) ? current.filter(entry => entry !== slot) : [...current, slot]))}
+                        style={[styles.chip, selected && styles.chipSelected]}
+                      >
+                        {selected ? <Ionicons color={colors.onAccent} name="checkmark" size={17} /> : null}
+                        <Text style={[styles.chipText, selected && { color: colors.onAccent }]}>{t.onboarding.rhythmSlots[slot]} · {rhythmTime(slot)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={styles.rhythmPlan}>
+                  <Ionicons color={colors.accentText} name="repeat-outline" size={18} />
+                  <Text style={styles.rhythmPlanText}>{t.onboarding.rhythmPlan}</Text>
+                </View>
+                <Text style={styles.fieldHint}>{t.onboarding.rhythmHint}</Text>
+              </View>
+            ) : null}
+
+            {step === 'potential' ? (
+              <View style={styles.tourList}>
+                {/* Only a wish the person set themselves gets a curve: never under 18 or below BMI 18.5. */}
+                <PersonalGoalSummary profile={draftProfile} />
+                {draftProfile.targetWeightKg !== null ? <Text style={styles.fieldHint}>{t.onboarding.potentialDaily(formatNumber(startingTargets.calories, locale))} {t.onboarding.potentialNote}</Text> : null}
+                <Text style={styles.sectionLabel}>{t.onboarding.potentialHow}</Text>
+                {tourFeatures(t, obstacle).slice(0, 3).map((feature) => (
+                  <View key={feature.key} style={styles.tourRow}>
+                    <View style={styles.tourIcon}><Ionicons color={colors.onAccent} name={feature.icon} size={20} /></View>
+                    <View style={styles.tourCopy}>
+                      <Text style={styles.tourTitle}>{feature.title}</Text>
+                      <Text style={styles.tourDetail}>{feature.detail}</Text>
+                    </View>
+                  </View>
+                ))}
+                <Text style={styles.fieldHint}>{t.onboarding.tourFoot}</Text>
+              </View>
             ) : null}
 
             {step === 'target' ? (
@@ -766,14 +884,14 @@ export default function OnboardingScreen() {
             ) : null}
 
             {step === 'plan' && building ? <View style={styles.buildingStage}><PlanBuilder profile={draftProfile} showcase /></View> : null}
-            {step === 'plan' && !building ? <>{underweightLose ? <SafetyNotice text={t.onboarding.underweightNotice} /> : null}<PersonalGoalSummary profile={draftProfile} /><StartingPlan limited={isRateLimited(draftProfile)} profile={draftProfile} targets={startingTargets} />{!editing ? <Text style={styles.fieldHint}>{t.onboarding.laterInProfile}</Text> : null}</> : null}
+            {step === 'plan' && !building ? <>{underweightLose ? <SafetyNotice text={t.onboarding.underweightNotice} /> : null}{editing ? <PersonalGoalSummary profile={draftProfile} /> : null}<StartingPlan limited={isRateLimited(draftProfile)} profile={draftProfile} targets={startingTargets} />{!editing ? <Text style={styles.fieldHint}>{t.onboarding.laterInProfile}</Text> : null}</> : null}
           </View>
         </ScrollView>
 
         {showFooterButton && !keyboardOpen && !(step === 'plan' && building) ? (
           <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
             <PrimaryButton
-              disabled={(step === 'about' && !ageKnown) || (step === 'about' && !sexChosen) || (step === 'body' && !weightInputValid) || ((step === 'target' || step === 'plan') && !!targetError)}
+              disabled={rhythmBusy || (step === 'why' && !motivation) || (step === 'obstacle' && !obstacle) || (step === 'rhythm' && !rhythmSlots.length) || (step === 'about' && !ageKnown) || (step === 'about' && !sexChosen) || (step === 'body' && !weightInputValid) || ((step === 'target' || step === 'plan') && !!targetError)}
               icon="arrow-forward"
               label={footerLabel}
               onPress={() => void primaryAction()}
@@ -1188,6 +1306,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bodyCompact: { justifyContent: 'flex-start', paddingVertical: 12 },
   footer: { gap: 12, paddingTop: 8, backgroundColor: colors.background },
   choiceList: { gap: 12 },
+  rhythmPlan: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 6, padding: 12, borderRadius: 14, backgroundColor: colors.accentSoft },
+  rhythmPlanText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
+  tourList: { gap: 12 },
+  tourRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  tourIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  tourCopy: { flex: 1, minWidth: 0, gap: 3 },
+  tourTitle: { ...typeScale.label, color: colors.text, fontWeight: '700' },
+  tourDetail: { ...typeScale.footnote, color: colors.muted },
   choice: { minHeight: 82, borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 13 },
   choiceCompact: { minHeight: 70, borderRadius: 20, padding: 10, gap: 10 },
   choiceActive: { borderColor: colors.accentText, backgroundColor: colors.neutralSoft },

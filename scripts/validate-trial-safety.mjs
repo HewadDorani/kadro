@@ -151,6 +151,7 @@ function paywallFixture({ days = 7, eligible = true, mode = 'native-store', hard
   const state = { status: 'ready', busy: false, error: null, snapshot: { configured: true, mode, plans: { yearly: yearlyAvailable ? { ...mapper('yearly', packageFor({ periodNumberOfUnits: days }), eligible) } : null, monthly: { ...mapper('monthly', packageFor(), eligible) } } }, async purchase() { return purchaseOutcome; }, async refresh() {}, async restore() { return 'none'; }, async syncTrialReminder() { return true; } };
   const jsx = (type, props) => ({ type, props });
   const screen = compile('src/app/paywall.tsx', {
+    '@/services/motivation': { loadMotivation: async () => ({ motivation: null, obstacle: null }) },
     react: h.react, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { ActivityIndicator: 'Spinner', Alert: { alert() {} }, Animated: { Value: class { constructor(v) { this.v = v; } }, View: 'AnimatedView', timing: () => ({ start() {} }) }, BackHandler: { addEventListener: () => ({ remove() {} }) }, Linking: { openSettings: async () => {} }, Pressable: 'Pressable', ScrollView: 'ScrollView', StyleSheet: { create: x => x }, Text: 'Text', View: 'View', useWindowDimensions: () => ({ fontScale: 1 }) },
     // Focus effects run like mount effects in this fixture.

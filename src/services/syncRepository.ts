@@ -1,3 +1,4 @@
+import { markMealCaptured } from '@/services/usageSignals';
 import { authorizeMealCreate } from '@/services/appAccess';
 import { markHardWallUsed } from '@/services/hardWall';
 import { captureOperationalError, MealSaveSource, trackEvent } from '@/services/telemetry';
@@ -185,6 +186,7 @@ export async function saveSyncedMeal(meal: Meal, source: MealSaveSource = 'edit'
   trackEvent('meal save completed', { source, outcome: result.outcome });
   if (result.outcome === 'created') {
     trackEvent('meal saved', { source });
+    markMealCaptured(source);
     // A hard-wall install's one free meal is now used (sticky, before sync).
     await markHardWallUsed();
     for (const listener of saveListeners) { try { listener({ id: meal.id, source, generation }); } catch { /* Optional local companions never fail a completed save. */ } }

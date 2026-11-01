@@ -48,7 +48,7 @@ const compileModule = (path, mocks) => {
 const ticks = async () => { for (let i = 0; i < 16; i++) await Promise.resolve(); };
 const memory = new Map(); const reminderCalls = [];
 const storage = { getItem: async k => memory.get(k) ?? null, setItem: async (k, v) => { memory.set(k, v); }, removeItem: async k => { memory.delete(k); } };
-const firstRun = compileModule('src/services/firstRun.ts', { '@react-native-async-storage/async-storage': { __esModule: true, default: storage }, '@/services/reminders': { prepareReminderOnboarding: async () => { reminderCalls.push(['reminder', memory.get('@kandro/first-run:v1') ?? null]); } } });
+const firstRun = compileModule('src/services/firstRun.ts', { '@react-native-async-storage/async-storage': { __esModule: true, default: storage }, '@/services/reminders': { reminderQuestionSettled: async () => false, prepareReminderOnboarding: async () => { reminderCalls.push(['reminder', memory.get('@kandro/first-run:v1') ?? null]); } } });
 // Redirect matrix: tabs bounce to the prompt until a meal exists; the scan
 // flow, legal pages and settings are never interrupted.
 for (const [stage, path, meal, expected] of [
@@ -106,8 +106,8 @@ function guardFixture(state) {
   const routes = [], stages = []; let stage = 'scan'; const jsx = (type, props) => ({ type, props });
   const dict = { onboarding: { firstScan: new Proxy({}, { get: (_, key) => key.startsWith('allowance') && key !== 'allowanceUsed' ? (...args) => `${key}:${args.join('/')}` : key }) } };
   const Screen = compileModule('src/app/first-scan.tsx', {
-    '@expo/vector-icons/Ionicons': { __esModule: true, default: 'Icon' }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ replace: to => routes.push(to) }) }, react: { useRef: v => ({ current: v }) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
-    'react-native': { Pressable: 'Pressable', StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'Mark' }, '@/components/ui': { Screen: 'Screen' },
+    '@expo/vector-icons/Ionicons': { __esModule: true, default: 'Icon' }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ push: to => routes.push(to), replace: to => routes.push(to) }) }, react: { useRef: v => ({ current: v }) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
+    'react-native': { Pressable: 'Pressable', StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'Mark' }, '@/components/ui': { PrimaryButton: 'Primary', Screen: 'Screen' },
     '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/constants/theme': { radii: {}, typeScale: { micro: 12, caption: 13, compact: 15, body: 17, heading: 22, title: 32, display: 56 } }, '@/context/AppContext': { useApp: () => ({ freeScansLeft: 3 }) },
     '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) }, '@/hooks/useFirstRun': { useFirstRun: () => stage },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: dict }) }, '@/services/firstRun': { setFirstRunStage: async next => { stages.push(next); } }, '@/services/haptics': { selectionHaptic() {} },
@@ -119,7 +119,7 @@ function guardFixture(state) {
   assert.deepEqual(buttons.slice(0, 3).map(b => b.props.accessibilityLabel), ['photo', 'speak', 'type']);
   assert.ok(all(tree).some(n => n.type === 'Text' && n.props.children === 'allowanceFirst:3'), 'the first scan honestly counts as analysis 1 of 3');
   buttons[0].props.onPress(); assert.deepEqual(routes.at(-1), { pathname: '/(tabs)/scan', params: { mode: 'photo' } });
-  buttons.at(-1).props.onPress(); await ticks(); assert.deepEqual(stages, ['used', 'paywall'], '"Später" ends the free scope before the offer'); assert.equal(routes.at(-1), '/paywall', '"Später" goes on to the offer');
+  all(tree).filter(n => n.type === 'Primary').at(-1).props.onPress(); await ticks(); assert.deepEqual(stages, [], 'the example spends nothing by itself'); assert.equal(routes.at(-1), '/first-sample', 'no skip to the offer: the example is the way past the first scan');
   stage = null; assert.equal(Screen().type, 'Redirect', 'outside the first run the prompt is not reachable');
 }
 // Onboarding starts the run; the paywall ends it once viewed.

@@ -290,10 +290,12 @@ export function deleteTemporaryPhoto(uri: string | null | undefined) {
   }
 }
 
-export async function analyzePreparedPhoto(input: MealAnalysisInput, requestId: string): Promise<MealAnalysisResult> {
+/** What the photo cannot show ("in Butter gebraten"); the gateway reads it as a fact about this meal. */
+export const PHOTO_NOTE_MAX = 160;
+export async function analyzePreparedPhoto(input: MealAnalysisInput, requestId: string, note = ''): Promise<MealAnalysisResult> {
   return readAnalysisResponse(await gatewayFetch('/v1/analyze', {
     method: 'POST',
-    body: { imageBase64: input.imageBase64, mimeType: input.mimeType, language: input.language, locale: input.locale, requestId, ingredientCorrection: 1, captureProtocol: 2, estimates: 1 },
+    body: { imageBase64: input.imageBase64, mimeType: input.mimeType, language: input.language, locale: input.locale, requestId, ingredientCorrection: 1, captureProtocol: 2, estimates: 1, ...(note.trim() ? { note: note.trim().slice(0, PHOTO_NOTE_MAX) } : {}) },
   }));
 }
 

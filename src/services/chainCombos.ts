@@ -102,6 +102,10 @@ export type ChainComboOptions = {
   /** Local hour 0–23; breakfast items before 11, never after. */
   hour: number;
   preferences?: string[];
+  /** Only orders from this chain (the filter on Unterwegs). */
+  chainId?: string;
+  /** Orders already shown ("Andere Ideen"). Ignored once too few are left. */
+  exclude?: ReadonlySet<string>;
   /** Tests only: a different dataset for the market. */
   data?: ChainDataset;
 };
@@ -280,8 +284,10 @@ export function chainCombos(remaining: Nutrition, options: ChainComboOptions): C
   const budget = comboBudget(remaining);
   const hour = Number.isFinite(options.hour) ? Math.max(0, Math.min(23, Math.floor(options.hour))) : 12;
 
+  const exclude = options.exclude ?? new Set<string>();
   const rank = (relaxed: boolean) => data.chains
-    .map((chain) => ({ chain, ranked: bestForChain(data, chain, budget, hour, preferences, relaxed) }))
+    .filter((chain) => !options.chainId || chain.id === options.chainId)
+    .map((chain) => ({ chain, ranked: bestForChain(data, chain, budget, hour, preferences, relaxed).filter((entry) => !exclude.has(comboKey(entry))) }))
     .filter((entry) => entry.ranked.length);
 
   const chosen: { chain: ChainInfo; entry: Scored }[] = [];
@@ -312,6 +318,7 @@ export function chainCombos(remaining: Nutrition, options: ChainComboOptions): C
   // A small budget can leave fewer than three orders above the minimum; then
   // anything that fits under the maximum may fill the set.
   if (chosen.length < 3) take(rank(true));
+  if (chosen.length < 3 && exclude.size) return chainCombos(remaining, { ...options, exclude: undefined });
 
   return chosen.slice(0, 3).map(({ chain, entry }) => ({
     id: comboKey(entry),
@@ -361,4 +368,11 @@ export function chainComboSearchEntries(combo: ChainCombo, sourceLabel: (chain: 
       },
     };
   });
+}
+
+/** The chains that can fill all three options on their own right now; the filter offers only those. */
+export function chainsWithOrders(remaining: Nutrition, options: ChainComboOptions): ChainInfo[] {
+  const data = options.data ?? CHAIN_DATA[options.market];
+  if (!data || data.market !== options.market) return [];
+  return data.chains.filter((chain) => chainCombos(remaining, { ...options, chainId: chain.id, exclude: undefined }).length === 3);
 }

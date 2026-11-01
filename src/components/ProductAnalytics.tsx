@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useApp } from '@/context/AppContext';
 import { ScreenName, trackEvent } from '@/services/telemetry';
+import { markAppOpen } from '@/services/usageSignals';
 
 // Only fixed route names, never query parameters, food IDs, or deep-link data.
 const screens = new Set<ScreenName>(['today', 'plan', 'scan', 'progress', 'profile', 'onboarding', 'data-consent', 'analyzing', 'confirm', 'correct-food', 'result', 'paywall', 'privacy', 'terms', 'account-deletion', 'evening', 'sources', 'recipe', 'index']);
@@ -15,10 +16,14 @@ export function ProductAnalytics() {
     if (!launched.current) {
       launched.current = true;
       trackEvent('app active', { entry: 'launch' });
+      markAppOpen();
     }
     let previous = AppState.currentState;
     const listener = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && previous !== 'active') trackEvent('app active', { entry: 'foreground' });
+      if (state === 'active' && previous !== 'active') {
+        trackEvent('app active', { entry: 'foreground' });
+        markAppOpen();
+      }
       previous = state;
     });
     return () => listener.remove();

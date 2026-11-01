@@ -13,6 +13,8 @@ export type MealAnalysisResult = {
   correctionRequired?: boolean;
   /** The amounts are a typical portion because the input's amount was unclear. */
   estimatedPortion?: boolean;
+  /** One question the photo cannot answer; a tap adds the food from the database. */
+  clarify?: 'cooking_fat' | 'dressing';
   title: string;
   confidence: 'high' | 'medium';
   items: MealItem[];

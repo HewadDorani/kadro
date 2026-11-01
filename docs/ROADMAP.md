@@ -9,6 +9,24 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-11-01 – Aktivierung und Bindung (1.0.7)
+
+Auswertung vom 01.11.: 27 von 40 Personen hinter der harten Paywall haben die KI nie probiert, niemand hat an mehr als 4 Tagen eingetragen, 3 von 5 Trials wurden binnen 2 Minuten gekündigt.
+
+- [x] Messung: `cancel_reason`, `period_type`, `product_id` aus RevenueCat; `private.usage_days` (App geöffnet, Erfassungsweg, feste Signale); `trial_outcomes_daily` zählt eine fehlgeschlagene Abbuchung nicht mehr als Kündigung.
+- [x] Beispiel statt Abkürzung: `first-sample` zeigt den Kern mit den eigenen Zielen, ohne Analyse und ohne gespeicherte Mahlzeit.
+- [x] Längeres Onboarding (bis 11 Schritte): Warum, Hindernis, Wunschziel, Potenzial, Vorlieben, Rhythmus. Name und Warum kommen im Plan und auf der Paywall wieder. Antworten zu Warum und Hindernis bleiben lokal.
+- [x] Rhythmus-Schritt als Wenn-Dann-Plan: gewählte Mahlzeiten werden zu Erinnerungen, die Mitteilungserlaubnis kommt vor der Paywall. Rückhol-Mitteilung in der ersten Woche nach einem statt drei Tagen.
+- [x] Paywall: Erinnerung statt „Tipp: kündigen“; Pflichtangaben und Kündigungsweg bleiben.
+- [x] Plan: „Andere Ideen“ in allen drei Kontexten, Ketten-Filter für Unterwegs.
+- [x] Foto-Details: Hinweis zur nächsten Aufnahme, geht als Daten an die Analyse.
+- [x] Rückfrage nach dem Foto: Gebratenes ohne aufgeführtes Fett oder Blattsalat ohne Dressing. Ein Tipp ergänzt BLS-Öl, -Butter oder -Dressing als normale Zutat; keine zweite Analyse.
+- [x] Suche: ohne Scrollbalken, kompaktere Zeilen, einzeiliger Titel. Die Liste nutzt die nativen Tastatur-Abstände von iOS, statt das Fenster bei jedem Bild neu zu rechnen. Mit offenem Formular oder Speichern-Button fährt das Fenster weiter mit der Tastatur.
+- [x] Optionale Akzentfarbe Rosé unter Du → Darstellung.
+- [ ] Mehr Ketten für Unterwegs (nur mit offiziellen Nährwerten der Anbieter).
+- [ ] Nach 2 bis 4 Wochen auswerten: Anteil KI vor Paywall, aktive Tage, Kündigungsgrund. Vorher keine Schlüsse aus Einzelfällen.
+- [ ] Downloads gegen neue Konten vergleichen: Das längere Onboarding kann vor dem ersten Konto Abbrüche kosten, die der Server nicht sieht.
+
 ## 2026-10-27 – Eingabe-Feinschliff (1.0.6)
 
 - [x] Fenster mit Tastatur (Suche, Barcode, Beschreiben, Menge, Gewicht): `KeyboardBackfill` füllt den Streifen hinter der iOS-Tastatur mit der Fensterfarbe; keine dunklen Ecken mehr.

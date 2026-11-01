@@ -232,6 +232,12 @@ function toResult(row: Row, language: string, usage?: FoodUsage): FoodSearchResu
 }
 
 /** Ranked suggestions for a partly typed query; synchronous, about 10 ms. */
+/** One reviewed BLS food by code, with its unchanged per-100 g values. */
+export function foodByBlsCode(code: string): FoodSearchResult | null {
+  const row = rowsByCode().get(code);
+  return row ? toResult(row, getLanguage()) : null;
+}
+
 export function suggestFoods(query: string, usage: Map<string, FoodUsage> = new Map(), limit = 25): FoodSearchResult[] {
   const typed = fold(query).split(' ').filter(Boolean);
   if (!typed.length || typed.join('').length < 2) return [];

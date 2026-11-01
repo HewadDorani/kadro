@@ -153,6 +153,7 @@ const local = { ...initial, weightKg: 83, editedAt: '2026-09-05T12:00:00Z' };
 const cloud = { profile: { ...initial, completedAt: '2026-09-04T12:00:00Z' }, ageDeclared: true, targets: {} };
 const sync = compile(read('src/services/syncRepository.ts'), {
   '@/services/telemetry': { trackEvent: () => {}, captureOperationalError: () => {} },
+  '@/services/usageSignals': { markUsage() {}, markAppOpen() {}, markMealCaptured() {} },
   '@/services/supabaseClient': { getCurrentSessionUserId: async () => 'test' },
   '@/services/cloudRepository': {
     assertCloudOwner: async () => {}, loadCloudDeletedMealIds: async () => [],

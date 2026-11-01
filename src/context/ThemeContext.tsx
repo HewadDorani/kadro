@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Appearance, Platform, useColorScheme } from 'react-native';
-import { darkColors, lightColors, ThemeColors } from '@/constants/theme';
+import { AccentChoice, lightColors, ThemeColors, themeColors } from '@/constants/theme';
 
 type ThemeMode = 'light' | 'dark';
 /** What the person chose in Du. `system` follows the iPhone's appearance. */
 export type ThemePreference = 'system' | ThemeMode;
 const STORAGE_KEY = 'kandro:appearance:v1';
+const ACCENT_KEY = 'kandro:accent:v1';
 
 /**
  * Builds before 1.0.4 only wrote this key when someone picked Hell or Dunkel,
@@ -22,17 +23,22 @@ const ThemeContext = createContext({
   preference: 'system' as ThemePreference,
   colors: lightColors as ThemeColors,
   setPreference: (_preference: ThemePreference) => {},
+  accent: 'pistachio' as AccentChoice,
+  setAccent: (_accent: AccentChoice) => {},
 });
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [preference, updatePreference] = useState<ThemePreference>('system');
+  const [accent, updateAccent] = useState<AccentChoice>('pistachio');
   const [ready, setReady] = useState(false);
   const writes = useRef(Promise.resolve());
   const systemScheme = useColorScheme();
   useEffect(() => {
     let active = true;
-    void AsyncStorage.getItem(STORAGE_KEY).then((value) => {
-      if (active) updatePreference(readThemePreference(value));
+    void AsyncStorage.multiGet([STORAGE_KEY, ACCENT_KEY]).then(([[, value], [, storedAccent]]) => {
+      if (!active) return;
+      updatePreference(readThemePreference(value));
+      if (storedAccent === 'rose') updateAccent('rose');
     }).catch(() => undefined).finally(() => { if (active) setReady(true); });
     return () => { active = false; };
   }, []);
@@ -41,12 +47,16 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   useEffect(() => { if (Platform.OS !== 'web') Appearance.setColorScheme(preference === 'system' ? null : preference); }, [preference]);
   const mode: ThemeMode = preference === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : preference;
   const value = useMemo(() => ({
-    mode, preference, colors: mode === 'dark' ? darkColors : lightColors,
+    mode, preference, accent, colors: themeColors(mode, accent),
     setPreference: (next: ThemePreference) => {
       updatePreference(next);
       writes.current = writes.current.then(() => AsyncStorage.setItem(STORAGE_KEY, next)).catch(() => undefined);
     },
-  }), [mode, preference]);
+    setAccent: (next: AccentChoice) => {
+      updateAccent(next);
+      writes.current = writes.current.then(() => AsyncStorage.setItem(ACCENT_KEY, next)).catch(() => undefined);
+    },
+  }), [accent, mode, preference]);
   if (!ready) return null;
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

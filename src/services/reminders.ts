@@ -9,6 +9,8 @@ const LEGACY_KEY = '@kandro/evening-reminder:v1';
 const OFFER_KEY = '@kandro/reminder-offer-seen:v1';
 const PENDING_KEY = '@kandro/reminder-onboarding:v1';
 const DECISION_KEY = '@kandro/reminder-decision:v1';
+// Owned by services/motivation.ts; named here so account deletion clears it with the rest.
+const MOTIVATION_KEY = '@kandro/motivation:v1';
 export const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner', 'evening'] as const;
 export type MealSlot = typeof MEAL_SLOTS[number];
 export type SlotSetting = { enabled: boolean; hour: number; minute: number };
@@ -160,6 +162,11 @@ export async function finishReminderOnboarding(choice: ReminderOnboardingChoice 
   await markReminderOfferSeen();
   await AsyncStorage.removeItem(PENDING_KEY);
 }
+/** The rhythm step already answered the reminder question. */
+export async function reminderQuestionSettled() {
+  const decision = JSON.parse(await AsyncStorage.getItem(DECISION_KEY).catch(() => null) ?? '{}') as { onboarding?: ReminderOnboardingChoice };
+  return decision.onboarding === 'enabled';
+}
 async function cancelOwn() {
   await Promise.all(OWN_IDS.map(async id => {
     await Notifications.cancelScheduledNotificationAsync(id);
@@ -255,6 +262,18 @@ export async function enableEveningCheckIn(): Promise<boolean> {
   const slots = Object.fromEntries(MEAL_SLOTS.map(slot => [slot, { ...base[slot], enabled: slot === 'evening' }])) as Record<MealSlot, SlotSetting>;
   return (await updateReminder({ enabled: true, mode: 'meals', slots, hour: slots.evening.hour, minute: slots.evening.minute })).enabled;
 }
+/**
+ * The rhythm step of onboarding: the meals someone named become their
+ * reminders at the usual times, and the later reminder question is settled.
+ * The OS prompt appears here, from the tap on "Erinnere mich".
+ */
+export async function enableRhythmReminders(chosen: readonly MealSlot[]) {
+  const slots = Object.fromEntries(MEAL_SLOTS.map(slot => [slot, { ...DEFAULT_SLOTS[slot], enabled: chosen.includes(slot) }])) as Record<MealSlot, SlotSetting>;
+  const first = MEAL_SLOTS.find(slot => chosen.includes(slot)) ?? 'lunch';
+  const result = await updateReminder({ enabled: true, mode: 'meals', slots, hour: slots[first].hour, minute: slots[first].minute });
+  await recordDecision({ onboarding: result.enabled ? 'enabled' : 'skipped' }).catch(() => undefined);
+  return result;
+}
 /** Permission changes do not erase the user's choice or re-prompt. */
 export function syncEveningReminder(_targets?: { calories: number; protein: number }) {
   return serialize(async epoch => {
@@ -270,14 +289,19 @@ export function syncEveningReminder(_targets?: { calories: number; protein: numb
 const REENGAGE_ID = 'kandro-reengage';
 const REENGAGE_KEY = '@kandro/reengage-reminder:v1';
 export const REENGAGE_AFTER_DAYS = 3;
+/**
+ * Logging falls off fastest right at the start, so in the first week the note
+ * comes the next day instead. Still one note per pause, never a sequence.
+ */
+export const REENGAGE_FIRST_WEEK_AFTER_DAYS = 1;
 export async function isReengagementEnabled() { return (await AsyncStorage.getItem(REENGAGE_KEY).catch(() => null)) !== 'false'; }
 async function cancelReengagement() {
   await Notifications.cancelScheduledNotificationAsync(REENGAGE_ID);
   await Notifications.dismissNotificationAsync(REENGAGE_ID);
 }
 /** Calm daytime only: a pause that ends late at night is answered in the afternoon. */
-export function reengagementDate(lastSavedAt: number) {
-  const at = new Date(lastSavedAt + REENGAGE_AFTER_DAYS * 86_400_000);
+export function reengagementDate(lastSavedAt: number, afterDays = REENGAGE_AFTER_DAYS) {
+  const at = new Date(lastSavedAt + afterDays * 86_400_000);
   if (at.getHours() < 9) at.setHours(9, 0, 0, 0);
   else if (at.getHours() >= 20) at.setHours(18, 0, 0, 0);
   return at;
@@ -287,17 +311,19 @@ export function reengagementDate(lastSavedAt: number) {
  * it. Once delivered nothing follows until the next save. Never asks the OS
  * for permission and respects its own switch under Du → Benachrichtigungen.
  */
-export function syncReengagementReminder(lastSavedAt: number | null) {
+export function syncReengagementReminder(lastSavedAt: number | null, firstWeek = false) {
   return serialize(async epoch => {
     if (!remindersSupported) return false;
     try {
       configureNotifications();
-      const [enabled, permission] = await Promise.all([isReengagementEnabled(), getReminderPermission()]);
+      const [enabled, permission, settings] = await Promise.all([isReengagementEnabled(), getReminderPermission(), getReminderSettings()]);
       if (!current(epoch)) return false;
       await cancelReengagement();
-      const at = lastSavedAt !== null && Number.isFinite(lastSavedAt) ? reengagementDate(lastSavedAt) : null;
+      // Someone with meal reminders already hears from Kandro tomorrow.
+      const early = firstWeek && !settings.enabled;
+      const at = lastSavedAt !== null && Number.isFinite(lastSavedAt) ? reengagementDate(lastSavedAt, early ? REENGAGE_FIRST_WEEK_AFTER_DAYS : REENGAGE_AFTER_DAYS) : null;
       if (!enabled || !accessAllowed || !at || at.getTime() <= Date.now() || (permission !== 'authorized' && permission !== 'quiet')) return false;
-      await Notifications.scheduleNotificationAsync({ identifier: REENGAGE_ID, content: { body: getDictionary().captureExtras.reengageBody, data: { route: '/capture', mode: 'photo' } }, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, ...(Platform.OS === 'android' ? { channelId: 'evening-summary' } : {}) } });
+      await Notifications.scheduleNotificationAsync({ identifier: REENGAGE_ID, content: { body: early ? getDictionary().captureExtras.reengageBodyFirstWeek : getDictionary().captureExtras.reengageBody, data: { route: '/capture', mode: 'photo' } }, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, ...(Platform.OS === 'android' ? { channelId: 'evening-summary' } : {}) } });
       return true;
     } catch { return false; }
   });
@@ -433,7 +459,7 @@ export function clearRemindersAfterAccountDeletion() {
   publishOnboardingPending(false);
   return serialize(async () => {
     if (remindersSupported) { await cancelOwn(); await cancelTrial().catch(() => undefined); await cancelTrialEnding().catch(() => undefined); await cancelReengagement().catch(() => undefined); await Notifications.cancelScheduledNotificationAsync(STREAK_ID).catch(() => undefined); }
-    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, TRIAL_ENDING_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY]);
+    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, TRIAL_ENDING_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY, MOTIVATION_KEY]);
   });
 }
 export const clearRemindersForAccountSwitch = clearRemindersAfterAccountDeletion;

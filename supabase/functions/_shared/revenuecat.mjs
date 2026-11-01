@@ -103,6 +103,22 @@ function eventUserIds(event, transfer) {
   return [...new Set([...transferredFrom, ...transferredTo, ...common])];
 }
 
+const PERIOD_TYPES = new Set(['TRIAL', 'INTRO', 'NORMAL', 'PROMOTIONAL', 'PREPAID']);
+const CANCEL_REASONS = new Set(['UNSUBSCRIBE', 'BILLING_ERROR', 'DEVELOPER_INITIATED', 'PRICE_INCREASE', 'CUSTOMER_SUPPORT', 'UNKNOWN']);
+
+/**
+ * Measurement only: unknown values become null, so a new RevenueCat term can
+ * never fail a webhook. Access is still decided by the REST lookup alone.
+ */
+export function revenueCatEventFacts(event) {
+  const productId = typeof event?.product_id === 'string' ? event.product_id.trim() : '';
+  return {
+    periodType: PERIOD_TYPES.has(event?.period_type) ? event.period_type : null,
+    productId: productId && productId.length <= 120 ? productId : null,
+    cancelReason: CANCEL_REASONS.has(event?.cancel_reason) ? event.cancel_reason : null,
+  };
+}
+
 /** Validate only stable, security-relevant webhook fields. */
 export function validateRevenueCatEvent(payload, expectedAppId) {
   if (!payload || payload.api_version !== '1.0' || !payload.event || typeof payload.event !== 'object') {
@@ -148,7 +164,7 @@ export function validateRevenueCatEvent(payload, expectedAppId) {
   return {
     ok: true,
     relevant: true,
-    event: { eventId, eventType, environment, eventTimestampMs, userIds },
+    event: { eventId, eventType, environment, eventTimestampMs, userIds, ...revenueCatEventFacts(event) },
   };
 }
 

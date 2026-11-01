@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { BiologicalSex, NutritionGoal, UserProfile } from '@/types/nutrition';
+import type { Motivation, Obstacle } from '@/services/motivation';
 import type { UnitSystem } from '@/utils/units';
 
 const KEY = '@kandro/onboarding-draft:v1';
@@ -21,6 +22,13 @@ export type OnboardingDraft = {
   heightCm: number;
   weightKg: number;
   activityLevel: UserProfile['activityLevel'];
+  // Later additions stay optional: a draft from the previous build still resumes.
+  motivation?: Motivation | null;
+  obstacle?: Obstacle | null;
+  preferences?: string[];
+  targetWeightInput?: string;
+  targetDateInput?: string;
+  weeklyRateKg?: UserProfile['weeklyRateKg'];
 };
 
 const goals = ['lose', 'maintain', 'gain'];
@@ -40,7 +48,15 @@ export function parseOnboardingDraft(raw: string | null): OnboardingDraft | null
       || !(value.birthYear === null || finite(value.birthYear, 1900, 2200))
       || !(value.hadBirthday === null || typeof value.hadBirthday === 'boolean')
       || !finite(value.heightCm, 100, 250) || !finite(value.weightKg, 30, 250)) return null;
-    return { ...value, stepIndex: Math.floor(value.stepIndex), displayName: value.displayName.slice(0, 40) } as OnboardingDraft;
+    return {
+      ...value,
+      stepIndex: Math.floor(value.stepIndex),
+      displayName: value.displayName.slice(0, 40),
+      preferences: Array.isArray(value.preferences) ? value.preferences.filter((entry): entry is string => typeof entry === 'string').slice(0, 12) : undefined,
+      targetWeightInput: typeof value.targetWeightInput === 'string' ? value.targetWeightInput.slice(0, 6) : undefined,
+      targetDateInput: typeof value.targetDateInput === 'string' ? value.targetDateInput.slice(0, 10) : undefined,
+      weeklyRateKg: value.weeklyRateKg === 0.5 ? 0.5 : value.weeklyRateKg === 0.25 ? 0.25 : undefined,
+    } as OnboardingDraft;
   } catch { return null; }
 }
 

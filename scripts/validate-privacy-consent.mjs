@@ -79,9 +79,9 @@ assert.match(onboarding, /const \[birthYear, setBirthYear\] = useState<number \|
   'no birth year may be preselected');
 assert.match(onboarding, /const ageKnown = editing \|\| \(birthYear !== null/,
   'a picker position is still treated as a declared age');
-assert.match(onboarding, /if \(step !== 'goal' && !ageKnown\) return;/,
+assert.match(onboarding, /if \(!\['goal', 'why', 'obstacle'\]\.includes\(step\) && !ageKnown\) return;/,
   'a non-UI caller can advance past an undeclared age');
-assert.ok(onboarding.includes("disabled={(step === 'about' && !ageKnown)"),
+assert.ok(onboarding.includes("(step === 'about' && !ageKnown)"),
   'the combined about step allows an undeclared age through');
 assert.match(onboarding, /if \(step === 'about' && !editing && age < MINIMUM_AGE\) \{ setUnderage\(true\); return; \}/,
   'under-16 must stop at the friendly block before any consent or data processing');

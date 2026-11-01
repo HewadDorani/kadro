@@ -21,6 +21,7 @@ import { finishFirstRunOffer } from '@/services/firstRun';
 import { successHaptic } from '@/services/haptics';
 import { TRIAL_REMINDER_LEAD_DAYS, getReminderPermission, requestReminderPermission, type ReminderPermission } from '@/services/reminders';
 import { toBillingMode, trackEvent } from '@/services/telemetry';
+import { loadMotivation, type Motivation } from '@/services/motivation';
 import { markPaywallShown, markPurchaseStep } from '@/services/paywallExposure';
 import { loadWinBackOffer, type WinBackChoice } from '@/services/subscription';
 import { offerTerms } from '@/services/retention';
@@ -87,6 +88,13 @@ export default function PaywallScreen() {
     return () => { active = false; };
   }, []));
   const remindersAllowed = notifications === 'authorized' || notifications === 'quiet';
+  // The reason named in onboarding, kept on the device.
+  const [motivation, setMotivation] = useState<Motivation | null>(null);
+  useEffect(() => {
+    let active = true;
+    void loadMotivation().then(answers => { if (active) setMotivation(answers.motivation); });
+    return () => { active = false; };
+  }, []);
   const allowReminders = async () => {
     if (notifications === 'denied') { await Linking.openSettings().catch(() => undefined); return; }
     setNotifications(await requestReminderPermission());
@@ -224,7 +232,7 @@ export default function PaywallScreen() {
       : hardWall ? t.paywall.hardWallTitle
       : hard ? t.paywall.hardTitle : t.paywall.headline;
   const subtitle = blocked ? t.paywall.blockedSub
-    : hardWallOffer ? hardWallOffer.trialDays ? t.paywall.hardWallSubTrial(hardWallOffer.charge) : t.paywall.hardWallSub(hardWallOffer.charge)
+    : hardWallOffer ? hardWallOffer.trialDays ? [t.paywall.hardWallSubTrial(hardWallOffer.charge), remindersAllowed ? t.paywall.hardWallSubReminder : ''].filter(Boolean).join(' ') : t.paywall.hardWallSub(hardWallOffer.charge)
       : hardWall ? t.paywall.subtitle
       : hard ? t.paywall.hardSubtitle : t.paywall.subtitle;
 
@@ -320,6 +328,7 @@ export default function PaywallScreen() {
         <Text style={styles.eyebrow}>{t.paywall.eyebrow}</Text>
         <Text accessibilityRole="header" style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
+        {hardWall && motivation ? <Text style={styles.yourWhy}>{t.paywall.yourWhy[motivation]}</Text> : null}
 
         {winBackPlan && winBackTerms ? <View style={styles.winBack}>
           <Text style={styles.winBackEyebrow}>{t.retention.winBackEyebrow}</Text>
@@ -468,6 +477,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   eyebrow: { ...typeScale.caption, color: colors.accentText, fontWeight: '800', letterSpacing: 1.3, marginTop: 16 },
   title: { color: colors.text, fontSize: 36, lineHeight: 41, fontWeight: '700', letterSpacing: -1.2, textAlign: 'center', marginTop: 7 },
   subtitle: { ...typeScale.subhead, color: colors.muted, textAlign: 'center', maxWidth: 340, marginTop: 10 },
+  yourWhy: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700', textAlign: 'center', marginTop: 8 },
   keepsCard: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 18, borderRadius: radii.card, backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent, padding: 13 },
   keepsText: { ...typeScale.subhead, flex: 1, minWidth: 0, color: colors.text },
   benefits: { alignSelf: 'stretch', gap: 9, marginTop: 22 },

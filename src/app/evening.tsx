@@ -168,7 +168,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   heroCopy: { flex: 1, minWidth: 0, gap: 6 },
   headline: { ...typeScale.title1, color: colors.white, fontWeight: '700' },
-  badge: { width: 46, height: 46, borderRadius: 17, backgroundColor: 'rgba(187,220,142,0.16)', alignItems: 'center', justifyContent: 'center' },
+  badge: { width: 46, height: 46, borderRadius: 17, backgroundColor: colors.accentGlow, alignItems: 'center', justifyContent: 'center' },
   badgeAttention: { backgroundColor: 'rgba(200,155,75,0.18)' },
   numbersRow: { flexDirection: 'row', alignItems: 'center' },
   numberBlock: { flex: 1, minWidth: 0, gap: 4 },

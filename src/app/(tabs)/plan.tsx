@@ -3,7 +3,7 @@ import type { ThemeColors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ChainComboCard } from '@/components/ChainComboCard';
 import { PlanOptionCard, PlanOptionItem } from '@/components/PlanOptionCard';
@@ -14,12 +14,13 @@ import { getRecipe, hasRecipe } from '@/services/recipes';
 import { knownPreferences } from '@/services/preferences';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { recordRecommendationFeedback, recordRecommendationSet } from '@/services/cloudRepository';
-import { ChainCombo, chainComboSearchEntries, chainCombos } from '@/services/chainCombos';
+import { ChainCombo, chainComboSearchEntries, chainCombos, chainsWithOrders } from '@/services/chainCombos';
 import { recommendMeals } from '@/services/recommendations';
 import { useMarketRegion } from '@/services/region';
 import { ComboItem, ComboPortion, comboSearchEntries, productName, StoreId, supermarketCombos, SupermarketCombo, supermarketDataset } from '@/services/supermarketCombos';
 import { optionFits, SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
 import { trackEvent } from '@/services/telemetry';
+import { markUsage } from '@/services/usageSignals';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { MealContext, MealSuggestion, PortionFactor } from '@/types/nutrition';
 import { formatNumber } from '@/utils/format';
@@ -47,6 +48,10 @@ export default function PlanScreen() {
   const [portion, setPortion] = useState<PortionFactor>(1);
   const [logging, setLogging] = useState(false);
   const [loggedTitle, setLoggedTitle] = useState<string | null>(null);
+  // Ideas already shown in this context ("Andere Ideen"), and the chain filter of Unterwegs.
+  const [seen, setSeen] = useState<string[]>([]);
+  const [chainId, setChainId] = useState<string | null>(null);
+  const excluded = useMemo(() => new Set(seen), [seen]);
   const recordedSet = useRef('');
 
   useEffect(() => {
@@ -58,22 +63,26 @@ export default function PlanScreen() {
   const availableCalories = targets.calories - consumed.calories;
   const smallBudget = availableCalories < SMALL_MEAL_CALORIES;
   const suggestions = useMemo(
-    () => (selected ? recommendMeals(selected, remaining, profile.preferences) : []),
+    () => (selected ? recommendMeals(selected, remaining, profile.preferences, excluded) : []),
     // `language` picks the catalogue, and it arrives one render after the
     // device guess.
-    [language, profile.preferences, remaining, selected],
+    [excluded, language, profile.preferences, remaining, selected],
   );
   // Supermarkt shows real products. The dish catalogue stays the fallback if
   // the bundled product data ever cannot fill three baskets.
   const combos = useMemo(
-    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences, marketData.products) : []),
-    [marketData, profile.preferences, remaining, selected],
+    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences, marketData.products, excluded) : []),
+    [excluded, marketData, profile.preferences, remaining, selected],
   );
   const marketMode = selected === 'supermarket' && combos.length === 3;
   // Unterwegs shows real chains of the person's market (same region as Supermarkt);
   // the dish catalogue stays the fallback when a market or a diet leaves fewer than three orders.
   const orders = useMemo(
-    () => (selected === 'eating-out' ? chainCombos(remaining, { market: region, hour: new Date().getHours(), preferences: profile.preferences }) : []),
+    () => (selected === 'eating-out' ? chainCombos(remaining, { market: region, hour: new Date().getHours(), preferences: profile.preferences, chainId: chainId ?? undefined, exclude: excluded }) : []),
+    [chainId, excluded, profile.preferences, region, remaining, selected],
+  );
+  const chainChoices = useMemo(
+    () => (selected === 'eating-out' ? chainsWithOrders(remaining, { market: region, hour: new Date().getHours(), preferences: profile.preferences }) : []),
     [profile.preferences, region, remaining, selected],
   );
   const chainMode = selected === 'eating-out' && orders.length === 3;
@@ -172,6 +181,24 @@ export default function PlanScreen() {
     void selectionHaptic();
     setSelected(context);
     setChosen(null);
+    setSeen([]);
+    setChainId(null);
+  };
+
+  const chooseChain = (id: string | null) => {
+    void selectionHaptic();
+    setChainId(id);
+    setChosen(null);
+    setSeen([]);
+  };
+
+  /** Three new ideas. Once all were seen, the round starts again from the best ones. */
+  const refreshIdeas = () => {
+    void selectionHaptic();
+    markUsage('ideas_refreshed');
+    setChosen(null);
+    const shown = options.map((option) => option.id);
+    setSeen((current) => (shown.every((id) => current.includes(id)) ? shown : [...current, ...shown]));
   };
 
   const chooseMeal = (id: string) => {
@@ -294,8 +321,31 @@ export default function PlanScreen() {
               <Text style={styles.resultsTitle}>{t.plan.optionsTitle}</Text>
               <Text style={styles.resultsMeta}>{t.plan.optionsMeta(range('calories'), range('protein'))}</Text>
             </View>
-            <Ionicons color={colors.accentText} name="checkmark-done" size={24} />
+            <Pressable accessibilityRole="button" hitSlop={6} onPress={refreshIdeas} style={styles.refresh}>
+              <Ionicons color={colors.accentText} name="refresh" size={16} />
+              <Text style={styles.refreshText}>{t.plan.otherIdeas}</Text>
+            </Pressable>
           </View>
+
+          {chainChoices.length > 1 ? (
+            <ScrollView contentContainerStyle={styles.chainChips} horizontal showsHorizontalScrollIndicator={false}>
+              {[{ id: null as string | null, name: t.plan.allChains }, ...chainChoices].map((chain) => {
+                const active = chainId === chain.id;
+                return (
+                  <Pressable
+                    aria-checked={active}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                    key={chain.id ?? 'all'}
+                    onPress={() => chooseChain(chain.id)}
+                    style={[styles.chainChip, active && styles.chainChipActive]}
+                  >
+                    <Text style={[styles.chainChipText, active && styles.chainChipTextActive]}>{chain.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
 
           <Pressable
             accessibilityHint={t.plan.adaptedEditHint}
@@ -474,7 +524,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   balanceCard: { backgroundColor: colors.camera, borderColor: colors.camera, alignItems: 'flex-start', gap: 12 },
   balanceLabel: { ...typeScale.caption, color: 'rgba(255,255,255,0.62)', fontWeight: '800', letterSpacing: 1 },
   balanceValue: { ...typeScale.title2, color: colors.white, fontWeight: '700', marginTop: 5, fontVariant: ['tabular-nums'] },
-  proteinPill: { alignSelf: 'flex-start', backgroundColor: 'rgba(187,220,142,0.14)', borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  proteinPill: { alignSelf: 'flex-start', backgroundColor: colors.accentGlow, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
   proteinText: { ...typeScale.caption, color: colors.accent, fontWeight: '700' },
   contextList: { gap: 12 },
   contextCard: { minHeight: 84, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -493,6 +543,13 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   resultsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
   resultsTitle: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
   resultsMeta: { ...typeScale.caption, color: colors.muted, marginTop: 4 },
+  refresh: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  refreshText: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
+  chainChips: { gap: 8, paddingRight: 8 },
+  chainChip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  chainChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chainChipText: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
+  chainChipTextActive: { color: colors.onAccent },
   adapted: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radii.input, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 8 },
   adaptedText: { ...typeScale.footnote, color: colors.text, flex: 1 },
   adaptedEdit: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },

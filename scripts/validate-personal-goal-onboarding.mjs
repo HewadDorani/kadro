@@ -18,9 +18,10 @@ const personalization=load('src/services/personalization.ts',{'@/i18n/active':{g
 const base={...personalization.DEFAULT_PROFILE,age:29,goal:'lose',heightCm:178,weightKg:78,unitSystem:'metric',completedAt:null};
 const checks=[];
 async function test(name,run){await run();checks.push(name);console.log('PASS',name)}
-await test('first run: five steps; plan editing keeps target/preferences; strict calendar and optional fields',()=>{
- assert.deepEqual(goals.onboardingSteps(29,'lose'),['goal','about','body','activity','plan'],'first run skips the wish and preferences');
- for(const [age,goal] of [[16,'lose'],[29,'maintain'],[29,'gain']])assert.deepEqual(goals.onboardingSteps(age,goal),['goal','about','body','activity','plan']);
+await test('first run: every step, the wish only for adults with a weight goal; plan editing keeps target/preferences; strict calendar and optional fields',()=>{
+ const full=['goal','why','obstacle','about','body','activity','target','potential','preferences','rhythm','plan'];
+ for(const [age,goal] of [[29,'lose'],[29,'gain']])assert.deepEqual(goals.onboardingSteps(age,goal),full);
+ for(const [age,goal] of [[16,'lose'],[17,'gain'],[29,'maintain']])assert.deepEqual(goals.onboardingSteps(age,goal),full.filter(step=>step!=='target'),'no target weight below 18 or for maintain');
  assert.deepEqual(goals.onboardingSteps(29,'lose',true),['goal','about','body','activity','target','preferences','plan'],'editing reaches every step');
  for(const [age,goal] of [[14,'lose'],[17,'gain'],[29,'maintain']]){const steps=goals.onboardingSteps(age,goal,true);assert.equal(steps.length,6);assert.ok(!steps.includes('target'));assert.ok(steps.includes('preferences'))}
  for(const [date,valid] of [['2028-02-29',true],['2027-02-29',false],['2026-04-31',false],['2026-00-10',false],['2026-10-00',false],['2026-10-04',true],['04.10.2026',false],['2026-1-04',false],['2026-10-04T12:00:00Z',false]]) assert.equal(goals.isPersonalGoalDate(date),valid,date);
@@ -51,7 +52,7 @@ async function controller(profile=base,editing=false,drafts=draftStore()){
   useCallback(fn,deps){return this.useMemo(fn,deps)},
   useEffect(fn,deps){const index=cursor++;if(!same(slots[index]?.deps,deps)){slots[index]={deps};effects.push(fn)}}
  };react.useCallback=(fn,deps)=>react.useMemo(()=>fn,deps);
- const section=new Proxy({}, {get:(_,key)=>['step','paceGain','paceLose','dateMonths','dateChosen','paceWeeks','targetDiff','goalBy','decreaseUnit','increaseUnit'].includes(key)?(...args)=>`${key}:${args.join('/')}`:String(key)});
+ const section=new Proxy({}, {get:(_,key)=>['step','potentialDaily','planTitleNamed','paceGain','paceLose','dateMonths','dateChosen','paceWeeks','targetDiff','goalBy','decreaseUnit','increaseUnit'].includes(key)?(...args)=>`${key}:${args.join('/')}`:key==='rhythmSlots'||key==='whyEcho'?new Proxy({},{get:(_,id)=>String(id)}):['whyChoices','obstacleChoices'].includes(key)?new Proxy({},{get:(_,id)=>({label:String(id),detail:String(id),answer:String(id)})}):String(key)});
  const t={onboarding:section,common:section,access:section,portion:{decimalMark:'.'}};
  const jsx=(type,props)=>({type,props:props??{}});
  const source=process.env.KANDRO_ONBOARDING_BASELINE==='1'?execFileSync('git',['show','HEAD:src/app/onboarding.tsx'],{encoding:'utf8'}):read('src/app/onboarding.tsx');
@@ -68,10 +69,13 @@ async function controller(profile=base,editing=false,drafts=draftStore()){
   '@/i18n/LanguageProvider':{useLanguage:()=>({language:'de',locale:'de-DE',t})},
   '@/services/personalization':personalization,'@/services/personalGoal':goals,'@/services/onboardingDraft':drafts.mock,
   '@/services/firstRun':{setFirstRunStage:async stage=>stages.push(stage)},'@/services/hardWall':{startHardWallInstall:async()=>stages.push('hard-wall')},
+  '@/services/motivation':{MOTIVATIONS:['energy','health','feel','strength'],OBSTACLES:['time','ideas','out','stop'],saveMotivation:async()=>{}},
+  '@/services/reminders':{DEFAULT_SLOTS:{breakfast:{hour:8,minute:0},lunch:{hour:12,minute:30},dinner:{hour:18,minute:30}},enableRhythmReminders:async()=>({enabled:true,permission:'authorized'})},
+  '@/services/usageSignals':{markUsage(){}},
   '@/services/appAccess':{prepareAccessEnrollment:async confirmed=>enrolled.push(confirmed)},
   '@/services/telemetry':{trackEvent:(event,payload)=>events.push({event,...payload}),setAnalyticsCollectionEnabled:async v=>{analytics.push(v);return v}},
   '@/services/haptics':Object.fromEntries(['errorHaptic','selectionHaptic','stepHaptic','successHaptic'].map(k=>[k,async()=>{}])),
-  '@/utils/format':{formatNumber:String,formatDateParts:d=>d.toISOString().slice(0,10)},'@/utils/decimalInput':load('src/utils/decimalInput.ts'),'@/utils/units':units,'@/utils/date':{localDateKey:()=> '2026-10-04'},
+  '@/utils/format':{formatClockTime:()=>'12:30',formatNumber:String,formatDateParts:d=>d.toISOString().slice(0,10)},'@/utils/decimalInput':load('src/utils/decimalInput.ts'),'@/utils/units':units,'@/utils/date':{localDateKey:()=> '2026-10-04'},
  },source).default;
  const render=()=>{cursor=0;tree=screen();const pending=effects;effects=[];pending.forEach(fn=>fn());return tree};
  const nodes=(node=tree)=>{if(Array.isArray(node))return node.flatMap(n=>nodes(n));if(!node||typeof node!=='object')return[];if(node.type==='Modal'&&!node.props.visible)return[];return[node,...nodes(node.props.children??null)]};
@@ -79,19 +83,23 @@ async function controller(profile=base,editing=false,drafts=draftStore()){
  const has=(type,predicate=()=>true)=>nodes().some(n=>(typeof n.type==='function'?n.type.name:n.type)===type&&predicate(n.props));
  const step=()=>events.filter(e=>e.event==='setup step viewed').at(-1)?.step;
  const flush=async()=>{for(let i=0;i<6;i++)await Promise.resolve();await new Promise(r=>setTimeout(r,5));render();await new Promise(r=>setTimeout(r,5));render()};
- const next=async()=>{find('PrimaryButton',p=>p.icon==='arrow-forward').onPress();await flush()};
+ // The why and obstacle answers are required; these tests are about the steps around them.
+ const press=async()=>{find('PrimaryButton',p=>p.icon==='arrow-forward').onPress();await flush()};
+ const answer=async()=>{for(let guard=0;guard<4&&['why','obstacle'].includes(step());guard++){find('ChoiceList').onSelect(step()==='why'?'energy':'time');render();await press()}assert.ok(!['why','obstacle'].includes(step()),'an answered step must move on')};
+ const next=async()=>{await press();await answer()};
  render();await flush();
  return{sex:profile.sex,birthYear:1997,render,find,has,nodes,step,next,flush,saved,routes,grants,enrolled,stages,analytics,drafts,focus:async()=>{focus?.();await flush()},back:async()=>{find('Pressable',p=>p.accessibilityLabel==='back').onPress();await flush()}};
 }
 // Birth year and biological sex are explicit choices: nothing is preselected on "about".
+async function toConsent(c){for(let guard=0;guard<14&&!c.has('PrimaryButton',p=>p.label==='consentAccept');guard++){if(c.step()==='about')await through(c,['about']);else await c.next()}assert.ok(c.has('PrimaryButton',p=>p.label==='consentAccept'),'consent reached')}
 async function through(c,steps){for(const expected of steps){assert.equal(c.step(),expected);if(expected==='about'){const year=c.nodes().find(n=>n.type?.name==='BirthYearPicker'&&n.props.value===null);if(year){assert.equal(c.find('PrimaryButton',p=>p.icon==='arrow-forward').disabled,true,'birth year must be chosen');year.props.onChange(c.birthYear);c.render()}const sex=c.nodes().find(n=>n.type?.name==='Segmented'&&n.props.selected===null&&n.props.values.includes('female'));if(sex){assert.equal(c.find('PrimaryButton',p=>p.icon==='arrow-forward').disabled,true,'sex must be chosen');sex.props.onSelect(c.sex??'female');c.render()}}await c.next()}}
 await test('real screen: explicit birth year, manual next, five steps, defaults and consent boundary',async()=>{
  const c=await controller();assert.equal(c.step(),'goal');c.find('ChoiceList').onSelect('gain');c.render();assert.equal(c.step(),'goal','selection does not navigate');await c.next();assert.equal(c.step(),'about');
  assert.equal(c.find('PrimaryButton',p=>p.icon==='arrow-forward').disabled,true);await c.next();assert.equal(c.step(),'about','direct handler cannot bypass age');
  assert.equal(c.find('BirthYearPicker').value,null,'no year is preselected');assert.ok(!c.has('Pressable',p=>p.accessibilityRole==='checkbox'),'the old "I am 29" checkbox is gone');
- await through(c,['about','body','activity']);assert.equal(c.step(),'plan');await c.next();assert.equal(c.saved.length,0,'needs wellness consent');
+ await through(c,['about','body','activity','target','potential','preferences','rhythm']);assert.equal(c.step(),'plan');await c.next();assert.equal(c.saved.length,0,'needs wellness consent');
  c.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await c.flush();assert.equal(c.saved.length,1);
- const saved=c.saved[0];assert.equal(saved.age,29);assert.equal(saved.goal,'gain');assert.equal(saved.weeklyRateKg,0.25,'calm pace by default');assert.deepEqual(saved.preferences,['high-protein'],'"Proteinreich" by default');assert.equal(saved.targetWeightKg,null,'no target weight in the first run');assert.equal(saved.targetDate,null);
+ const saved=c.saved[0];assert.equal(saved.age,29);assert.equal(saved.goal,'gain');assert.equal(saved.weeklyRateKg,0.25,'calm pace by default');assert.deepEqual(saved.preferences,['high-protein'],'"Proteinreich" by default');assert.equal(saved.targetWeightKg,81,'the suggested wish is kept unless removed');assert.equal(saved.targetDate,'2026-12-27','its pace date comes with it');
  assert.deepEqual(c.enrolled,[true]);assert.deepEqual(c.stages,['hard-wall','scan'],'a fresh install joins the hard wall, then the first scan comes next');assert.deepEqual(c.routes,['/(tabs)/today']);assert.deepEqual(c.analytics,[],'analytics stay off unless chosen');
 });
 await test('real screen: plan editing keeps tap-only goal entry, date chips, validation, back retention, unit conversion',async()=>{
@@ -146,22 +154,22 @@ await test('real screen: under 16 is a friendly block with no consent, data or g
  d.find('PrimaryButton',p=>p.label==='underageFix').onPress();d.render();assert.equal(d.find('BirthYearPicker').value,null,'the year can be corrected');
 });
 await test('real screen: 16–17 get "Gesünder essen" and no deficit; underweight cannot choose to lose',async()=>{
- const c=await controller();c.birthYear=2009;await c.next();await through(c,['about','body']);await c.back();await c.back();await c.back();assert.equal(c.step(),'goal');
+ const c=await controller();c.birthYear=2009;await c.next();await through(c,['about','body']);await c.back();await c.back();await c.back();await c.back();await c.back();assert.equal(c.step(),'goal');
  const teenLose=c.find('ChoiceList').choices[0];assert.equal(teenLose.label,'goalLoseTeen');assert.equal(teenLose.detail,'goalLoseTeenDetail');
- await c.next();await through(c,['about','body','activity']);await c.next();c.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await c.flush();
+ await c.next();await toConsent(c);c.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await c.flush();
  assert.equal(c.saved[0].age,17);assert.equal(personalization.caloriePlan(c.saved[0]).requestedOffset,0,'teen: no deficit');assert.ok(!c.has('Switch'),'no analytics opt-in under 18');
  const u=await controller();await u.next();await through(u,['about']);assert.equal(u.step(),'body');
  u.find('WeightEntry').onChange(52);u.render();assert.ok(u.find('SafetyNotice').text==='underweightNotice','the reason is shown right away');
- await u.back();await u.back();assert.equal(u.step(),'goal');const lose=u.find('ChoiceList');assert.equal(lose.choices[0].disabled,true);assert.equal(lose.choices[0].detail,'underweightNotice');assert.equal(lose.selected,'maintain','falls back to maintain');
- await u.next();await through(u,['about','body','activity']);await u.next();u.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await u.flush();
+ await u.back();await u.back();await u.back();await u.back();assert.equal(u.step(),'goal');const lose=u.find('ChoiceList');assert.equal(lose.choices[0].disabled,true);assert.equal(lose.choices[0].detail,'underweightNotice');assert.equal(lose.selected,'maintain','falls back to maintain');
+ await u.next();await toConsent(u);u.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await u.flush();
  assert.equal(u.saved[0].goal,'maintain');assert.equal(personalization.caloriePlan(u.saved[0]).requestedOffset,0);
 });
 await test('real screen: progress survives an app kill and is cleared on completion',async()=>{
  const drafts=draftStore();const c=await controller(base,false,drafts);c.find('ChoiceList').onSelect('maintain');c.render();await c.next();c.birthYear=1990;await through(c,['about']);
  c.find('WeightEntry').onChange(83.5);c.render();await c.flush();assert.ok(drafts.values.size===1,'saved while answering');
  const resumed=await controller(base,false,drafts);assert.equal(resumed.step(),'body','the same step');assert.equal(resumed.find('WeightEntry').value,83.5);
- await resumed.back();await resumed.back();assert.equal(resumed.find('ChoiceList').selected,'maintain');await resumed.next();assert.equal(resumed.find('BirthYearPicker').value,1990);
- await through(resumed,['about','body','activity']);await resumed.next();resumed.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await resumed.flush();
+ await resumed.back();await resumed.back();await resumed.back();await resumed.back();assert.equal(resumed.find('ChoiceList').selected,'maintain');await resumed.next();assert.equal(resumed.find('BirthYearPicker').value,1990);
+ await toConsent(resumed);resumed.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await resumed.flush();
  assert.equal(resumed.saved[0].age,36);assert.equal(resumed.saved[0].weightKg,83.5);assert.equal(drafts.values.size,0,'cleared on completion');
  // A draft can never resume past the age gate without an allowed age.
  drafts.values.set('@kandro/onboarding-draft:v1',JSON.stringify({...JSON.parse(JSON.stringify({stepIndex:4,goal:'lose',displayName:'',sex:'female',sexChosen:true,unitSystem:'metric',birthYear:2012,hadBirthday:null,heightCm:170,weightKg:60,activityLevel:'light'}))}));
@@ -169,7 +177,7 @@ await test('real screen: progress survives an app kill and is cleared on complet
  assert.equal(drafts.mock.parseOnboardingDraft('{"stepIndex":"x"}'),null);assert.equal(drafts.mock.parseOnboardingDraft('nope'),null);
 });
 await test('real screen: adult consent sheet has an unselected analytics opt-in and legal links keep the sheet',async()=>{
- const c=await controller();await c.next();await through(c,['about','body','activity']);await c.next();
+ const c=await controller();await c.next();await toConsent(c);
  const toggle=c.find('Switch');assert.equal(toggle.value,false,'not preselected');assert.equal(toggle.accessibilityLabel,'analyticsOptIn');
  toggle.onValueChange(true);c.render();c.find('Pressable',p=>p.accessibilityRole==='button'&&p.accessibilityState?.expanded===false).onPress();c.render();
  c.find('Pressable',p=>p.accessibilityRole==='link'&&c.nodes().some(()=>true)&&String(p.onPress).includes('/privacy')).onPress();c.render();

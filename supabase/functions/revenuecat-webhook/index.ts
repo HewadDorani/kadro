@@ -165,6 +165,13 @@ async function handle(request: Request): Promise<Response> {
   if (error || !['applied', 'duplicate', 'stale', 'ignored_user'].includes(applied?.status)) {
     throw new Error('revenuecat_database_unavailable');
   }
+  // Why a trial ended is measurement: a failure here must not cost the event.
+  const { error: factsError } = await admin.from('revenuecat_webhook_events').update({
+    period_type: validated.event.periodType,
+    product_id: validated.event.productId,
+    cancel_reason: validated.event.cancelReason,
+  }).eq('event_id', validated.event.eventId);
+  if (factsError) console.error('revenuecat webhook failure', 'revenuecat_facts_not_saved');
   return json({ status: applied.status });
 }
 

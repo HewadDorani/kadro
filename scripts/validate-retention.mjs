@@ -350,6 +350,7 @@ function paywallScreen({ lapsed, choice }) {
   const snapshot = { configured: true, mode: 'native-store', plans: plans(null), customer: { ...retention.NO_CUSTOMER, lapsed } };
   const subscription = { status: 'ready', busy: false, error: null, snapshot, async purchase(id) { calls.push('purchase:' + id); return 'cancelled'; }, async purchaseOffer(offer) { calls.push(`offer:${offer.kind}:${offer.planId}:${offer.offer.identifier}`); return 'active'; }, async refresh() {}, async restore() { return 'none'; }, async syncTrialReminder() { return true; } };
   const screen = compile('src/app/paywall.tsx', {
+    '@/services/motivation': { loadMotivation: async () => ({ motivation: null, obstacle: null }) },
     react: h.react, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { ...rn, ActivityIndicator: 'Spinner', Animated: { Value: class { constructor(v) { this.v = v; } }, View: 'AnimatedView', timing: () => ({ start() {} }) }, BackHandler: { addEventListener: () => ({ remove() {} }) }, Linking: { openSettings: async () => {} }, useWindowDimensions: () => ({ fontScale: 1 }) },
     'expo-router': { Stack: { Screen: 'Stack' }, useFocusEffect(fn) { h.react.useEffect(fn, [fn]); }, useLocalSearchParams: () => ({}), useRouter: () => ({ replace() {}, push() {} }) },

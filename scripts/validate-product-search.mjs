@@ -194,7 +194,7 @@ function searchScreen({ local, productReply }) {
     useEffect(fn, deps) { const i = cursor++; if (!slots[i] || !same(slots[i].deps, deps)) { const old = slots[i]; slots[i] = { deps }; effects.push(() => { old?.cleanup?.(); slots[i].cleanup = fn(); }); } },
   };
   const fnKeys = new Set(['allowanceLeft', 'sourceBadgeLabel', 'lastAmount', 'productPackage', 'manualCta', 'pickedHint', 'saveAs', 'removePicked', 'deleteCustom', 'searchCount']);
-  const copy = new Proxy({}, { get: (_, key) => fnKeys.has(key) ? (...args) => `${String(key)}(${args.join(',')})` : String(key) });
+  const copy = new Proxy({}, { get: (_, key) => fnKeys.has(key) ? (...args) => `${String(key)}(${args.join(',')})` : key === 'noteChips' ? [] : String(key) });
   const colors = new Proxy({}, { get: () => '#fff' });
   const app = { descriptionInput: '', scanMode: 'demo', isCurrentScanLogged: false, scannedMeal: { id: 'initial' }, freeScansLeft: 3, hasEverLoggedScan: false, mealHistory: [], startDescriptionScan() {}, resetScan() {} };
   const jsx = (type, props) => ({ type, props });
@@ -214,6 +214,7 @@ function searchScreen({ local, productReply }) {
     '@/components/QuickAddForm': { QuickAddForm: 'QuickAddForm', isQuickAddResult: () => false },
     '@/services/localDescription': { parseLocalDescription: () => null },
     '@/services/telemetry': { trackEvent() {}, durationBucket: () => 'fast' },
+    '@/services/usageSignals': { markUsage() {}, markAppOpen() {}, markMealCaptured() {} },
     '@/context/ThemeContext': { useTheme: () => ({ colors }), useThemedStyles: fn => fn(colors) },
     '@/constants/theme': { radii: { pill: 22 }, typeScale: { micro: 12, caption: 13, compact: 15, body: 17, heading: 22, title: 32, display: 56 } },
     '@expo/vector-icons/Ionicons': 'Icon',

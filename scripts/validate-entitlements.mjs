@@ -92,6 +92,14 @@ const eventPayload = {
   },
 };
 assert.deepEqual(validateRevenueCatEvent(eventPayload, APP_ID).event.userIds, [USER_ID]);
+{
+  const facts = (extra) => validateRevenueCatEvent({ ...eventPayload, event: { ...eventPayload.event, ...extra } }, APP_ID).event;
+  const known = facts({ period_type: 'TRIAL', product_id: 'com.hewaddorani.kandro.pro.monthly', cancel_reason: 'BILLING_ERROR' });
+  assert.deepEqual([known.periodType, known.productId, known.cancelReason], ['TRIAL', 'com.hewaddorani.kandro.pro.monthly', 'BILLING_ERROR']);
+  // A term RevenueCat adds later must not fail the webhook: measurement only.
+  const unknown = facts({ period_type: 'NEW', product_id: 'p'.repeat(200), cancel_reason: 7 });
+  assert.deepEqual([unknown.periodType, unknown.productId, unknown.cancelReason], [null, null, null]);
+}
 assert.equal(validateRevenueCatEvent({
   ...eventPayload,
   event: { ...eventPayload.event, app_id: 'app_other' },
@@ -471,10 +479,10 @@ for (const name of [
   assert.match(gatewayEnv, new RegExp(`^${name}=`, 'm'), `${name} must be documented as an Edge secret`);
   assert.doesNotMatch(client + serverEntitlement + subscriptionContext + appContext + localRepository, new RegExp(`EXPO_PUBLIC_${name}`));
 }
-assert.match(client, /body: \{ imageBase64: input\.imageBase64, mimeType: input\.mimeType, language: input\.language, locale: input\.locale, requestId, ingredientCorrection: 1, captureProtocol: 2, estimates: 1 \}/);
+assert.match(client, /body: \{ imageBase64: input\.imageBase64, mimeType: input\.mimeType, language: input\.language, locale: input\.locale, requestId, ingredientCorrection: 1, captureProtocol: 2, estimates: 1, \.\.\.\(note\.trim\(\)/);
 assert.match(client, /description: description\.trim\(\)[\s\S]*requestId/);
 assert.match(appContext, /analyzeDescription\(descriptionInput, invocationScanId\)/);
-assert.match(appContext, /analyzePreparedPhoto\(input!, invocationScanId\)/);
+assert.match(appContext, /analyzePreparedPhoto\(input!, invocationScanId, /);
 assert.match(localRepository, /isAnalysisRequestId\(job\.id\)[\s\S]*newAnalysisRequestId\(\)/);
 assert.match(serverEntitlement, /\/nutrition\/v1\/entitlement\/refresh/);
 assert.match(serverEntitlement, /Authorization: `Bearer \$\{access\.accessToken\}`/);

@@ -57,7 +57,7 @@ Do not upgrade Expo, React, React Native, Expo Router, or other native packages 
 - The recommendation screen returns exactly three contextual options for Zuhause, Supermarkt, or Unterwegs.
 - Meal photos are temporary by default. Do not persist or upload originals without an explicit privacy decision and deletion policy.
 - Keep the central Scan action visually dominant and available from the primary navigation.
-- Preserve the Kandro visual system: `#F5F3EE` canvas, white surfaces, `#14150F` ink, `#6E7066` muted text, `#E4E2D9` hairlines, `#BBDC8E` pistachio, `#3F5233` moss, 18px cards, system typography, no gradients, and no glassmorphism.
+- Preserve the Kandro visual system: `#F5F3EE` canvas, white surfaces, `#14150F` ink, `#6E7066` muted text, `#E4E2D9` hairlines, `#BBDC8E` pistachio, `#3F5233` moss, 18px cards, system typography, no gradients, and no glassmorphism. An optional Rosé accent under Du → Darstellung is an owner decision (01.11.2026); pistachio stays the default.
 - `#EFF6E3` accent tint is reserved for recommendation surfaces. Pistachio fill may be used for the central scan action, progress, and selected controls.
 - The only shadow belongs to the central Scan button.
 

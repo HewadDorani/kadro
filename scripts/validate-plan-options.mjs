@@ -115,6 +115,10 @@ for (const lang of ['de', 'en']) {
               if (catalogBreaks(byId.get(option.id), preference)) problems.push(`${context} [${preferences}]: "${byId.get(option.id).title}" breaks ${preference}`);
             }
           }
+          // "Andere Ideen": three new ideas, and never fewer than three however much was seen.
+          const fresh = recommendMeals(context, remaining, preferences, new Set(options.map((option) => option.id)));
+          if (fresh.length !== 3) problems.push(`${lang} ${context} [${preferences}] ${calories} kcal: refresh gave ${fresh.length} options`);
+          if (byId.size > 6 && fresh.filter((option) => !options.some((old) => old.id === option.id)).length === 0 && options.length === 3 && [...byId.values()].filter((entry) => entry.context === context).length > 40 && preferences.length === 0) problems.push(`${lang} ${context} ${calories} kcal: refresh showed the same three ideas`);
           checked += 1;
         }
         if (lang === 'de') {

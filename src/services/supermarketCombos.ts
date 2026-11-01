@@ -308,6 +308,8 @@ export function supermarketCombos(
   remaining: Nutrition,
   preferences: string[] = [],
   products: SupermarketProduct[] = SUPERMARKET_DATA.products,
+  /** Baskets already shown ("Andere Ideen"). Ignored once too few are left. */
+  exclude: ReadonlySet<string> = new Set(),
 ): SupermarketCombo[] {
   const budget = comboBudget(remaining);
   const pool = allCandidates(products).filter((candidate) => matchesPreferences(candidate.product, preferences) && candidate.calories <= budget.max);
@@ -326,7 +328,9 @@ export function supermarketCombos(
       const current = bestByProduct.get(anchor.product.id);
       if (!current || best.score < current.score) bestByProduct.set(anchor.product.id, best);
     }
-    return [...bestByProduct.values()].sort((a, b) => a.score - b.score || comboId(a.items).localeCompare(comboId(b.items)));
+    return [...bestByProduct.values()]
+      .filter((entry) => !exclude.has(comboId(entry.items)))
+      .sort((a, b) => a.score - b.score || comboId(a.items).localeCompare(comboId(b.items)));
   };
 
   const pick = (ranked: Scored[], chosen: Scored[] = []) => {
@@ -354,6 +358,7 @@ export function supermarketCombos(
   // Very small budgets or strict preferences can leave fewer than three
   // protein anchors; then any fitting product may lead a basket.
   if (chosen.length < 3) chosen = pick(rank(true), chosen);
+  if (chosen.length < 3 && exclude.size) return supermarketCombos(remaining, preferences, products);
 
   return chosen.map((entry) => ({
     id: comboId(entry.items),

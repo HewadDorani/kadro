@@ -10,6 +10,8 @@ export const lightColors = {
   accentSoft: '#EFF6E3',
   accentDeep: '#3F5233',
   accentText: '#3F5233',
+  /** The accent as a faint wash on the dark camera and hero surfaces. */
+  accentGlow: 'rgba(187,220,142,0.14)',
   neutralSoft: '#F0EFE9',
   success: '#3F5233',
   successSoft: '#F0F1EC',
@@ -42,6 +44,7 @@ export const darkColors: ThemeColors = {
   accentSoft: '#202A1C',
   accentDeep: '#3F5233',
   accentText: '#BBDC8E',
+  accentGlow: 'rgba(187,220,142,0.14)',
   neutralSoft: '#22251F',
   success: '#BBDC8E',
   successSoft: '#1C281B',
@@ -58,6 +61,19 @@ export const darkColors: ThemeColors = {
   macroCarbs: '#E5BA5E',
   macroFat: '#DE937A',
 };
+
+/**
+ * Optional accent under Du → Darstellung (owner decision 01.11.2026). It only
+ * swaps the accent family; canvas, ink, macros and all structure stay the same.
+ * Text tones keep 4.5:1 or better on their surfaces.
+ */
+export type AccentChoice = 'pistachio' | 'rose';
+const roseLight = { accent: '#F2B8C6', accentSoft: '#FBEEF1', accentDeep: '#7A3350', accentText: '#7A3350', accentGlow: 'rgba(242,184,198,0.14)', success: '#7A3350', successSoft: '#F6EEF0' };
+const roseDark = { accent: '#F2B8C6', accentSoft: '#2E1F25', accentDeep: '#7A3350', accentText: '#F2B8C6', accentGlow: 'rgba(242,184,198,0.14)', success: '#F2B8C6', successSoft: '#2A1C21' };
+export function themeColors(mode: 'light' | 'dark', accent: AccentChoice): ThemeColors {
+  const base = mode === 'dark' ? darkColors : lightColors;
+  return accent === 'rose' ? { ...base, ...(mode === 'dark' ? roseDark : roseLight) } : base;
+}
 
 /**
  * The first launch follows the system appearance. Screens subscribe to

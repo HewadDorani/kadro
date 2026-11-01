@@ -45,7 +45,7 @@ const LANGUAGE_OPTIONS: { value: Language; label: string }[] = [
 ];
 
 export default function ProfileScreen() {
-  const { colors, preference: themePreference, setPreference: setThemePreference } = useTheme();
+  const { accent, colors, preference: themePreference, setAccent, setPreference: setThemePreference } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { hydrationReady, mealHistory, profile, setUnitSystem, targets, userName } = useApp();
@@ -264,6 +264,12 @@ export default function ProfileScreen() {
           <View style={styles.languageChoice}>
             {(['system', 'light', 'dark'] as const).map((choice) => <Pressable key={choice} aria-checked={themePreference === choice} accessibilityLabel={t.profile[choice]} accessibilityRole="radio" accessibilityState={{ checked: themePreference === choice }} onPress={() => setThemePreference(choice)} style={[styles.languageOption, themePreference === choice && styles.languageOptionActive]}>
               <Text numberOfLines={1} style={[styles.languageLabel, themePreference === choice && styles.languageLabelActive]}>{t.profile[choice]}</Text>
+            </Pressable>)}
+          </View>
+          <SettingsRow detail={t.profile.accentDetail} icon="color-palette-outline" label={t.profile.accent} />
+          <View style={styles.languageChoice}>
+            {(['pistachio', 'rose'] as const).map((choice) => <Pressable key={choice} aria-checked={accent === choice} accessibilityLabel={t.profile.accentNames[choice]} accessibilityRole="radio" accessibilityState={{ checked: accent === choice }} onPress={() => setAccent(choice)} style={[styles.languageOption, accent === choice && styles.languageOptionActive]}>
+              <Text numberOfLines={1} style={[styles.languageLabel, accent === choice && styles.languageLabelActive]}>{t.profile.accentNames[choice]}</Text>
             </Pressable>)}
           </View>
         </Card>

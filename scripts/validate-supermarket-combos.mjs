@@ -233,7 +233,7 @@ for (const brand of ['great-value', 'kirkland-signature', 'tesco-finest', 'taste
 }
 const plan = read('src/app/(tabs)/plan.tsx');
 assert.match(plan, /t\.plan\.marketAttribution\(/, 'Plan renders the product data attribution');
-assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, marketData\.products\)/, 'Plan uses the dataset of the shopping region');
+assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, marketData\.products, excluded\)/, 'Plan uses the dataset of the shopping region');
 assert.match(plan, /startPlannedDraft\(comboSearchEntries\(/, '"Das hole ich mir" prefills the confirm screen');
 assert.match(plan, /router\.push\('\/confirm'\)/);
 const notices = read('THIRD_PARTY_NOTICES.md');

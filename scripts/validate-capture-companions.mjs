@@ -220,7 +220,7 @@ function scanScreenHarness() {
   };
   app.startDescriptionScan = app.startDescriptionScan.bind(app); app.resetScan = app.resetScan.bind(app);
   const colors = new Proxy({}, { get: () => '#fff' });
-  const copy = new Proxy({}, { get: (_, key) => key === 'allowanceLeft' ? () => '' : String(key) });
+  const copy = new Proxy({}, { get: (_, key) => key === 'allowanceLeft' ? () => '' : key === 'noteChips' ? [] : String(key) });
   const jsx = (type, props) => ({ type, props });
   const rn = Object.fromEntries(['ActivityIndicator','KeyboardAvoidingView','Modal','Pressable','ScrollView','Text','TextInput','View'].map(key => [key, key]));
   const screen = compile('src/app/(tabs)/scan.tsx', {
@@ -236,6 +236,7 @@ function scanScreenHarness() {
     '@/components/QuickAddForm': { QuickAddForm: 'QuickAddForm', isQuickAddResult: () => false },
     '@/services/localDescription': { parseLocalDescription: () => null },
     '@/services/telemetry': { trackEvent() {}, durationBucket: () => 'fast' },
+    '@/services/usageSignals': { markUsage() {}, markAppOpen() {}, markMealCaptured() {} },
     '@/context/ThemeContext': { useTheme: () => ({ colors }), useThemedStyles: fn => fn(colors) },
     '@/constants/theme': { radii: { pill: 22 }, typeScale: { micro: 12, caption: 13, compact: 15, body: 17, heading: 22, title: 32, display: 56 } },
     '@expo/vector-icons/Ionicons': 'Icon',

@@ -60,6 +60,7 @@ const sync = load('src/services/syncRepository.ts', {
   '@/services/supabaseClient': { getCurrentSessionUserId: async () => 'one' },
   '@/services/cloudRepository': { saveCloudMeal: async () => { if (cloudFail) throw Error('network'); return true; } },
   '@/services/telemetry': { trackEvent: (name, props) => events.push({ name, props }), captureOperationalError: () => {} },
+  '@/services/usageSignals': { markUsage() {}, markAppOpen() {}, markMealCaptured() {} },
   '@/services/mockNutrition': {}, '@/services/personalization': {}, '@/utils/date': { localDateKey: () => '2026-09-18' },
 });
 await Promise.all([sync.saveSyncedMeal(meal('canonical'), 'search'), sync.saveSyncedMeal(meal('canonical'), 'search')]);

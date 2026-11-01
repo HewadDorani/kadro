@@ -18,7 +18,7 @@ export type ScreenName = 'today' | 'plan' | 'scan' | 'progress' | 'profile' | 'o
 type AnalyticsEventMap = {
   'app active': { entry: 'launch' | 'foreground' | 'opt_in' };
   'screen viewed': { screen: ScreenName };
-  'setup step viewed': { step: 'about' | 'body' | 'target' | 'goal' | 'name' | 'sex' | 'age' | 'rate' | 'height' | 'weight' | 'activity' | 'preferences' | 'building' | 'plan'; editing: boolean };
+  'setup step viewed': { step: 'about' | 'body' | 'target' | 'goal' | 'name' | 'sex' | 'age' | 'rate' | 'height' | 'weight' | 'activity' | 'preferences' | 'building' | 'plan' | 'why' | 'obstacle' | 'potential' | 'rhythm'; editing: boolean };
   'introduction step viewed': { step: 1 | 2 | 3 | 4 | 5 };
   'introduction exited': { completed: boolean };
   'food search started': Record<string, never>;
@@ -130,7 +130,7 @@ const propertyValues: Record<string, readonly unknown[]> = {
   experiment: ['paywall_access_v1'], variant: ['A', 'B'], environment: ['production'], cohort_source: ['public'], access_version: ['v1'], purchase_kind: ['trial', 'paid'],
   entry: ['launch', 'foreground', 'opt_in'],
   screen: ['today', 'plan', 'scan', 'progress', 'profile', 'onboarding', 'data-consent', 'analyzing', 'confirm', 'correct-food', 'result', 'paywall', 'privacy', 'terms', 'account-deletion', 'evening', 'sources', 'recipe', 'index'],
-  step: ['goal', 'name', 'sex', 'age', 'rate', 'height', 'weight', 'activity', 'preferences', 'building', 'plan', 1, 2, 3, 4, 5],
+  step: ['goal', 'name', 'sex', 'age', 'rate', 'height', 'weight', 'activity', 'preferences', 'building', 'plan', 'why', 'obstacle', 'potential', 'rhythm', 1, 2, 3, 4, 5],
   editing: [true, false], completed: [true, false], granted: [true, false],
   completion: ['finished', 'skipped'],
   source: ['camera', 'demo', 'queued_retry', 'description', 'barcode', 'search', 'recommendation', 'repeat', 'edit'],

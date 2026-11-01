@@ -17,6 +17,7 @@ import { PortionFactor } from '@/types/nutrition';
 import { formatNumber } from '@/utils/format';
 import { formatItemAmount, initialSelection, itemNutritionPer100g, servingOnlyAmount } from '@/utils/portions';
 import { canSaveMealDraft, needsIngredientCorrection } from '@/utils/ingredientCorrection';
+import { foodByBlsCode } from '@/services/foodSuggest';
 import { FoodSearchResult, searchIngredientReplacement } from '@/services/mealAnalysis';
 import { milkCorrectionQuery } from '@/utils/foodCorrectionQuery';
 import { MealItem } from '@/types/nutrition';
@@ -25,11 +26,45 @@ import { FavoriteToggle } from '@/components/FavoriteToggle';
 import { useToast } from '@/components/Toast';
 import { draftConfidence } from '@/utils/confidence';
 
+/** BLS codes behind the one-tap answers: the numbers come from the database, never from the question. */
+const CLARIFY_FOODS = {
+  cooking_fat: [{ code: 'Q180000', grams: 5 }, { code: 'Q180000', grams: 10 }, { code: 'Q611000', grams: 12 }],
+  dressing: [{ code: 'Q120000', grams: 10 }, { code: 'X359912', grams: 30 }],
+} as const;
+
+/** One question a photo cannot answer. Free and instant: the answer joins the meal as a normal, editable ingredient. */
+function ClarifyCard({ kind, onAnswer }: { kind: 'cooking_fat' | 'dressing'; onAnswer: (food: { result: FoodSearchResult; grams: number } | null) => void }) {
+  const styles = useThemedStyles(makeStyles);
+  const { t } = useLanguage();
+  const copy = t.confirm.clarify[kind];
+  const choose = (index: number | null) => {
+    void successHaptic();
+    const food = index === null ? null : CLARIFY_FOODS[kind][index];
+    const result = food ? foodByBlsCode(food.code) : null;
+    onAnswer(result && food ? { result, grams: food.grams } : null);
+  };
+  return (
+    <Card style={styles.clarifyCard}>
+      <Text accessibilityRole="header" style={styles.clarifyTitle}>{copy.question}</Text>
+      <View style={styles.clarifyChips}>
+        {copy.options.map((label, index) => (
+          <Pressable accessibilityRole="button" key={label} onPress={() => choose(index)} style={styles.clarifyChip}>
+            <Text style={styles.clarifyChipText}>{label}</Text>
+          </Pressable>
+        ))}
+        <Pressable accessibilityRole="button" onPress={() => choose(null)} style={styles.clarifyChip}>
+          <Text style={styles.clarifyChipText}>{copy.none}</Text>
+        </Pressable>
+      </View>
+    </Card>
+  );
+}
+
 export default function ConfirmScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { analysisMessage, autoMatchedItemIds, detectedItems, mealPortion, photoUri, portionEstimated, removeDetectedItem, replaceDetectedItem, scanMode, scannedMeal, scanTarget, setItemAmount, setMealPortion, setPlannedMealDate, setPlannedMealType } = useApp();
+  const { analysisMessage, answerClarify, autoMatchedItemIds, detectedItems, draftClarify, mealPortion, photoUri, portionEstimated, removeDetectedItem, replaceDetectedItem, scanMode, scannedMeal, scanTarget, setItemAmount, setMealPortion, setPlannedMealDate, setPlannedMealType } = useApp();
   const [amountFor, setAmountFor] = useState<string | null>(null);
   const [preferGrams, setPreferGrams] = useState(false);
   const [removeFor, setRemoveFor] = useState<string | null>(null);
@@ -116,6 +151,8 @@ export default function ConfirmScreen() {
           type={scanTarget.type}
         />
       ) : null}
+
+      {draftClarify ? <ClarifyCard kind={draftClarify} onAnswer={answerClarify} /> : null}
 
       {/* "Amount unclear" is not an error: the typical portion is prefilled
           and one tap opens it. */}
@@ -401,6 +438,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   detectedChipTextOff: { color: colors.muted, textDecorationLine: 'line-through' },
   listCard: { padding: 8 },
   portionCard: { gap: 16 },
+  clarifyCard: { gap: 12, backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  clarifyTitle: { ...typeScale.headline, color: colors.text },
+  clarifyChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  clarifyChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  clarifyChipText: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   ingredientCard: { gap: 10 },
   ingredientActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ingredientAction: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', borderRadius: 12, backgroundColor: colors.neutralSoft },

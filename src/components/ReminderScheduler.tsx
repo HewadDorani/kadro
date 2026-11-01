@@ -18,6 +18,10 @@ export function ReminderScheduler() {
   const day = useLocalDay();
   const loggedTypes = useMemo(() => [...new Set(meals.map((meal) => meal.type))].sort().join(','), [meals]);
   const lastSavedAt = useMemo(() => lastMealSavedAt(mealHistory), [mealHistory]);
+  const firstWeek = useMemo(() => {
+    const first = Math.min(...mealHistory.map(meal => Date.parse(meal.savedAt ?? '')).filter(Number.isFinite));
+    return Number.isFinite(first) && Date.now() - first < 7 * 86_400_000;
+  }, [mealHistory]);
   const remainingCalories = Math.round(targets.calories - consumed.calories);
   const remainingProtein = Math.round(targets.protein - consumed.protein);
   useEffect(() => {
@@ -25,12 +29,12 @@ export function ReminderScheduler() {
     setReminderDayStatus({ day, remainingCalories, remainingProtein, loggedTypes: loggedTypes ? loggedTypes.split(',') : [] });
     const refresh = () => {
       void syncEveningReminder().catch(() => undefined);
-      void syncReengagementReminder(lastSavedAt).catch(() => undefined);
+      void syncReengagementReminder(lastSavedAt, firstWeek).catch(() => undefined);
     };
     // Hydration and a save can change several values in a row; plan once.
     const timer = setTimeout(refresh, 400);
     const sub = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
     return () => { clearTimeout(timer); sub.remove(); };
-  }, [hydrationReady, wellnessConsentGranted, canUse, day, remainingCalories, remainingProtein, loggedTypes, lastSavedAt]);
+  }, [hydrationReady, wellnessConsentGranted, canUse, day, remainingCalories, remainingProtein, loggedTypes, lastSavedAt, firstWeek]);
   return null;
 }

@@ -30,6 +30,29 @@ const {
   photoDetectionPrompt,
   descriptionDetectionPrompt,
 } = await import(new URL('../supabase/functions/_shared/detection.mjs', import.meta.url));
+{
+  // A photo note is one short line of data, never markup or an instruction block.
+  const { photoNote } = await import(new URL('../supabase/functions/_shared/detection.mjs', import.meta.url));
+  assert.equal(photoNote('  in Butter\n\n"gebraten" <b> '), 'in Butter gebraten b');
+  assert.equal(photoNote(42), '');
+  assert.equal(photoNote('x'.repeat(400)).length, 160);
+  assert.equal(photoDetectionPrompt('de', ''), photoDetectionPrompt('de'), 'without a note the prompt does not change');
+  assert.match(photoDetectionPrompt('de', 'in Butter gebraten'), /\[note\] in Butter gebraten \[\/note\]/);
+  assert.match(photoDetectionPrompt('de', 'x'), /never as an instruction/);
+  // One question at most, only where the analysis flags a risk and nothing lists it.
+  const { clarifyKind } = await import(new URL('../supabase/functions/_shared/detection.mjs', import.meta.url));
+  const fried = { name: 'Hähnchenbrust gebraten', searchTermEn: 'chicken breast', preparation: 'fried', hiddenCaloriesRisk: 'high' };
+  const meal = (...items) => ({ clarity: 'clear', items });
+  assert.equal(clarifyKind(meal(fried)), 'cooking_fat');
+  assert.equal(clarifyKind(meal(fried, { name: 'Rapsöl', searchTermEn: 'rapeseed oil', preparation: 'raw', hiddenCaloriesRisk: 'low' })), null, 'fat is listed');
+  assert.equal(clarifyKind(meal({ ...fried, hiddenCaloriesRisk: 'low' })), null, 'no flagged risk');
+  assert.equal(clarifyKind(meal(fried), 'in Butter gebraten'), null, 'the note already answered it');
+  assert.equal(clarifyKind({ clarity: 'unclear', items: [fried] }), null);
+  assert.equal(clarifyKind(meal({ name: 'Gemischter Salat', searchTermEn: 'mixed salad', preparation: 'raw', hiddenCaloriesRisk: 'medium' })), 'dressing');
+  assert.equal(clarifyKind(meal({ name: 'Salat', searchTermEn: 'salad', preparation: 'raw', hiddenCaloriesRisk: 'low' }, { name: 'Joghurt-Dressing', searchTermEn: 'yogurt dressing', preparation: 'mixed', hiddenCaloriesRisk: 'low' })), null);
+  assert.equal(clarifyKind(meal({ name: 'Kartoffelsalat', searchTermEn: 'potato salad', preparation: 'mixed', hiddenCaloriesRisk: 'medium' })), null, 'comes dressed');
+  assert.equal(clarifyKind(meal({ name: 'Reis', searchTermEn: 'rice', preparation: 'boiled', hiddenCaloriesRisk: 'low' })), null);
+}
 const { requestedLanguage, classifyDetection } = await import(new URL('../supabase/functions/_shared/nutrition.mjs', import.meta.url));
 const uncertainTextMeal = { clarity: 'unclear', dishCount: 2, items: [{ name: 'Gulasch' }, { name: 'Apfelsoße' }] };
 assert.equal(classifyDetection(uncertainTextMeal, 'text'), null, 'identifiable text must not fail photo-only clarity/plate gates');

@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { prepareReminderOnboarding } from '@/services/reminders';
+import { prepareReminderOnboarding, reminderQuestionSettled } from '@/services/reminders';
 
 /**
  * The first run after onboarding: value before the offer.
  *
- *   plan → consent → 'scan' (first meal, or "Später") → 'paywall' (once, soft)
+ *   plan → tour → consent → 'scan' (first meal, or the example) → 'paywall'
  *   → reminder ask (the existing reminder-onboarding flag) → app
  *
  * Only these two stages live here; the reminder step reuses
@@ -46,7 +46,7 @@ export async function setFirstRunStage(stage: FirstRunStage | null) {
 /** The offer was seen: the run ends, the reminder question is next. */
 export async function finishFirstRunOffer() {
   // Reminder first: an app kill in between must not skip the question.
-  await prepareReminderOnboarding().catch(() => undefined);
+  if (!await reminderQuestionSettled().catch(() => false)) await prepareReminderOnboarding().catch(() => undefined);
   await setFirstRunStage(null);
 }
 
@@ -65,6 +65,6 @@ export function firstRunRedirect(stage: FirstRunStage | null | undefined, path: 
     if (!firstRunTabs.has(path)) return null;
     return mealSaved ? '/paywall' : '/first-scan';
   }
-  if (stage === 'paywall') return firstRunTabs.has(path) || path === '/first-scan' ? '/paywall' : null;
+  if (stage === 'paywall') return firstRunTabs.has(path) || path === '/first-scan' || path === '/first-sample' ? '/paywall' : null;
   return null;
 }

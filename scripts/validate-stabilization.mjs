@@ -299,6 +299,7 @@ await test('Account switch during delete ownership lookup prevents local deletio
   let generation = 0, calls = 0; const gate = deferred(), started = deferred();
   const sync = load('src/services/syncRepository.ts', {
     '@/services/telemetry': { trackEvent() {}, captureOperationalError() {} },
+    '@/services/usageSignals': { markUsage() {}, markAppOpen() {}, markMealCaptured() {} },
     '@/services/cloudRepository': { deleteCloudMeal: async () => false },
     '@/services/appAccess': { authorizeMealCreate: async () => undefined }, '@/services/hardWall': { markHardWallUsed: async () => undefined },
   '@/services/localRepository': { getLocalDataGeneration: () => generation, loadLocalAccountSwitch: async () => null, deleteMeal: async () => { calls++; return []; } },

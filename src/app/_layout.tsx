@@ -64,6 +64,7 @@ function ThemedRootLayout() {
               <Stack.Screen name="data-consent" />
               <Stack.Screen name="reminder-setup" />
               <Stack.Screen name="first-scan" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="first-sample" />
               <Stack.Screen name="capture" />
               <Stack.Screen name="access-setup" />
               <Stack.Screen name="account-help" />

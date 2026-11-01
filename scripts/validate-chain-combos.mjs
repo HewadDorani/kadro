@@ -124,7 +124,7 @@ for (const market of MARKETS) {
 }
 
 // --- 2. Engine ----------------------------------------------------------------
-const { chainCombos, chainComboSearchEntries, orderCounts, CHAIN_DATA } = load('src/services/chainCombos.ts');
+const { chainCombos, chainsWithOrders, chainComboSearchEntries, orderCounts, CHAIN_DATA } = load('src/services/chainCombos.ts');
 const { comboBudget } = load('src/services/supermarketCombos.ts');
 const { DIET_PREFERENCES } = load('src/services/preferences.ts');
 for (const market of MARKETS) assert.equal(CHAIN_DATA[market].market, market, `CHAIN_DATA.${market} is the ${market} file`);
@@ -199,6 +199,16 @@ for (const market of MARKETS) {
   // The headline promise: "Noch 650 kcal → Subway … → 410 kcal · 30 g Protein".
   const lunch = chainCombos({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [] });
   if (!lunch.some((combo) => combo.protein >= 25)) problems.push(`${market}: no protein-rich order for 650 kcal at lunch`);
+  // "Andere Ideen" brings new orders, the chain filter stays inside its chain, and both keep the set at three.
+  const shownFirst = chainCombos({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [] });
+  const refreshed = chainCombos({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [], exclude: new Set(shownFirst.map((combo) => combo.id)) });
+  if (refreshed.length !== 3 || refreshed.some((combo) => shownFirst.some((old) => old.id === combo.id))) problems.push(`${market}: refreshing does not bring three new orders`);
+  const everything = chainCombos({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [], exclude: new Set(['x']) });
+  if (everything.length !== 3) problems.push(`${market}: excluding must never drop below three orders`);
+  for (const chain of chainsWithOrders({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [] })) {
+    const only = chainCombos({ calories: 650, protein: 60, carbs: 90, fat: 30 }, { market, hour: 13, preferences: [], chainId: chain.id });
+    if (only.length !== 3 || only.some((combo) => combo.chain.id !== chain.id)) problems.push(`${market}: filter ${chain.id} leaves its chain`);
+  }
   // Breakfast shows up in the morning where the market has it.
   const morning = [450, 650].flatMap((calories) => chainCombos({ calories, protein: 60, carbs: 90, fat: 30 }, { market, hour: 8, preferences: [] }));
   if (data.items.some((item) => item.tags.includes('breakfast')) && !morning.some((combo) => combo.items.some((entry) => entry.item.tags.includes('breakfast')))) {
@@ -249,7 +259,7 @@ if (threeTotal && threeChains / threeTotal < 0.9) problems.push(`only ${threeCha
 
 // --- 3. Wiring ----------------------------------------------------------------
 const plan = read('src/app/(tabs)/plan.tsx');
-if (!/chainCombos\(remaining, \{ market: region, hour: new Date\(\)\.getHours\(\), preferences: profile\.preferences \}\)/.test(plan)) problems.push('Plan does not ask for chain orders by region, hour and preferences');
+if (!/chainCombos\(remaining, \{ market: region, hour: new Date\(\)\.getHours\(\), preferences: profile\.preferences, chainId: chainId \?\? undefined, exclude: excluded \}\)/.test(plan)) problems.push('Plan does not ask for chain orders by region, hour and preferences');
 if (!/const chainMode = selected === 'eating-out' && orders\.length === 3;/.test(plan)) problems.push('Plan must fall back to the catalogue unless there are exactly three chain orders');
 if (!/<ChainComboCard\b/.test(plan) || !/startPlannedDraft\(chainComboSearchEntries\(/.test(plan)) problems.push('Plan does not render ChainComboCard or open the confirm draft');
 if (!/useMarketRegion\(\)/.test(plan)) problems.push('Plan does not follow the market region');

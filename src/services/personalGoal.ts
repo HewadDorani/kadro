@@ -1,16 +1,21 @@
 import type { NutritionGoal, UserProfile } from '@/types/nutrition';
 
 export const ONBOARDING_STEPS = ['goal', 'about', 'body', 'activity', 'target', 'preferences', 'plan'] as const;
-export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
+/** First run only: they build the reason to stay, they are not plan settings. */
+export type FirstRunOnlyStep = 'why' | 'obstacle' | 'potential' | 'rhythm';
+export type OnboardingStep = (typeof ONBOARDING_STEPS)[number] | FirstRunOnlyStep;
 /**
- * First run is the shortest path to a plan and a first scan: the wish
- * (target/pace) and food preferences use calm defaults and stay editable
- * under "Du → Plan anpassen", which reuses this screen with every step.
+ * First run walks the whole way on purpose (owner decision 01.11.2026): every
+ * answer shapes the plan someone is about to get, the rhythm step fixes when
+ * meals get logged, and the potential step shows where this leads and what
+ * gets them there. The longest path has 11 steps; 16 and 17 year olds and
+ * "maintain" skip the wish, and their potential step has no weight curve.
  */
-export const FIRST_RUN_STEPS = ['goal', 'about', 'body', 'activity', 'plan'] as const satisfies readonly OnboardingStep[];
+export const FIRST_RUN_STEPS = ['goal', 'why', 'obstacle', 'about', 'body', 'activity', 'target', 'potential', 'preferences', 'rhythm', 'plan'] as const satisfies readonly OnboardingStep[];
 export function onboardingSteps(age: number, goal: NutritionGoal, editing = false): readonly OnboardingStep[] {
-  if (!editing) return FIRST_RUN_STEPS;
-  return age >= 18 && goal !== 'maintain' ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter(step => step !== 'target');
+  const planned = age >= 18 && goal !== 'maintain';
+  if (!editing) return planned ? FIRST_RUN_STEPS : FIRST_RUN_STEPS.filter(step => step !== 'target');
+  return planned ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter(step => step !== 'target');
 }
 
 /** Kandro is 16+. Younger people see a friendly block, never a consent flow. */

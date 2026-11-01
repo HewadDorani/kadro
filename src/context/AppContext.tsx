@@ -4,7 +4,7 @@ import { AppState, Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useLocalDay } from '@/hooks/useLocalDay';
 
-import { AnalysisErrorKind, MealAnalysisInput } from '@/services/contracts';
+import { AnalysisErrorKind, MealAnalysisInput, MealAnalysisResult } from '@/services/contracts';
 import { foodUsage } from '@/services/foodSuggest';
 import { estimateDescriptionPortions, parseLocalDescription, resolveUnmatchedItems } from '@/services/localDescription';
 import { analyzeBarcode, analyzeDescription, analyzePreparedPhoto, deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, mealFromSearch, prepareMealPhoto } from '@/services/mealAnalysis';
@@ -131,7 +131,8 @@ type AppContextValue = {
   completeOnboarding: (profile: UserProfile) => Promise<void>;
   setUnitSystem: (unitSystem: UnitSystem) => Promise<void>;
   addWeightEntry: (weightKg: number) => Promise<void>;
-  setCapturedPhoto: (uri: string) => void;
+  /** `note`: what the photo cannot show, sent with this one analysis only. */
+  setCapturedPhoto: (uri: string, note?: string) => void;
   startDemoScan: () => void;
   startDescriptionScan: (description: string) => void;
   startBarcodeScan: (barcode: string) => void;
@@ -142,6 +143,10 @@ type AppContextValue = {
   /** Logs the foods picked in one search session as one meal (free, no confirmation screen). */
   logFoodsDirect: (entries: { result: FoodSearchResult; grams: number }[]) => Promise<Meal>;
   replaceDetectedItem: (id: string, result: FoodSearchResult, grams: number) => void;
+  /** The question for the current draft, if any (see clarifyKind in the gateway). */
+  draftClarify: MealAnalysisResult['clarify'] | null;
+  /** Answers it: `food` joins the draft as a normal ingredient, or null for "nothing". */
+  answerClarify: (food: { result: FoodSearchResult; grams: number } | null) => void;
   removeDetectedItem: (id: string) => void;
   /** freshRequest: retry a failed analysis under a new request id (the server refunded the failed one). */
   analyzeCurrentPhoto: (forceDemo?: boolean, freshRequest?: boolean) => Promise<void>;
@@ -249,6 +254,8 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [scanId, setScanId] = useState(makeScanId);
   const [scanMode, setScanMode] = useState<ScanMode>('demo');
   const photoUriRef = useRef<string | null>(null);
+  const photoNoteRef = useRef('');
+  const [clarify, setClarify] = useState<{ scanId: string; kind: NonNullable<MealAnalysisResult['clarify']> } | null>(null);
   const scanModeRef = useRef<ScanMode>('demo');
   const [plannedMealType, setPlannedMealTypeState] = useState<Meal['type'] | null>(null);
   const plannedMealTypeRef = useRef<Meal['type'] | null>(null);
@@ -855,7 +862,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
   }, [profile]);
 
-  const setCapturedPhoto = useCallback((uri: string) => {
+  const setCapturedPhoto = useCallback((uri: string, note = '') => {
+    photoNoteRef.current = note;
     analysisGenerationRef.current += 1;
     photoUriRef.current = uri;
     scanModeRef.current = 'live';
@@ -993,6 +1001,14 @@ export function AppProvider({ children }: PropsWithChildren) {
     setAnalysisMessage(null);
   }, [detectedItems]);
 
+  const answerClarify = useCallback((food: { result: FoodSearchResult; grams: number } | null) => {
+    setClarify(null);
+    if (!food) return;
+    const item = mealFromSearch(food.result, food.grams).items[0];
+    setDetectedItems((current) => [...current, { ...item, id: `${item.id}-clarify` }]);
+    setMealPortionState(null);
+  }, []);
+
   const removeDetectedItem = useCallback((id: string) => {
     const corrected = detectedItems.filter(item => item.id !== id);
     setDetectedItems(corrected);
@@ -1067,7 +1083,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           ? await analyzeDescription(descriptionInput, invocationScanId)
           : activeScanMode === 'barcode'
             ? await analyzeBarcode(barcodeInput)
-            : await analyzePreparedPhoto(input!, invocationScanId));
+            : await analyzePreparedPhoto(input!, invocationScanId, activeScanMode === 'live' ? photoNoteRef.current : ''));
         // The provider success spends the free analysis, not the later decision
         // to save the meal. This bookkeeping remains valid even if the user has
         // already started another scan, but the stale result never reaches UI.
@@ -1091,6 +1107,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         const resolved = resolveUnmatchedItems(result.items, foodUsage(mealHistory));
         setDetectedItems(resolved.items);
         setAutoMatchedItemIds(resolved.matchedIds);
+        setClarify(result.clarify ? { scanId: invocationScanId, kind: result.clarify } : null);
         setPortionEstimated(result.estimatedPortion === true
           || (Boolean(localDescription) && result.warnings.includes(getDictionary().errors.warnAmountEstimated)));
         setMealTitle(result.title);
@@ -1656,6 +1673,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       completeOnboarding,
       addWeightEntry,
       setCapturedPhoto,
+      draftClarify: clarify?.scanId === scanId ? clarify.kind : null,
+      answerClarify,
       startDemoScan,
       startDescriptionScan,
       startBarcodeScan,
@@ -1678,7 +1697,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       adjustLoggedMealPortion,
       setLoggedMealType,
     }),
-    [descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
+    [answerClarify, clarify, descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

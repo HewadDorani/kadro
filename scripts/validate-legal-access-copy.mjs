@@ -30,8 +30,8 @@ for (const [language, clause, dataClause] of [
  // Server-side aggregate funnel: purpose, minimal data, legal basis, objection.
  const funnel = privacy.split('\n').find(line => language === 'de' ? line.includes('Zählwerte je Anmeldetag') : line.includes('counts per sign-up day')) ?? '';
  for (const rule of language === 'de'
-  ? [/Art\. 6 Abs\. 1 lit\. f DSGVO/, /Art\. 21 DSGVO/, /keine zusätzlichen Daten/, /nicht was/]
-  : [/Art\. 6\(1\)\(f\) GDPR/, /Art\. 21 GDPR/, /No additional data/, /not what/]) {
+  ? [/Art\. 6 Abs\. 1 lit\. f DSGVO/, /Art\. 21 DSGVO/, /Darüber hinaus werden dafür keine Daten erhoben/, /nicht was/]
+  : [/Art\. 6\(1\)\(f\) GDPR/, /Art\. 21 GDPR/, /Beyond that no data/, /not what/]) {
   assert.match(funnel, rule, `${language}: aggregate funnel disclosure must state ${rule}`);
  }
  // International transfers: DPF where certified, otherwise SCCs.
