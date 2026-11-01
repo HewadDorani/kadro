@@ -14,7 +14,8 @@
 Auswertung vom 01.11.: 27 von 40 Personen hinter der harten Paywall haben die KI nie probiert, niemand hat an mehr als 4 Tagen eingetragen, 3 von 5 Trials wurden binnen 2 Minuten gekündigt.
 
 - [x] Messung: `cancel_reason`, `period_type`, `product_id` aus RevenueCat; `private.usage_days` (App geöffnet, Erfassungsweg, feste Signale); `trial_outcomes_daily` zählt eine fehlgeschlagene Abbuchung nicht mehr als Kündigung.
-- [x] Beispiel statt Abkürzung: `first-sample` zeigt den Kern mit den eigenen Zielen, ohne Analyse und ohne gespeicherte Mahlzeit.
+- [x] Beispiel statt Abkürzung: `first-sample` führt den Kern in einem Tipp vor (Mahlzeit erkennen, eigene Tageszahl läuft herunter, drei Ideen), ohne Analyse und ohne gespeicherte Mahlzeit. Reduce Motion zeigt direkt das Ergebnis.
+- [x] Wunschziel im ersten Lauf: große Zahl, zwei Tempo-Karten, das Datum folgt aus dem Tempo. Datumswahl bleibt unter Du.
 - [x] Längeres Onboarding (bis 11 Schritte): Warum, Hindernis, Wunschziel, Potenzial, Vorlieben, Rhythmus. Name und Warum kommen im Plan und auf der Paywall wieder. Antworten zu Warum und Hindernis bleiben lokal.
 - [x] Rhythmus-Schritt als Wenn-Dann-Plan: gewählte Mahlzeiten werden zu Erinnerungen, die Mitteilungserlaubnis kommt vor der Paywall. Rückhol-Mitteilung in der ersten Woche nach einem statt drei Tagen.
 - [x] Paywall: Erinnerung statt „Tipp: kündigen“; Pflichtangaben und Kündigungsweg bleiben.

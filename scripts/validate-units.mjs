@@ -187,9 +187,14 @@ assert.ok(onboarding.includes('UnitToggle'), 'onboarding must let the user pick 
 // Every step that shows a unit must also let the user change it. The rate step
 // comes before height and weight and printed "0.25 kg per week" with no way to
 // correct it for three more screens.
-const unitSteps = ['target', 'body'];
-for (const step of unitSteps) {
-  const start = onboarding.indexOf(`{step === '${step}' ?`);
+// The first-run wish step has no toggle of its own: it comes after the body
+// step, where the unit was just chosen. Editing can open it directly, so there
+// it keeps one.
+const firstRun = (await read('src/services/personalGoal.ts')).match(/FIRST_RUN_STEPS = \[([^\]]+)\]/)?.[1] ?? '';
+assert.ok(firstRun.indexOf("'body'") >= 0 && firstRun.indexOf("'body'") < firstRun.indexOf("'target'"), 'the unit must be chosen before the first-run wish step');
+const unitSteps = [["target", "{step === 'target' && editing ?"], ["body", "{step === 'body' ?"]];
+for (const [step, marker] of unitSteps) {
+  const start = onboarding.indexOf(marker);
   assert.ok(start > 0, `could not locate the ${step} step`);
   const block = onboarding.slice(start, onboarding.indexOf(') : null}', start));
   assert.ok(

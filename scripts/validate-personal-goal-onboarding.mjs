@@ -52,7 +52,7 @@ async function controller(profile=base,editing=false,drafts=draftStore()){
   useCallback(fn,deps){return this.useMemo(fn,deps)},
   useEffect(fn,deps){const index=cursor++;if(!same(slots[index]?.deps,deps)){slots[index]={deps};effects.push(fn)}}
  };react.useCallback=(fn,deps)=>react.useMemo(()=>fn,deps);
- const section=new Proxy({}, {get:(_,key)=>['step','potentialDaily','planTitleNamed','paceGain','paceLose','dateMonths','dateChosen','paceWeeks','targetDiff','goalBy','decreaseUnit','increaseUnit'].includes(key)?(...args)=>`${key}:${args.join('/')}`:key==='rhythmSlots'||key==='whyEcho'?new Proxy({},{get:(_,id)=>String(id)}):['whyChoices','obstacleChoices'].includes(key)?new Proxy({},{get:(_,id)=>({label:String(id),detail:String(id),answer:String(id)})}):String(key)});
+ const section=new Proxy({}, {get:(_,key)=>['step','potentialDaily','planTitleNamed','wishWeeks','paceGain','paceLose','dateMonths','dateChosen','paceWeeks','targetDiff','goalBy','decreaseUnit','increaseUnit'].includes(key)?(...args)=>`${key}:${args.join('/')}`:key==='rhythmSlots'||key==='whyEcho'?new Proxy({},{get:(_,id)=>String(id)}):['whyChoices','obstacleChoices'].includes(key)?new Proxy({},{get:(_,id)=>({label:String(id),detail:String(id),answer:String(id)})}):String(key)});
  const t={onboarding:section,common:section,access:section,portion:{decimalMark:'.'}};
  const jsx=(type,props)=>({type,props:props??{}});
  const source=process.env.KANDRO_ONBOARDING_BASELINE==='1'?execFileSync('git',['show','HEAD:src/app/onboarding.tsx'],{encoding:'utf8'}):read('src/app/onboarding.tsx');

@@ -557,7 +557,7 @@ export default function OnboardingScreen() {
             ) : null}
             <Text accessibilityRole="header" style={[styles.title, compactHeight && styles.titleCompact]}>{step === 'plan' && building ? t.access.buildingTitle : step === 'plan' && !editing && displayName.trim() ? t.onboarding.planTitleNamed(displayName.trim()) : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialTitle : copy[step].title}</Text>
             <Text style={[styles.subtitle, compactHeight && styles.subtitleCompact]}>
-              {step === 'plan' && building ? t.access.preparing : step === 'plan' && !editing && motivation ? t.onboarding.whyEcho[motivation] : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialSubtitle : copy[step].subtitle}
+              {step === 'plan' && building ? t.access.preparing : step === 'plan' && !editing && motivation ? t.onboarding.whyEcho[motivation] : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialSubtitle : step === 'target' && !editing ? t.onboarding.wishSubtitle : copy[step].subtitle}
             </Text>
           </View>
 
@@ -634,7 +634,85 @@ export default function OnboardingScreen() {
               </View>
             ) : null}
 
-            {step === 'target' ? (
+            {step === 'target' && !editing ? (
+              <View style={styles.wishStep}>
+                {targetWeightInput.trim() === '' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => { void selectionHaptic(); setDateFollowsPace(true); setTargetWeightInput(String(suggestedTargetWeight)); setTargetDateInput(suggestedTargetDate ?? ''); }}
+                    style={({ pressed }) => [styles.addGoal, pressed && styles.choicePressed]}
+                  >
+                    <Ionicons color={colors.accentText} name="flag-outline" size={20} />
+                    <Text style={styles.addGoalText}>{t.onboarding.addTargetWeight}</Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.wishHero}>
+                    <View style={styles.wishRow}>
+                      <StepperButton compact icon="remove" label={t.common.decreaseUnit(weightUnit)} onPressIn={() => nudgeTargetWeight(-1)} onPressOut={() => undefined} />
+                      <View style={styles.wishValue}>
+                        <TextInput
+                          accessibilityLabel={t.onboarding.targetWeightLabel}
+                          inputMode="decimal"
+                          keyboardType="decimal-pad"
+                          maxFontSizeMultiplier={HERO_MAX_FONT_SCALE}
+                          maxLength={6}
+                          onChangeText={setTargetWeightInput}
+                          selectTextOnFocus
+                          style={styles.wishNumber}
+                          value={targetWeightInput.replace('.', t.portion.decimalMark)}
+                        />
+                        <Text style={styles.wishUnit}>{weightUnit}</Text>
+                      </View>
+                      <StepperButton compact icon="add" label={t.common.increaseUnit(weightUnit)} onPressIn={() => nudgeTargetWeight(1)} onPressOut={() => undefined} />
+                    </View>
+                    <Text style={styles.goalDiff}>{targetDiffLabel}</Text>
+                  </View>
+                )}
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>{t.onboarding.rateTitle}</Text>
+                  <View style={styles.rateRow}>
+                    {([0.25, 0.5] as WeeklyRateKg[]).map((rate) => {
+                      const active = weeklyRate === rate;
+                      const requested = dailyGoalOffset(draftProfile.goal, rate);
+                      return (
+                        <Pressable
+                          aria-checked={active}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: active }}
+                          key={rate}
+                          onPress={() => selectChoice(() => setWeeklyRate(rate))}
+                          style={({ pressed }) => [styles.wishRate, active && styles.rateCardActive, pressed && styles.choicePressed]}
+                        >
+                          <Text style={styles.rateValue}>{weeklyRateLabel(draftProfile.goal, rate, t.common, unitSystem)}</Text>
+                          <Text style={styles.rateDetail}>{rate === 0.25 ? t.onboarding.wishCalm : t.onboarding.wishBrisk} · {requested < 0 ? '−' : '+'}{Math.abs(requested)} kcal</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* The date follows from the pace: nothing to choose, one clear result. */}
+                {targetDate && paceWeeks ? (
+                  <View style={styles.wishResult}>
+                    <Ionicons color={colors.accentText} name="flag-outline" size={20} />
+                    <View style={styles.tourCopy}>
+                      <Text style={styles.wishResultLabel}>{t.onboarding.wishArrival}</Text>
+                      <Text style={styles.wishResultValue}>{formatGoalDate(targetDate)}</Text>
+                      <Text style={styles.fieldHint}>{t.onboarding.wishWeeks(paceWeeks)}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {targetError ? <Text accessibilityLiveRegion="polite" style={styles.consentError}>{targetError === 'weight' ? t.onboarding.targetWeightInvalid : t.onboarding.targetDateInvalid}</Text> : null}
+                {targetWeightInput.trim() !== '' ? (
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => { void selectionHaptic(); setTargetWeightInput(''); setTargetDateInput(''); }} style={styles.wishSkip}>
+                    <Text style={styles.linkText}>{t.onboarding.wishNone}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {step === 'target' && editing ? (
               <View style={styles.rateStep}>
                 <UnitToggle onChange={setUnitSystem} value={unitSystem} />
                 <View style={styles.section}>
@@ -1306,6 +1384,17 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bodyCompact: { justifyContent: 'flex-start', paddingVertical: 12 },
   footer: { gap: 12, paddingTop: 8, backgroundColor: colors.background },
   choiceList: { gap: 12 },
+  wishStep: { gap: 18 },
+  wishHero: { alignItems: 'center', gap: 8, paddingVertical: 12, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  wishRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
+  wishValue: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 6 },
+  wishNumber: { minWidth: 72, padding: 0, color: colors.text, fontSize: 48, lineHeight: 56, fontWeight: '700', letterSpacing: -1, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  wishUnit: { ...typeScale.headline, color: colors.muted },
+  wishRate: { flex: 1, minWidth: 0, gap: 4, padding: 14, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  wishResult: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 16, borderRadius: radii.card, backgroundColor: colors.accentSoft },
+  wishResultLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '700' },
+  wishResultValue: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
+  wishSkip: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
   rhythmPlan: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 6, padding: 12, borderRadius: 14, backgroundColor: colors.accentSoft },
   rhythmPlanText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   tourList: { gap: 12 },
