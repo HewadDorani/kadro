@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0.7",
+    "version": "1.0.8",
     "copyright": "2026 Hewad Dorani",
     "categories": [
       "HEALTH_AND_FITNESS",
@@ -28,7 +28,7 @@
           "kcal",
           "gym"
         ],
-        "releaseNotes": "A clearer start, better ideas and more precise photos:\n\n• New start: tell Kandro what matters to you and watch a full example first\n• Photos with details: add what the camera cannot see, e.g. fried in butter\n• Plan: “Other ideas” brings fresh suggestions, and on the go you can pick a chain\n• New in Germany: Hans im Glück and Peter Pane with official nutrition facts\n• Rosé as an alternative app color, smoother search and more stability",
+        "releaseNotes": "Faster logging and a more stable start:\n\n• Count in pieces: slices, pieces or tablespoons instead of 100 g. Kandro remembers the weight for each product\n• Scan several barcodes in a row, the camera stays open\n• A shorter result screen with what matters\n• Today always opens on today\n• Fixed a crash right after setup",
         "promoText": "782 kcal left and no idea what to eat? Kandro tells you what fits next: three dishes for the rest of your day – at home, from the supermarket or on the go.",
         "marketingUrl": "https://getkandro.com/en/",
         "supportUrl": "https://getkandro.com/en/support",
@@ -54,7 +54,7 @@
           "tagebuch",
           "kcal"
         ],
-        "releaseNotes": "Klarer Start, bessere Ideen und genauere Fotos:\n\n• Neuer Start: Sag Kandro, was dir wichtig ist, und sieh vorher ein ganzes Beispiel\n• Fotos mit Details: Ergänze, was die Kamera nicht sieht, z. B. in Butter gebraten\n• Plan: „Andere Ideen“ bringt neue Vorschläge, unterwegs wählst du deine Kette\n• Neu in Deutschland: Hans im Glück und Peter Pane mit offiziellen Nährwerten\n• Rosé als zweite App-Farbe, flüssigere Suche und mehr Stabilität",
+        "releaseNotes": "Schneller eintragen und ein stabiler Start:\n\n• In Stücken zählen: Scheiben, Stück oder EL statt 100 g. Kandro merkt sich das Gewicht pro Produkt\n• Mehrere Barcodes hintereinander scannen, die Kamera bleibt offen\n• Kürzeres Ergebnis mit dem, was zählt\n• Heute öffnet immer den aktuellen Tag\n• Absturz direkt nach der Einrichtung behoben",
         "promoText": "782 kcal übrig und keine Idee? Kandro sagt dir, was als Nächstes passt: drei Gerichte für deinen restlichen Tag – zu Hause, aus dem Supermarkt oder unterwegs.",
         "marketingUrl": "https://getkandro.com/",
         "supportUrl": "https://getkandro.com/support",
