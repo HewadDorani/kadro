@@ -165,7 +165,7 @@ await test('requests carry the region; Du offers the setting; Plan follows the r
   const plan = read('src/app/(tabs)/plan.tsx');
   assert.match(plan, /const region = useMarketRegion\(\);/);
   assert.match(plan, /detail: t\.plan\.ctxMarketStores\[region\]/);
-  assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, productsForCountry\(marketData\.products, deviceCountry\(\)\), excluded\)/);
+  assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, productsForCountry\(marketData\.products, deviceMarketRegion\(\) === 'eu' \? deviceCountry\(\) : null\), excluded\)/);
   assert.match(plan, /t\.plan\.marketAttribution\(formatDataDate\(marketData\.fetchedAt, locale\)\)/);
   const service = read('src/services/region.ts');
   assert.match(service, /export type MarketRegion = 'de' \| 'gb' \| 'us' \| 'eu';/);

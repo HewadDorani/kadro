@@ -13,9 +13,9 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { formatNumber } from '@/utils/format';
 import { radii, typeScale } from '@/constants/theme';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { pieceKey, piecePortions, portionName, rememberPieceWeight } from '@/services/pieceWeights';
+import { isPackPortion, pieceKey, piecePortions, portionName, rememberPieceWeight } from '@/services/pieceWeights';
 import type { Nutrition } from '@/types/nutrition';
-import { type FoodPortion, initialSelection, resolveGrams, scaleNutrition } from '@/utils/portions';
+import { countForUnit, type FoodPortion, initialSelection, resolveGrams, scaleNutrition } from '@/utils/portions';
 
 export type { FoodPortion };
 
@@ -119,7 +119,7 @@ export function PortionSheet({
     if (index === unitIndex) return;
     setUnitIndex(index);
     const currentGrams = grams ?? target?.defaultGrams ?? 100;
-    setAmount(index >= 0 ? String(Number((currentGrams / portions[index].grams).toFixed(6))) : String(currentGrams));
+    setAmount(index >= 0 ? countForUnit(currentGrams, portions[index]) : String(currentGrams));
   };
 
   const quickGrams = ['50', '100', '150', '200', '250'];
@@ -216,9 +216,10 @@ export function PortionSheet({
               <Text style={styles.source}>{t.portion.pieceWeightHint}</Text>
             </View>
           ) : activePortion && !activePortion.unitOnly ? (
-            <Pressable accessibilityRole="button" hitSlop={6} onPress={() => setPieceInput(String(Math.round(activePortion.grams * 10) / 10))} style={styles.pieceLine}>
+            // A pack weight is printed on the front; only a piece is worth correcting.
+            <Pressable accessibilityRole="button" disabled={isPackPortion(activePortion)} hitSlop={6} onPress={() => setPieceInput(String(Math.round(activePortion.grams * 10) / 10))} style={styles.pieceLine}>
               <Text style={styles.source}>{t.portion.pieceEach(weightText(activePortion))}</Text>
-              <Text style={styles.pieceChange}>{t.portion.pieceChange}</Text>
+              {isPackPortion(activePortion) ? null : <Text style={styles.pieceChange}>{t.portion.pieceChange}</Text>}
             </Pressable>
           ) : !activePortion && !servingOnly ? (
             <>

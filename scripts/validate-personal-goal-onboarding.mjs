@@ -75,7 +75,7 @@ async function controller(profile=base,editing=false,drafts=draftStore()){
   '@/services/appAccess':{prepareAccessEnrollment:async confirmed=>enrolled.push(confirmed)},
   '@/services/telemetry':{trackEvent:(event,payload)=>events.push({event,...payload}),setAnalyticsCollectionEnabled:async v=>{analytics.push(v);return v}},
   '@/services/haptics':Object.fromEntries(['errorHaptic','selectionHaptic','stepHaptic','successHaptic'].map(k=>[k,async()=>{}])),
-  '@/utils/format':{formatClockTime:()=>'12:30',formatNumber:String,formatDateParts:d=>d.toISOString().slice(0,10)},'@/utils/decimalInput':load('src/utils/decimalInput.ts'),'@/utils/units':units,'@/utils/date':{localDateKey:()=> '2026-10-04'},
+  '@/utils/format':{cleanName:v=>v.trim(),firstName:v=>v.trim().split(' ')[0],formatClockTime:()=>'12:30',formatNumber:String,formatDateParts:d=>d.toISOString().slice(0,10)},'@/utils/decimalInput':load('src/utils/decimalInput.ts'),'@/utils/units':units,'@/utils/date':{localDateKey:()=> '2026-10-04'},
  },source).default;
  const render=()=>{cursor=0;tree=screen();const pending=effects;effects=[];pending.forEach(fn=>fn());return tree};
  const nodes=(node=tree)=>{if(Array.isArray(node))return node.flatMap(n=>nodes(n));if(!node||typeof node!=='object')return[];if(node.type==='Modal'&&!node.props.visible)return[];return[node,...nodes(node.props.children??null)]};

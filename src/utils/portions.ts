@@ -54,6 +54,16 @@ export function resolveGrams(input: string, portion?: FoodPortion): number | nul
   return grams;
 }
 
+/**
+ * The count shown when someone switches to a unit. A whole or half count of what
+ * they already have carries over; anything else starts at one, because "0,101333
+ * Packungen" (76 g of a 750 g loaf) is arithmetic nobody asked for.
+ */
+export function countForUnit(grams: number, portion: FoodPortion) {
+  const half = Math.round((grams / portion.grams) * 2) / 2;
+  return half >= 0.5 && Math.abs(half * portion.grams - grams) < 0.5 ? String(half) : '1';
+}
+
 /** Per-100 g reference values scaled to an actual amount. */
 export function scaleNutrition(per100g: Nutrition, grams: number): Nutrition {
   const scale = grams / 100;

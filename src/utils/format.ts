@@ -9,6 +9,15 @@ import { Meal } from '@/types/nutrition';
  * that forgets to pass one used to silently format 1950 as "1.950" for an
  * English reader.
  */
+/** "hewad" → "Hewad", double spaces gone; a name typed with capitals stays as typed. */
+export function cleanName(value: string) {
+  const name = value.trim().replace(/\s+/g, ' ');
+  return name === name.toLowerCase() ? name.replace(/(^|[\s-])(\p{L})/gu, (_match, lead: string, letter: string) => lead + letter.toUpperCase()) : name;
+}
+
+/** The name in a headline: "Anna Maria Schmidt" would wrap over three lines. */
+export const firstName = (value: string) => cleanName(value).split(' ')[0] ?? '';
+
 export function formatNumber(value: number, locale = getLocale()) {
   if (!Number.isFinite(value)) return '0';
   try {

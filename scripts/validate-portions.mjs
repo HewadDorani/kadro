@@ -18,7 +18,7 @@ const source = (await readFile(resolve(projectRoot, 'src/utils/portions.ts'), 'u
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 });
-const { initialSelection, resolveGrams, scaleNutrition } = await import(
+const { countForUnit, initialSelection, resolveGrams, scaleNutrition } = await import(
   `data:text/javascript;charset=utf-8,${encodeURIComponent(outputText)}`
 );
 const { usdaPortions } = await import(resolve(projectRoot, 'supabase/functions/_shared/nutrition.mjs'));
@@ -32,6 +32,13 @@ assert.equal(resolveGrams('0.5', banana), 63);
 // A German keyboard writes the same half portion with a comma.
 assert.equal(resolveGrams('1,5', banana), 189, 'a comma decimal must count as a decimal');
 assert.equal(resolveGrams('1.5', banana), 189);
+
+// --- Switching units ---------------------------------------------------------
+const loaf = { label: '1 Packung', grams: 750 };
+assert.equal(countForUnit(76, loaf), '1', 'part of a pack starts at one pack, never 0,101333');
+assert.equal(countForUnit(375, loaf), '0.5', 'half a pack stays half a pack');
+assert.equal(countForUnit(750, { label: '1 Scheibe', grams: 37.5 }), '20', 'a whole pack counts its slices');
+assert.equal(countForUnit(100, { label: '1 Scheibe', grams: 37 }), '1', 'no 2,7 slices');
 
 // --- Plain grams ------------------------------------------------------------
 assert.equal(resolveGrams('150'), 150);

@@ -63,6 +63,10 @@ if (crashReportingEnabled) {
  * side then dies on a background thread and the message is lost (KANDRO-IOS-B),
  * so it is recorded here first: message, JS stack and the recent routes, and
  * the fatal report waits for the upload.
+ *
+ * Only a render failure still ends the app: React has torn the screen down and
+ * a fresh start is the way back. A throw in a timer, promise or tap handler
+ * leaves every screen intact, so it is reported and the person keeps working.
  */
 let fatalHookInstalled = false;
 function installFatalHook() {
@@ -73,7 +77,9 @@ function installFatalHook() {
   const original = manager.handleException;
   manager.handleException = (error, isFatal) => {
     if (!isFatal) { original(error, isFatal); return; }
-    Sentry.captureException(error, { tags: { area: 'fatal_js' } });
+    const screenLost = typeof (error as { componentStack?: unknown } | null)?.componentStack === 'string';
+    Sentry.captureException(error, { tags: { area: 'fatal_js', screen_lost: String(screenLost) } });
+    if (!screenLost) return;
     // Sentry's own timeout bounds this; a failed upload must not swallow the fatal.
     void Sentry.flush().catch(() => false).then(() => original(error, isFatal));
   };

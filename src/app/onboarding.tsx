@@ -26,7 +26,7 @@ import { startHardWallInstall } from '@/services/hardWall';
 import { setAnalyticsCollectionEnabled, trackEvent } from '@/services/telemetry';
 import { errorHaptic, selectionHaptic, stepHaptic, successHaptic } from '@/services/haptics';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { formatClockTime, formatDateParts, formatNumber } from '@/utils/format';
+import { cleanName, firstName, formatClockTime, formatDateParts, formatNumber } from '@/utils/format';
 import { parseDecimalInput } from '@/utils/decimalInput';
 import { NutritionGoal, UserProfile, WeeklyRateKg } from '@/types/nutrition';
 import {
@@ -370,7 +370,7 @@ export default function OnboardingScreen() {
   }, [step, building]);
 
   const draftProfile = useMemo<UserProfile>(() => ({
-    displayName: displayName.trim(),
+    displayName: cleanName(displayName),
     sex,
     unitSystem,
     goal: planGoal,
@@ -555,7 +555,7 @@ export default function OnboardingScreen() {
             {step === 'goal' ? (
               <View style={[styles.brandMark, compactHeight && styles.brandMarkCompact]}><KandroMark size={compactHeight ? 34 : 42} /></View>
             ) : null}
-            <Text accessibilityRole="header" style={[styles.title, compactHeight && styles.titleCompact]}>{step === 'plan' && building ? t.access.buildingTitle : step === 'plan' && !editing && displayName.trim() ? t.onboarding.planTitleNamed(displayName.trim()) : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialTitle : copy[step].title}</Text>
+            <Text accessibilityRole="header" style={[styles.title, compactHeight && styles.titleCompact]}>{step === 'plan' && building ? t.access.buildingTitle : step === 'plan' && !editing && displayName.trim() ? t.onboarding.planTitleNamed(firstName(displayName)) : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialTitle : copy[step].title}</Text>
             <Text style={[styles.subtitle, compactHeight && styles.subtitleCompact]}>
               {step === 'plan' && building ? t.access.preparing : step === 'plan' && !editing && motivation ? t.onboarding.whyEcho[motivation] : step === 'potential' && draftProfile.targetWeightKg !== null ? t.onboarding.potentialSubtitle : step === 'target' && !editing ? t.onboarding.wishSubtitle : copy[step].subtitle}
             </Text>
@@ -840,7 +840,7 @@ export default function OnboardingScreen() {
                   placeholderTextColor={colors.muted}
                   returnKeyType="done"
                   submitBehavior="blurAndSubmit"
-                  style={styles.smallInput}
+                  style={[styles.smallInput, !displayName && styles.inputEmpty]}
                   value={displayName}
                 />
               </View>
@@ -1458,6 +1458,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sectionLabel: { ...typeScale.footnote, color: colors.muted, fontWeight: '700', letterSpacing: 0.2 },
   section: { gap: 10 },
   fieldHint: { ...typeScale.footnote, color: colors.muted },
+  inputEmpty: { fontWeight: '400' },
   smallInput: { minHeight: 56, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 17, fontWeight: '600', paddingHorizontal: 16 },
   ageConfirmRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 4 },
   addGoal: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accentText, backgroundColor: colors.surface },

@@ -22,7 +22,7 @@ import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { Meal } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { displayClockTime, formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
+import { firstName, displayClockTime, formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
 import { greetingForHour, mealTypeForHour } from '@/utils/daypart';
 import { availableRepeats, RepeatCandidate, withFavorites, yesterdayBreakfast } from '@/services/repeatMeals';
 import { useLocalDay } from '@/hooks/useLocalDay';
@@ -91,7 +91,7 @@ export default function TodayScreen() {
   const hour = new Date().getHours();
   const daypart = { morning: t.today.goodMorning, day: t.today.goodDay, evening: t.today.goodEvening }[greetingForHour(hour)];
   const eveningReady = hour >= 18;
-  const greeting = userName.trim() ? `${daypart}, ${userName}` : daypart;
+  const greeting = userName.trim() ? `${daypart}, ${firstName(userName)}` : daypart;
   // Keep the target status visible while still offering optional small meals.
   const dayIsDone = remaining.calories < 200;
   const overBudget = consumed.calories > targets.calories;
@@ -160,7 +160,7 @@ export default function TodayScreen() {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.date}>{isToday ? dateLabel : formatDateParts(viewDay, { weekday: 'short', day: 'numeric', month: 'long' }, locale)}</Text>
-          <Text style={styles.greeting}>{greeting}</Text>
+          <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.greeting}>{greeting}</Text>
         </View>
         <Pressable accessibilityLabel={t.common.openProfile} onPress={() => router.push('/(tabs)/profile')} style={styles.avatar}>
           <Text style={styles.avatarText}>{userName.trim().charAt(0).toUpperCase() || 'K'}</Text>

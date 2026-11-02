@@ -90,6 +90,8 @@ export function piecePortions(name: string, portions: FoodPortion[] = [], key = 
   return guess ? [{ label: pieceLabel(guess.kind), grams: guess.grams, estimated: true }, ...portions] : portions;
 }
 
+export const isPackPortion = (portion: FoodPortion) => PACKAGE_WORD.test(portion.label);
+
 /** "Scheibe" from "1 Scheibe" or "1 Scheibe (25 g)"; a bare "25 g" serving is a portion. */
 export function portionName(label: string) {
   const name = label.replace(/\s*\([^)]*\)\s*$/, '').replace(/^1\s+/, '').trim();

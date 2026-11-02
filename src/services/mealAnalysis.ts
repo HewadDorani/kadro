@@ -564,7 +564,8 @@ export function decodeEntities(value: string) {
 
 export function productHitToResult(hit: ProductHit): FoodSearchResult | null {
   if (!isProductHit(hit) || !/^\d{7,14}$/.test(hit.code) || typeof hit.name !== 'string') return null;
-  const productName = decodeEntities(hit.name).replace(/\s+/g, ' ').trim();
+  // Some records carry the barcode inside the name ("Dinkel Sandwich 4071800047812 Dinkelsandwichbrot").
+  const productName = decodeEntities(hit.name).replace(/\b\d{8,14}\b/g, ' ').replace(/\s+/g, ' ').trim();
   const brand = typeof hit.brand === 'string' && hit.brand.trim() && hit.brand.trim().length <= 60 ? decodeEntities(hit.brand).replace(/\s+/g, ' ').trim() : undefined;
   if (!productName) return null;
   const { kcal, protein, carbs, fat, fiber } = hit.per100g;
