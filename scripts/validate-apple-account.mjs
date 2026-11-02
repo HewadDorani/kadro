@@ -434,7 +434,7 @@ await test('An old A token marker cannot force A recovery after an intentional e
 function routeFixture() {
   const f = { h: hooks(), state: { appleReauthenticationRequired: true, hydrationReady: true, syncMode: 'cloud', profile: {}, analysisStatus: 'idle', detectedItems: [], mealHistory: [], wellnessConsentGranted: false }, calls: [], pending: null };
   const jsx = (type, props) => ({ type, props });
-  const Component = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { reportRedirectLoop() {} },
+  const Component = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
     react: { useState: (...a) => f.h.useState(...a), useEffect: (...a) => f.h.useEffect(...a), useRef: (...a) => f.h.useRef(...a) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
     '@/constants/theme': { typeScale: {} },

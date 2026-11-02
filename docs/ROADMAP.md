@@ -27,6 +27,7 @@ Auswertung vom 01.11.: 27 von 40 Personen hinter der harten Paywall haben die KI
 - [x] Unterwegs Deutschland: Hans im Glück und Peter Pane mit offiziellen Nährwerten (10 Ketten, 252 Artikel). Taco Bell bewusst nicht: nur Köln. Nordsee, Domino's, Pizza Hut, Vapiano, L'Osteria, Ditsch, Kamps, Dunkin', Yorma's veröffentlichen keine nutzbaren Portionswerte.
 - [x] Absturz nach Onboarding (Sentry KANDRO-IOS-B, -4): ein unbehandelter JS-Fehler endet über `ExceptionsManager` im nativen Absturz; 7 Fälle bei 4 Konten, direkt nach einem Tipp im Einstieg. Der Wächter stoppt jetzt nach 6 Weiterleitungen in 2 Sekunden und meldet das Bildschirmpaar an Sentry (`Route guard redirect loop`). Das konkrete Paar ist noch offen.
 - [x] Paywall nach Absturz: Die Sperre wird vor der Reaktion darauf gespeichert. Ohne gespeicherte Stage führt eine Hard-Wall-Installation ohne Abo und ohne Mahlzeit wieder zum ersten Scan.
+- [x] Fatale JS-Fehler werden vor dem nativen Absturz mit Stack und Bildschirm-Verlauf an Sentry gesendet (`area: fatal_js`): React meldet sie an Sentrys globalem Handler vorbei, und im nativen Absturz geht der Text verloren.
 - [ ] Symboldateien bei jedem Build an Sentry (`SENTRY_AUTH_TOKEN`), damit native Abstürze direkt lesbar sind.
 - [ ] Nach 2 bis 4 Wochen auswerten: Anteil KI vor Paywall, aktive Tage, Kündigungsgrund. Vorher keine Schlüsse aus Einzelfällen.
 - [ ] Downloads gegen neue Konten vergleichen: Das längere Onboarding kann vor dem ersten Konto Abbrüche kosten, die der Server nicht sieht.

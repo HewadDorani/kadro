@@ -12,7 +12,7 @@ import { useAccess } from '@/context/AccessContext';
 import { firstMealRevealOpen, rememberAccessDestination, routeRequiresAccess } from '@/services/accessPolicy';
 import { useReminderOnboarding } from '@/hooks/useReminderOnboarding';
 import { useFirstRun } from '@/hooks/useFirstRun';
-import { reportRedirectLoop } from '@/services/crashReporting';
+import { noteRoute, reportRedirectLoop } from '@/services/crashReporting';
 import { firstRunRedirect } from '@/services/firstRun';
 import { useApp } from '@/context/AppContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
@@ -84,6 +84,7 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
   // Two screens that keep sending each other away crash React ("Maximum update
   // depth exceeded", seen on real devices right after onboarding). Stop
   // redirecting instead of dying, and report the pair so it can be fixed.
+  useEffect(() => { noteRoute(path); }, [path]);
   const redirectTimes = useRef<number[]>([]);
   const redirect = (target: string) => {
     const now = Date.now();

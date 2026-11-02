@@ -196,7 +196,7 @@ check('first-scan: "Deine kostenlose Probe-Analyse", example → hard paywall, l
       useEffect(fn, deps) { const n = cursor++; if (!same(slots[n]?.deps, deps)) { slots[n] = { deps }; effects.push(fn); } },
     };
     const jsx = (type, props) => ({ type, props });
-    const Guard = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { reportRedirectLoop() {} },
+    const Guard = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
       react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, 'expo-apple-authentication': { isAvailableAsync: async () => false },
       'expo-router': { usePathname: () => path, useSegments: () => [path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
       '@/components/KandroMark': { KandroMark: 'Brand' }, '@/constants/theme': { typeScale: {} }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },

@@ -57,6 +57,37 @@ if (crashReportingEnabled) {
   });
 }
 
+/**
+ * Every fatal JS error ends in ExceptionsManager, including the ones React
+ * reports itself, which never pass Sentry's global handler. On iOS the native
+ * side then dies on a background thread and the message is lost (KANDRO-IOS-B),
+ * so it is recorded here first: message, JS stack and the recent routes, and
+ * the fatal report waits for the upload.
+ */
+let fatalHookInstalled = false;
+function installFatalHook() {
+  if (fatalHookInstalled) return;
+  fatalHookInstalled = true;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const manager = require('react-native/Libraries/Core/ExceptionsManager').default as { handleException: (error: unknown, isFatal: boolean) => void };
+  const original = manager.handleException;
+  manager.handleException = (error, isFatal) => {
+    if (!isFatal) { original(error, isFatal); return; }
+    Sentry.captureException(error, { tags: { area: 'fatal_js' } });
+    // Sentry's own timeout bounds this; a failed upload must not swallow the fatal.
+    void Sentry.flush().catch(() => false).then(() => original(error, isFatal));
+  };
+}
+if (crashReportingEnabled) {
+  try { installFatalHook(); } catch { /* Reporting must never stop the app from starting. */ }
+}
+
+/** Fixed route names only: `usePathname` carries no parameters. */
+export function noteRoute(path: string) {
+  if (!crashReportingEnabled) return;
+  Sentry.addBreadcrumb({ category: 'route', message: path.slice(0, 60), level: 'info' });
+}
+
 export function reportError(error: unknown, context?: string) {
   if (!crashReportingEnabled) return;
   Sentry.captureException(error, context ? { tags: { area: context } } : undefined);

@@ -74,7 +74,7 @@ function guardFixture(state) {
     useEffect(fn, deps) { const n = cursor++; if (!same(slots[n]?.deps, deps)) { slots[n] = { deps }; effects.push(fn); } },
   };
   const jsx = (type, props) => ({ type, props });
-  const Guard = compileModule('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { reportRedirectLoop() {} },
+  const Guard = compileModule('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
     react, 'react/jsx-runtime': { jsx, jsxs: jsx }, '@/constants/theme': { typeScale: {} }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
     'expo-apple-authentication': { isAvailableAsync: async () => false },
     'expo-router': { usePathname: () => state.path, useSegments: () => [state.path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
