@@ -111,6 +111,7 @@ assert.deepEqual(initialSelection(Number.NaN, [], chosen), { unitIndex: -1, amou
   assert.deepEqual(guessPiece('Vollkornbrötchen'), { kind: 'piece', grams: 60 }, 'a roll is not a slice of bread');
   assert.equal(guessPiece('Skyr Natur'), null, 'a food without a natural piece stays in grams');
   assert.equal(guessPiece('Haferflocken'), null);
+  assert.deepEqual(guessPiece('Rahm-Fischstäbchen'), { kind: 'piece', grams: 30 });
   const { offPiecePortion } = await import(resolve(projectRoot, 'supabase/functions/_shared/off-product.mjs'));
   const pack = (quantity, grams) => ({ quantity, product_quantity: grams, product_quantity_unit: 'g' });
   assert.deepEqual(offPiecePortion(pack('400 g (16 Scheiben)', 400)), { label: '1 Scheibe', grams: 25 });

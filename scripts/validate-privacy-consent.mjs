@@ -284,7 +284,7 @@ assert.match(context, /loadLocalAccountSwitch\(\)[\s\S]*if \(pendingAccountSwitc
   'launch must recover an interrupted account switch without merging old local data');
 assert.match(context, /analysisIdentityGenerationRef\.current === invocationIdentityGeneration[\s\S]*countLifetimeScanOnce/,
   'an analysis completed under the old identity must not increment the new account local allowance');
-assert.match(routes, /if \(appleReauthenticationRequired \|\| !hydrationReady\)[\s\S]*syncMode === 'error'[\s\S]*return <BrandGate \/>;[\s\S]*return children/,
+assert.match(routes, /if \(appleReauthenticationRequired \|\| !hydrationReady\)[\s\S]*syncMode === 'error'[\s\S]*return <BrandGate \/>;[\s\S]*\{children\}/,
   'the protected app tree must stay unmounted while an account identity is being recovered');
 assert.match(routes, /const recoverAccount = async[\s\S]*appleReauthenticationRequired \? await appleCredential\(\) : undefined[\s\S]*await retryAccountRecovery\(credential\)/,
   'the guarded recovery action must collect Apple credentials only when required and use AppContext recovery');

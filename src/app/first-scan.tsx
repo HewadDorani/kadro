@@ -13,6 +13,8 @@ import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import { useFirstRun } from '@/hooks/useFirstRun';
 import { useFreeScanAllowance } from '@/hooks/useHardWall';
 import { useLanguage } from '@/i18n/LanguageProvider';
+import { useAccess } from '@/context/AccessContext';
+import { firstRunLost } from '@/services/accessPolicy';
 import { selectionHaptic } from '@/services/haptics';
 
 type Option = { mode: 'photo' | 'description' | 'search'; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string };
@@ -32,14 +34,13 @@ export default function FirstScanScreen() {
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { t } = useLanguage();
-  const { freeScansLeft } = useApp();
+  const { freeScansLeft, mealHistory } = useApp();
+  const access = useAccess();
   const stage = useFirstRun();
   const { hardWall } = useFreeScanAllowance();
   const leaving = useRef(false);
-  // A hard-wall install with its free scan left is still in the first run even
-  // when a crash lost the stage: the route guard sends it here, so leaving
-  // again would be a loop.
-  if (stage === null && !leaving.current && !(hardWall && freeScansLeft > 0)) return <Redirect href="/(tabs)/today" />;
+  // The same rule that sends a lost first run here, or the two would loop.
+  if (stage === null && !leaving.current && !firstRunLost(access, mealHistory.length)) return <Redirect href="/(tabs)/today" />;
 
   const copy = t.onboarding.firstScan;
   const options: Option[] = [

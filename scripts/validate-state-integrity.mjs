@@ -31,8 +31,10 @@ for (const route of ['index', 'onboarding', 'scan', '(tabs)', 'privacy', 'accoun
 }
 const guard = read('src/components/AppRouteGuard.tsx');
 assert.match(guard, /const missingMealDraft = requiresMealDraftRedirect/);
-assert.match(guard, /if \(missingMealDraft \|\| incompleteResult\) return[\s\S]*return children;/,
-  'cold result routes must not mount their save effect before redirect');
+assert.match(guard, /const gated = [^\n]*missingMealDraft \|\| incompleteResult/);
+assert.match(read('src/app/result.tsx'), /if \(savedOnArrival\.current \|\| gated\) return;/,
+  'cold result routes must not run their save effect before the redirect');
+assert.match(guard, /\{children\}\s*\{gated \?/, 'the guard covers the navigator; removing it strands the redirect and loops');
 assert.match(app, /const logScannedMeal = useCallback\(async \(\) => \{\s*if \(analysisStatus !== 'ready'\) throw/,
   'the persistence boundary must reject initial demo state too');
 

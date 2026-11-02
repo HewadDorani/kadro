@@ -9,7 +9,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
 import { useAccess } from '@/context/AccessContext';
-import { firstMealRevealOpen, rememberAccessDestination, routeRequiresAccess } from '@/services/accessPolicy';
+import { firstMealRevealOpen, firstRunLost, rememberAccessDestination, routeRequiresAccess } from '@/services/accessPolicy';
+import { RouteGateContext } from '@/hooks/useRouteGate';
 import { useReminderOnboarding } from '@/hooks/useReminderOnboarding';
 import { useFirstRun } from '@/hooks/useFirstRun';
 import { noteRoute, reportRedirectLoop } from '@/services/crashReporting';
@@ -77,7 +78,7 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
   const accessWaiting = accessApplies && (!access.ready || reminderPending === null || firstRunStage === undefined);
   // A hard-wall install with no entitlement and no meal is always still in the
   // first run, even if a crash lost the local stage: never free in the tabs.
-  const runStage = firstRunStage === null && access.ready && access.hardWall && access.state === 'free' && mealHistory.length === 0 ? 'scan' as const : firstRunStage;
+  const runStage = firstRunStage === null && firstRunLost(access, mealHistory.length) ? 'scan' as const : firstRunStage;
   const firstRunApplies = !appleReauthenticationRequired && hydrationReady && wellnessConsentGranted && !!profile.completedAt;
   const firstRunTarget = firstRunApplies && !accessRedirect && !accessWaiting
     ? firstRunRedirect(runStage, path, mealHistory.length > 0) : null;
@@ -86,12 +87,15 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
   // redirecting instead of dying, and report the pair so it can be fixed.
   useEffect(() => { noteRoute(path); }, [path]);
   const redirectTimes = useRef<number[]>([]);
+  const [loopStopped, setLoopStopped] = useState(false);
   const redirect = (target: string) => {
     const now = Date.now();
     const recent = redirectTimes.current.filter(time => now - time < REDIRECT_WINDOW_MS);
     redirectTimes.current = [...recent, now];
     if (recent.length >= REDIRECT_LIMIT) {
       if (recent.length === REDIRECT_LIMIT) reportRedirectLoop(path, target);
+      // Show the screen rather than a cover nothing will ever lift.
+      setLoopStopped(true);
       return;
     }
     router.replace(target as never);
@@ -154,11 +158,19 @@ export function AppRouteGuard({ children }: PropsWithChildren) {
     return <BrandGate />;
   }
 
-  // Block the result's save-on-arrival effect before it can mount. Redirecting
-  // only in an effect would be too late: child effects may already have run.
-  if (accessRedirect || accessWaiting || firstRunTarget || (accessApplies && reminderPending)) return <BrandGate />;
-  if (missingMealDraft || incompleteResult) return <BrandGate />;
-  return children;
+  // The cover goes over the navigator, never instead of it. Taking the Stack
+  // away left nothing for the redirect to land on; on the way back it stood on
+  // its initial route for a moment, the rule fired again, and the two flipped
+  // every 3 ms until React gave up (Sentry KANDRO-IOS-B, -C, -4: "/first-scan"
+  // and "/" alternating, always just before the paywall). Screens that act on
+  // arrival read the same flag through useRouteGate.
+  const gated = !loopStopped && Boolean(accessRedirect || accessWaiting || firstRunTarget || (accessApplies && reminderPending) || missingMealDraft || incompleteResult);
+  return (
+    <RouteGateContext.Provider value={gated}>
+      {children}
+      {gated ? <View style={StyleSheet.absoluteFill}><BrandGate /></View> : null}
+    </RouteGateContext.Provider>
+  );
 }
 
 /** A short hand-over between screens: the brand, not a bare spinner. */

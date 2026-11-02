@@ -9,9 +9,10 @@ export function itemNutritionPer100g(item: MealItem): Nutrition {
 /**
  * `unitOnly`: the source publishes values per serving but no weight (most
  * restaurant chains); `grams` is then a 100 g stand-in for one serving and is
- * never shown as a weight.
+ * never shown as a weight. `own`: the person read this weight off the pack; it
+ * travels with the meal, which is how a second device learns it.
  */
-export type FoodPortion = { label: string; grams: number; estimated?: boolean; unitOnly?: boolean };
+export type FoodPortion = { label: string; grams: number; estimated?: boolean; unitOnly?: boolean; own?: boolean };
 
 /**
  * A serving-only amount ("2 × 1 Burger") for items whose source publishes no

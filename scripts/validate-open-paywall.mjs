@@ -74,20 +74,20 @@ function guardFixture(state) {
     useEffect(fn, deps) { const n = cursor++; if (!same(slots[n]?.deps, deps)) { slots[n] = { deps }; effects.push(fn); } },
   };
   const jsx = (type, props) => ({ type, props });
-  const Guard = compileModule('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
+  const Guard = compileModule('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} }, '@/hooks/useRouteGate': { RouteGateContext: { Provider: 'Provider' } }, 
     react, 'react/jsx-runtime': { jsx, jsxs: jsx }, '@/constants/theme': { typeScale: {} }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
     'expo-apple-authentication': { isAvailableAsync: async () => false },
     'expo-router': { usePathname: () => state.path, useSegments: () => [state.path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
     '@/components/KandroMark': { KandroMark: 'Brand' }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
     '@/context/AccessContext': { useAccess: () => ({ ready: true, canUse: true, enrollmentPending: false, hardWall: false, entryPaywall: state.entryPaywall ?? false }) },
-    '@/services/accessPolicy': { firstMealRevealOpen: () => false, rememberAccessDestination: path => remembered.push(path), routeRequiresAccess: path => !['/paywall', '/first-scan', '/reminder-setup', '/privacy'].includes(path) },
+    '@/services/accessPolicy': { firstRunLost: () => false, firstMealRevealOpen: () => false, rememberAccessDestination: path => remembered.push(path), routeRequiresAccess: path => !['/paywall', '/first-scan', '/reminder-setup', '/privacy'].includes(path) },
     '@/hooks/useReminderOnboarding': { useReminderOnboarding: () => state.reminder ?? false }, '@/hooks/useFirstRun': { useFirstRun: () => state.stage },
     '@/services/firstRun': { firstRunRedirect: firstRun.firstRunRedirect },
     '@/context/AppContext': { useApp: () => ({ appleReauthenticationRequired: false, analysisStatus: 'idle', detectedItems: [], hydrationReady: true, localStorageError: false, mealHistory: state.meals ?? [], profile: { completedAt: '2026-10-09' }, retryAccountRecovery: async () => {}, syncMode: 'cloud', wellnessConsentGranted: true }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: { account: {} } }) }, '@/utils/mealDraftGuard': { requiresMealDraftRedirect: () => false }, '@/utils/ingredientCorrection': { canSaveMealDraft: () => true },
     '@/services/accountLinking': { appleCredential: async () => null, isAppleCancel: () => false },
   }).AppRouteGuard;
-  const render = () => { cursor = 0; const tree = Guard({ children: 'APP' }); const queue = effects; effects = []; queue.forEach(fn => fn()); return tree; };
+  const render = () => { cursor = 0; const tree = Guard({ children: 'APP' }); const queue = effects; effects = []; queue.forEach(fn => fn()); return tree.props.value ? 'COVER' : 'APP'; };
   return { render, redirects, remembered };
 }
 {
@@ -108,7 +108,8 @@ function guardFixture(state) {
   const Screen = compileModule('src/app/first-scan.tsx', {
     '@expo/vector-icons/Ionicons': { __esModule: true, default: 'Icon' }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ push: to => routes.push(to), replace: to => routes.push(to) }) }, react: { useRef: v => ({ current: v }) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { Pressable: 'Pressable', StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'Mark' }, '@/components/ui': { PrimaryButton: 'Primary', Screen: 'Screen' },
-    '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/constants/theme': { radii: {}, typeScale: { micro: 12, caption: 13, compact: 15, body: 17, heading: 22, title: 32, display: 56 } }, '@/context/AppContext': { useApp: () => ({ freeScansLeft: 3 }) },
+    '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/constants/theme': { radii: {}, typeScale: { micro: 12, caption: 13, compact: 15, body: 17, heading: 22, title: 32, display: 56 } }, '@/context/AppContext': { useApp: () => ({ mealHistory: [], freeScansLeft: 3 }) },
+    '@/context/AccessContext': { useAccess: () => ({ ready: true, hardWall: false, state: 'free' }) }, '@/services/accessPolicy': { firstRunLost: () => false },
     '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) }, '@/hooks/useFirstRun': { useFirstRun: () => stage },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: dict }) }, '@/services/firstRun': { setFirstRunStage: async next => { stages.push(next); } }, '@/services/haptics': { selectionHaptic() {} },
     // Legacy install (no hard wall); the hard-wall variant is covered by validate-hard-paywall.mjs.

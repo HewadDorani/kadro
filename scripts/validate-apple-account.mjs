@@ -434,14 +434,14 @@ await test('An old A token marker cannot force A recovery after an intentional e
 function routeFixture() {
   const f = { h: hooks(), state: { appleReauthenticationRequired: true, hydrationReady: true, syncMode: 'cloud', profile: {}, analysisStatus: 'idle', detectedItems: [], mealHistory: [], wellnessConsentGranted: false }, calls: [], pending: null };
   const jsx = (type, props) => ({ type, props });
-  const Component = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
+  const Component = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} }, '@/hooks/useRouteGate': { RouteGateContext: { Provider: 'Provider' } }, 
     react: { useState: (...a) => f.h.useState(...a), useEffect: (...a) => f.h.useEffect(...a), useRef: (...a) => f.h.useRef(...a) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' },
     '@/constants/theme': { typeScale: {} },
     'expo-apple-authentication': { isAvailableAsync: async () => true, AppleAuthenticationButton: 'AppleButton', AppleAuthenticationButtonType: { SIGN_IN: 'sign-in' }, AppleAuthenticationButtonStyle: { BLACK: 'black' } },
     'expo-router': { usePathname: () => '/profile', useSegments: () => ['(tabs)'], useRouter: () => ({ replace: destination => f.calls.push(['redirect', destination]) }) },
     '@/components/KandroMark': { KandroMark: 'Brand' }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
-    '@/context/AccessContext': { useAccess: () => ({ ready: true, canUse: true }) }, '@/services/accessPolicy': { rememberAccessDestination() {}, routeRequiresAccess: () => true },
+    '@/context/AccessContext': { useAccess: () => ({ ready: true, canUse: true }) }, '@/services/accessPolicy': { firstRunLost: () => false, rememberAccessDestination() {}, routeRequiresAccess: () => true },
     '@/hooks/useReminderOnboarding': { useReminderOnboarding: () => false }, '@/hooks/useFirstRun': { useFirstRun: () => null }, '@/services/firstRun': { firstRunRedirect: () => null }, '@/context/AppContext': { useApp: () => ({ ...f.state, retryAccountRecovery: async value => f.calls.push(['retry', value]) }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: dict }) }, '@/utils/mealDraftGuard': { requiresMealDraftRedirect: () => false }, '@/utils/ingredientCorrection': { canSaveMealDraft: () => true },
     '@/services/accountLinking': { appleCredential: async () => { f.calls.push(['native-sheet']); return f.pending ? f.pending.promise : credential; }, isAppleCancel: e => e?.code === 'ERR_REQUEST_CANCELED' },
@@ -455,7 +455,7 @@ await test('Apple recovery stays above stale hydration/cloud completions and its
   f.pending = deferred(); const button = apple(f.render()); button.props.onPress(); button.props.onPress(); await ticks();
   assert.equal(f.calls.filter(c => c[0] === 'native-sheet').length, 1); assert.equal(f.calls.filter(c => c[0] === 'retry').length, 0);
   f.pending.resolve(credential); await ticks(); assert.equal(f.calls.filter(c => c[0] === 'retry').length, 1);
-  f.state.appleReauthenticationRequired = false; assert.equal(f.render(), 'PRIVATE-DIARY');
+  f.state.appleReauthenticationRequired = false; assert.equal(f.render().props.children[0], 'PRIVATE-DIARY');
 });
 await test('A deliberate deletion suppresses native revoke events and invalidates already pending checks', async () => {
   const f = monitorFixture(); f.pending = deferred(); const running = f.monitor.check(); await ticks();

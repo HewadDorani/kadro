@@ -47,7 +47,7 @@ import { deleteSyncedMeal, hydrateCloudState, hydrateExistingCloudAccount, saveS
 import { getCurrentSessionUserId, isSupabaseConfigured, rememberSupabaseUser, startSupabaseAuthLifecycle, supabase } from '@/services/supabaseClient';
 import { applyAnalyticsAgePolicy, captureOperationalError, clearTelemetryForAccountSwitch, countBucket, durationBucket, trackEvent } from '@/services/telemetry';
 import { DailyTargets, Meal, MealItem, MealSuggestion, Nutrition, PortionFactor, UserProfile, WeightEntry } from '@/types/nutrition';
-import { forgetPieceWeights } from '@/services/pieceWeights';
+import { adoptPieceWeights, forgetPieceWeights } from '@/services/pieceWeights';
 import { localDateKey } from '@/utils/date';
 import { mealTypeForHour } from '@/utils/daypart';
 import { clampLogDate, mealMoment } from '@/utils/mealDay';
@@ -785,6 +785,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   // What screens read as "today". Filtered here and not only on day change: an
   // app resumed after a weekend still held Friday's list for a render or more.
+  useEffect(() => { void adoptPieceWeights(mealHistory).catch(() => undefined); }, [mealHistory]);
   const todaysMeals = useMemo(() => meals.filter(meal => meal.date === currentDay), [meals, currentDay]);
   const consumed = useMemo(() => sumMeals(todaysMeals), [todaysMeals]);
   const remaining = useMemo(() => getRemaining(targets, consumed), [consumed, targets]);

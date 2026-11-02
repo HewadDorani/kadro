@@ -169,7 +169,8 @@ check('paywall: hard variant without close/swipe/back, store prices, trial CTA o
   const Screen = compile('src/app/first-scan.tsx', {
     '@expo/vector-icons/Ionicons': { __esModule: true, default: 'Icon' }, 'expo-router': { Redirect: 'Redirect', useRouter: () => ({ push: to => routes.push(to), replace: to => routes.push(to) }) }, react: { useRef: v => ({ current: v }) }, 'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': { Pressable: 'Pressable', StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, '@/components/KandroMark': { KandroMark: 'Mark' }, '@/components/ui': { PrimaryButton: 'Primary', Screen: 'Screen' },
-    '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/constants/theme': { radii: {} }, '@/context/AppContext': { useApp: () => ({ freeScansLeft: 1 }) },
+    '@/constants/product': { FREE_SCAN_ALLOWANCE: 3 }, '@/constants/theme': { radii: {} }, '@/context/AppContext': { useApp: () => ({ freeScansLeft: 1, mealHistory: [] }) },
+    '@/context/AccessContext': { useAccess: () => ({ ready: true, hardWall: wall, state: 'free' }) }, '@/services/accessPolicy': policy,
     '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) }, '@/hooks/useFirstRun': { useFirstRun: () => 'scan' },
     '@/hooks/useHardWall': { useFreeScanAllowance: () => ({ hardWall: wall, allowance: wall ? 1 : 3 }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: de }) }, '@/services/haptics': { selectionHaptic() {} },
@@ -196,7 +197,7 @@ check('first-scan: "Deine kostenlose Probe-Analyse", example → hard paywall, l
       useEffect(fn, deps) { const n = cursor++; if (!same(slots[n]?.deps, deps)) { slots[n] = { deps }; effects.push(fn); } },
     };
     const jsx = (type, props) => ({ type, props });
-    const Guard = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} },
+    const Guard = compile('src/components/AppRouteGuard.tsx', { '@/services/crashReporting': { noteRoute() {}, reportRedirectLoop() {} }, '@/hooks/useRouteGate': { RouteGateContext: { Provider: 'Provider' } }, 
       react, 'react/jsx-runtime': { jsx, jsxs: jsx }, 'react-native': { StyleSheet: { create: a => a }, Text: 'Text', View: 'View' }, 'expo-apple-authentication': { isAvailableAsync: async () => false },
       'expo-router': { usePathname: () => path, useSegments: () => [path.slice(1)], useRouter: () => ({ replace: to => redirects.push(to) }) },
       '@/components/KandroMark': { KandroMark: 'Brand' }, '@/constants/theme': { typeScale: {} }, '@/components/ui': { PrimaryButton: 'Primary' }, '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) },
@@ -207,7 +208,8 @@ check('first-scan: "Deine kostenlose Probe-Analyse", example → hard paywall, l
       '@/services/accountLinking': { appleCredential: async () => null, isAppleCancel: () => false },
     }).AppRouteGuard;
     cursor = 0; const tree = Guard({ children: 'APP' }); effects.forEach(fn => fn());
-    return { tree, redirects };
+    // The navigator always stays under the cover; `value` says the screen is covered.
+    return { tree: tree.props.value ? 'COVER' : 'APP', redirects };
   }
   const locked = { canUse: false, hardWall: true };
   assert.equal(guard('/result', 'scan', locked).tree, 'APP', 'the first meal reveal stays visible');
@@ -247,7 +249,7 @@ console.log(`PASS ${passed.length} hard-paywall checks.`);
   assertOk(/router\.push\('\/first-sample'/.test(firstScan) && !/router\.replace\('\/paywall'\)/.test(firstScan), 'the first scan has no direct way to the paywall');
   const guard = read('src/components/AppRouteGuard.tsx');
   assertOk(/recent\.length >= REDIRECT_LIMIT/.test(guard) && (guard.match(/router\.replace/g) ?? []).length === 1, 'every guard redirect passes the loop limit');
-  assertOk(/hardWall && freeScansLeft > 0/.test(firstScan), 'a crash that lost the stage cannot bounce between first scan and Today');
+  assertOk(/!firstRunLost\(access, mealHistory\.length\)/.test(firstScan) && /firstRunLost\(access, mealHistory\.length\)/.test(guard), 'guard and first scan share one rule for a lost first run, or they bounce between each other');
   const sample = read('src/app/first-sample.tsx');
   assertOk(/markHardWallUsed\(\)/.test(sample) && /setFirstRunStage\('paywall'\)/.test(sample) && !/saveSyncedMeal|logScannedMeal|analyze/.test(sample), 'the example ends the free scope but analyses and saves nothing');
   assertOk(/later: 'Erst ein Beispiel ansehen'/.test(de), 'the way past the first scan says it shows an example');

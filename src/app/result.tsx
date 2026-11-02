@@ -25,6 +25,7 @@ import { portionName } from '@/services/pieceWeights';
 import { formatItemAmount, initialSelection } from '@/utils/portions';
 import { draftConfidence } from '@/utils/confidence';
 import { useLocalDay } from '@/hooks/useLocalDay';
+import { useRouteGate } from '@/hooks/useRouteGate';
 
 export default function ResultScreen() {
   const { colors } = useTheme();
@@ -88,11 +89,12 @@ export default function ResultScreen() {
     return operation;
   }, [demo, logScannedMeal]);
 
+  const gated = useRouteGate();
   useEffect(() => {
-    if (savedOnArrival.current) return;
+    if (savedOnArrival.current || gated) return;
     savedOnArrival.current = true;
     void saveCurrentMeal();
-  }, [saveCurrentMeal]);
+  }, [gated, saveCurrentMeal]);
 
   // The numbers the reveal counts towards, read through refs so that logging
   // the meal: which changes `projected` a moment after arrival: cannot tear

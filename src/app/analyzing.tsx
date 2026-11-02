@@ -11,6 +11,7 @@ import { MealPhoto, PrimaryButton } from '@/components/ui';
 import { useFreeScanAllowance } from '@/hooks/useHardWall';
 import { useApp } from '@/context/AppContext';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useRouteGate } from '@/hooks/useRouteGate';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { AnalysisErrorKind } from '@/services/contracts';
 import { setScanInputDraft } from '@/services/captureIntents';
@@ -45,6 +46,7 @@ export default function AnalyzingScreen() {
   const [slow, setSlow] = useState(false);
   const [longer, setLonger] = useState(false);
   const started = useRef(false);
+  const gated = useRouteGate();
   const reduceMotion = useReducedMotion();
   const { t } = useLanguage();
   const { allowance, hardWall } = useFreeScanAllowance();
@@ -89,10 +91,10 @@ export default function AnalyzingScreen() {
   const photoHeight = Math.round(Math.min(330, Math.max(180, windowHeight * 0.34)));
 
   useEffect(() => {
-    if (started.current) return;
+    if (started.current || gated) return;
     started.current = true;
     void analyzeCurrentPhoto();
-  }, [analyzeCurrentPhoto]);
+  }, [analyzeCurrentPhoto, gated]);
 
   // The 90 s request deadline stays; after 15 s the user may stop waiting.
   useEffect(() => {
