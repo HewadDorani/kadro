@@ -114,6 +114,7 @@ export default function ScanScreen() {
   const pickSerial = useRef(0);
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addedOpen, setAddedOpen] = useState(false);
   // Barcodes logged in this camera session, each saved the moment it is added:
   // the camera stays open for the next pack and nothing waits on a final save.
   const [serial, setSerial] = useState<{ mealId: string; name: string; kcal: number }[]>([]);
@@ -1032,32 +1033,39 @@ export default function ScanScreen() {
             />
             {!searchQuery.trim() && !added.length ? <Text style={styles.describeText}>{t.scan.searchHint}</Text> : null}
             {added.length ? <View accessibilityLiveRegion="polite" style={styles.addedBox}>
-              {added.map(entry => (
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: addedOpen }} onPress={() => setAddedOpen((open) => !open)} style={styles.addedSummary}>
+                <Ionicons color={colors.success} name="checkmark-circle" size={18} />
+                <Text numberOfLines={1} style={styles.addedText}>{t.scan.pickedSummary(added.length, formatNumber(added.reduce((sum, entry) => sum + entry.kcal, 0), locale))}</Text>
+                <Ionicons color={colors.muted} name={addedOpen ? 'chevron-up' : 'chevron-down'} size={18} />
+              </Pressable>
+              {addedOpen ? <ScrollView keyboardShouldPersistTaps="handled" style={styles.addedList}>{added.map(entry => (
                 <View key={entry.id} style={styles.addedRow}>
                   <Ionicons color={colors.success} name="checkmark-circle" size={18} />
-                  <Text numberOfLines={1} style={styles.addedText}>{isQuickAddResult(entry.food) ? `${entry.name} · ${formatNumber(entry.kcal, locale)} kcal` : `${entry.name} · ${formatNumber(entry.grams, locale)} g · ${formatNumber(entry.kcal, locale)} kcal`}</Text>
+                  <Text numberOfLines={1} style={styles.addedRowText}>{isQuickAddResult(entry.food) ? `${entry.name} · ${formatNumber(entry.kcal, locale)} kcal` : `${entry.name} · ${formatNumber(entry.grams, locale)} g · ${formatNumber(entry.kcal, locale)} kcal`}</Text>
                   <Pressable accessibilityLabel={t.scan.removePicked(entry.name)} accessibilityRole="button" hitSlop={10} onPress={() => removePicked(entry.id)} style={styles.addedRemove}>
                     <Ionicons color={colors.muted} name="close" size={18} />
                   </Pressable>
                 </View>
-              ))}
-              <Text style={styles.addedHint}>{t.scan.pickedHint(added.length, formatNumber(added.reduce((sum, entry) => sum + entry.kcal, 0), locale))}</Text>
+              ))}</ScrollView> : null}
             </View> : null}
             {addError ? <Text accessibilityRole="alert" style={styles.searchError}>{addError}</Text> : null}
-            <TextInput
-              accessibilityLabel={t.scan.searchTitle}
-              autoCorrect={false}
-              autoFocus
-              clearButtonMode="while-editing"
-              maxLength={60}
-              onChangeText={runSearch}
-              onSubmitEditing={() => runSearch(searchQuery, true)}
-              placeholder={t.scan.searchPlaceholder}
-              placeholderTextColor={colors.muted}
-              returnKeyType="search"
-              style={styles.searchInput}
-              value={searchQuery}
-            />
+            <View>
+              {/* Drawn here: on iOS 26 a focused field sets its own placeholder too low. */}
+              {searchQuery ? null : <Text numberOfLines={1} pointerEvents="none" style={styles.searchPlaceholder}>{t.scan.searchPlaceholder}</Text>}
+              <TextInput
+                accessibilityHint={t.scan.searchPlaceholder}
+                accessibilityLabel={t.scan.searchTitle}
+                autoCorrect={false}
+                autoFocus
+                clearButtonMode="while-editing"
+                maxLength={60}
+                onChangeText={runSearch}
+                onSubmitEditing={() => runSearch(searchQuery, true)}
+                returnKeyType="search"
+                style={styles.searchInput}
+                value={searchQuery}
+              />
+            </View>
             </View> : null}
             <ScrollView automaticallyAdjustKeyboardInsets={!searchRides} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={styles.searchResults} contentContainerStyle={[styles.searchContent, !searchRides && { paddingBottom: insets.bottom + 16 }]}>
             {manualFor !== null ? <>
@@ -1279,15 +1287,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   freePill: { borderRadius: radii.pill, backgroundColor: colors.accentSoft, paddingHorizontal: 10, paddingVertical: 4 },
   freePillText: { ...typeScale.caption, color: colors.accentText, fontWeight: '800', letterSpacing: 0.4 },
   searchInput: { minHeight: 52, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 17, paddingHorizontal: 16 },
+  searchPlaceholder: { position: 'absolute', left: 17, right: 16, top: 15, zIndex: 1, color: colors.muted, fontSize: 17, lineHeight: 22 },
   searchResults: { flex: 1, minHeight: 0 },
   searchContent: { gap: 12, paddingBottom: 12 },
   searchError: { ...typeScale.subhead, color: colors.attentionText, paddingVertical: 12 },
   searchStatus: { ...typeScale.subhead, color: colors.muted, paddingVertical: 12 },
-  addedBox: { gap: 6, padding: 12, borderRadius: 14, backgroundColor: colors.successSoft },
+  addedBox: { gap: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 14, backgroundColor: colors.successSoft },
+  addedSummary: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addedList: { maxHeight: 176 },
+  addedRowText: { ...typeScale.footnote, flex: 1, color: colors.text, fontWeight: '600' },
   addedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addedText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   addedRemove: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  addedHint: { ...typeScale.footnote, color: colors.muted },
   searchSection: { ...typeScale.footnote, color: colors.muted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 8, marginBottom: 4 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border },
   searchRowCopy: { flex: 1, gap: 3 },

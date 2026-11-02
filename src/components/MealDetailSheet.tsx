@@ -3,7 +3,7 @@ import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/ui';
@@ -30,7 +30,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
-  const { adjustLoggedMealPortion, deleteLoggedMeal, favoriteMeals, setLoggedItemAmount, setLoggedMealType, toggleFavoriteMeal } = useApp();
+  const { adjustLoggedMealPortion, deleteLoggedMeal, favoriteMeals, removeLoggedItem, setLoggedItemAmount, setLoggedMealType, toggleFavoriteMeal } = useApp();
   const { locale, t } = useLanguage();
   const [busy, setBusy] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -104,6 +104,22 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
   };
   const editing = included.find((item) => item.id === editingItem) ?? null;
 
+  const removeItem = (id: string, name: string) => {
+    if (busy) return;
+    void warningHaptic();
+    Alert.alert(t.mealSheet.removeItemTitle(name), undefined, [
+      { text: t.common.keep, style: 'cancel' },
+      {
+        text: t.mealSheet.removeItem,
+        style: 'destructive',
+        onPress: () => {
+          setBusy(true);
+          void removeLoggedItem(meal.id, id).then(close).finally(() => setBusy(false));
+        },
+      },
+    ]);
+  };
+
   const saveItemAmount = async (grams: number) => {
     if (busy || !editing) return;
     setBusy(true);
@@ -169,11 +185,11 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{t.mealSheet.contains}</Text>
               {included.map((item) => (
+                <View key={item.id} style={styles.itemLine}>
                 <Pressable
                   accessibilityHint={t.mealSheet.editItemHint}
                   accessibilityRole="button"
                   disabled={busy || needsIngredientCorrection(item)}
-                  key={item.id}
                   onPress={() => { void selectionHaptic(); setEditingItem(item.id); }}
                   style={styles.itemRow}
                 >
@@ -184,6 +200,12 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
                   <Text style={styles.itemAmount}>{amountLabel(item)} · ~{formatNumber(item.calories, locale)} kcal</Text>
                   <Ionicons color={colors.muted} name="create-outline" size={16} />
                 </Pressable>
+                {included.length > 1 ? (
+                  <Pressable accessibilityLabel={t.mealSheet.removeItemTitle(item.name)} accessibilityRole="button" disabled={busy} hitSlop={4} onPress={() => removeItem(item.id, item.name)} style={styles.itemRemove}>
+                    <Ionicons color={colors.muted} name="trash-outline" size={18} />
+                  </Pressable>
+                ) : null}
+                </View>
               ))}
             </View>
           ) : null}
@@ -302,10 +324,12 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   macroValue: { ...typeScale.callout, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   macroLabel: { ...typeScale.caption, color: colors.muted },
   body: { flexGrow: 0 },
+  itemLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  itemRemove: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   section: { gap: 8, marginBottom: 18 },
   sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
   sectionHint: { ...typeScale.caption, color: colors.muted },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  itemRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
   itemCopy: { flex: 1, minWidth: 0 },
   itemName: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   itemAmount: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },

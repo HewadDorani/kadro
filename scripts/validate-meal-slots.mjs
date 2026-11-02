@@ -126,6 +126,13 @@ if (!/t\.today\.logSlot\(mealTypeLabel\(slot\.type, t\.common\)\)/.test(today) |
   problems.push('today.tsx: an empty slot has no "eintragen" row that opens the scan for it');
 }
 
+// One food can leave a saved meal without taking the others with it.
+const detailSheet = readFileSync(new URL('../src/components/MealDetailSheet.tsx', import.meta.url), 'utf8');
+if (!/const removeLoggedItem = useCallback[\s\S]{0,420}await deleteLoggedMeal\(id\)[\s\S]{0,420}nutritionFromItems\(items\)/.test(context)) {
+  problems.push('AppContext: removing a food must recompute the meal, and the last food removes the meal');
+}
+if (!/removeLoggedItem\(meal\.id, id\)/.test(detailSheet)) problems.push('MealDetailSheet: a food in a saved meal cannot be removed on its own');
+
 if (problems.length) {
   console.error('Meal-slot check failed:');
   for (const problem of problems) console.error(`  - ${problem}`);

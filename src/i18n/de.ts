@@ -486,7 +486,7 @@ export const de = {
     searchPer100: 'pro 100 g',
     manualCta: (query: string) => `„${query}“ selbst eintragen`, manualTitle: 'Selbst eintragen', manualHint: 'Für alles, was keine Datenbank kennt. Trag die Kalorien für die Menge ein, die du gegessen hast; Makros sind optional.',
     manualName: 'Lebensmittel', manualAmount: 'Menge', manualCalories: 'Kalorien', manualSave: 'Übernehmen', manualInvalid: 'Bitte Name, Menge (1–5000 g) und Kalorien angeben.', manualSource: 'Eigene Angabe',
-    pickedHint: (count: number, kcal: string) => `${count === 1 ? '1 Lebensmittel' : `${count} Lebensmittel`} ausgewählt · ${kcal} kcal. Such weiter – alles wird eine Mahlzeit.`,
+    pickedSummary: (count: number, kcal: string) => `${count === 1 ? '1 Lebensmittel' : `${count} Lebensmittel`} · ${kcal} kcal`,
     saveAs: (slot: string) => `Als ${slot} speichern`, removePicked: (name: string) => `${name} entfernen`,
     discardTitle: 'Auswahl verwerfen?', discardBody: 'Die ausgewählten Lebensmittel sind noch nicht gespeichert.', discardConfirm: 'Verwerfen', keepPicking: 'Weiter auswählen',
     recentTitle: 'Zuletzt gegessen', suggestionsTitle: 'Vorschläge', moreResultsTitle: 'Weitere Treffer', lastAmount: (amount: string) => `zuletzt ${amount}`,
@@ -1263,6 +1263,7 @@ export const de = {
     logAgainLabel: (title: string) => `${title} eintragen`,
   },
   mealSheet: {
+    removeItem: 'Entfernen', removeItemTitle: (name: string) => `${name} entfernen?`,
     favoriteAdd: 'Als Favorit merken', favoriteRemove: 'Aus Favoriten entfernen', favoriteHint: 'Favoriten stehen ganz vorne bei „Nochmal essen“.',
     editItemHint: 'Tippe auf eine Zutat, um nur ihre Menge zu ändern.',
     mealMoment: 'MAHLZEIT',

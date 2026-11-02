@@ -485,7 +485,7 @@ export const en: typeof de = {
     searchPer100: 'per 100 g',
     manualCta: (query: string) => `Add “${query}” yourself`, manualTitle: 'Add your own food', manualHint: 'For anything no database knows. Enter the calories for the amount you ate; macros are optional.',
     manualName: 'Food', manualAmount: 'Amount', manualCalories: 'Calories', manualSave: 'Use this', manualInvalid: 'Please enter a name, an amount (1–5000 g) and calories.', manualSource: 'Own entry',
-    pickedHint: (count: number, kcal: string) => `${count === 1 ? '1 food' : `${count} foods`} selected · ${kcal} kcal. Keep searching – it all becomes one meal.`,
+    pickedSummary: (count: number, kcal: string) => `${count === 1 ? '1 food' : `${count} foods`} · ${kcal} kcal`,
     saveAs: (slot: string) => `Save as ${slot.toLowerCase()}`, removePicked: (name: string) => `Remove ${name}`,
     discardTitle: 'Discard selection?', discardBody: 'The selected foods have not been saved yet.', discardConfirm: 'Discard', keepPicking: 'Keep selecting',
     recentTitle: 'Recently eaten', suggestionsTitle: 'Suggestions', moreResultsTitle: 'More results', lastAmount: (amount: string) => `last ${amount}`,
@@ -1256,6 +1256,7 @@ export const en: typeof de = {
     logAgainLabel: (title: string) => `Log ${title}`,
   },
   mealSheet: {
+    removeItem: 'Remove', removeItemTitle: (name: string) => `Remove ${name}?`,
     favoriteAdd: 'Save as favorite', favoriteRemove: 'Remove from favorites', favoriteHint: 'Favorites come first in “Eat again”.',
     editItemHint: 'Tap an ingredient to change just its amount.',
     mealMoment: 'MEAL',

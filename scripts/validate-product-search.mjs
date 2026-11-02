@@ -193,7 +193,7 @@ function searchScreen({ local, productReply }) {
     useCallback(fn, deps) { const i = cursor++; if (!slots[i] || !same(slots[i].deps, deps)) slots[i] = { value: fn, deps }; return slots[i].value; },
     useEffect(fn, deps) { const i = cursor++; if (!slots[i] || !same(slots[i].deps, deps)) { const old = slots[i]; slots[i] = { deps }; effects.push(() => { old?.cleanup?.(); slots[i].cleanup = fn(); }); } },
   };
-  const fnKeys = new Set(['allowanceLeft', 'sourceBadgeLabel', 'lastAmount', 'productPackage', 'manualCta', 'pickedHint', 'saveAs', 'removePicked', 'deleteCustom', 'searchCount']);
+  const fnKeys = new Set(['allowanceLeft', 'sourceBadgeLabel', 'lastAmount', 'productPackage', 'manualCta', 'pickedSummary', 'saveAs', 'removePicked', 'deleteCustom', 'searchCount']);
   const copy = new Proxy({}, { get: (_, key) => fnKeys.has(key) ? (...args) => `${String(key)}(${args.join(',')})` : key === 'noteChips' ? [] : String(key) });
   const colors = new Proxy({}, { get: () => '#fff' });
   const app = { descriptionInput: '', scanMode: 'demo', isCurrentScanLogged: false, scannedMeal: { id: 'initial' }, freeScansLeft: 3, hasEverLoggedScan: false, mealHistory: [], startDescriptionScan() {}, resetScan() {} };

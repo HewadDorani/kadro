@@ -173,6 +173,7 @@ type AppContextValue = {
   deleteLoggedMeal: (id: string) => Promise<void>;
   adjustLoggedMealPortion: (id: string, factor: PortionFactor) => Promise<void>;
   /** Corrects one ingredient of a saved meal; the other ingredients keep their amounts. */
+  removeLoggedItem: (id: string, itemId: string) => Promise<void>;
   setLoggedItemAmount: (id: string, itemId: string, grams: number) => Promise<void>;
   setLoggedMealType: (id: string, type: Meal['type']) => Promise<void>;
   /** Slot chosen before scanning, so a late breakfast is not filed as lunch. */
@@ -1607,6 +1608,26 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [mealHistory, meals]);
 
   /**
+   * Takes one food out of a saved meal: several foods picked in one go are one
+   * meal, and a wrong one must not cost the rest. The last food takes the meal.
+   */
+  const removeLoggedItem = useCallback(async (id: string, itemId: string) => {
+    const generation = getLocalDataGeneration();
+    const target = mealHistory.find((meal) => meal.id === id) ?? meals.find((meal) => meal.id === id);
+    if (!target) return;
+    const items = target.items.filter((item) => item.id !== itemId);
+    if (!items.some((item) => item.included)) { await deleteLoggedMeal(id); return; }
+    // A title that lists the foods follows them; a named meal keeps its name.
+    const listed = target.title === target.items.map((item) => item.name).join(', ').slice(0, 160);
+    const updated: Meal = { ...target, items, ...nutritionFromItems(items), ...(listed ? { title: items.map((item) => item.name).join(', ').slice(0, 160) } : {}) };
+    await saveSyncedMeal(updated);
+    if (generation !== getLocalDataGeneration()) throw new Error('cloud_identity_changed');
+    const replace = (list: Meal[]) => list.map((meal) => (meal.id === id ? updated : meal));
+    setMeals(replace);
+    setMealHistory(replace);
+  }, [deleteLoggedMeal, mealHistory, meals]);
+
+  /**
    * The meal moment is derived from the clock at logging time, so anyone who
    * catches up on three meals in the evening ends up with three "Abendessen".
    * Correcting it must not require deleting and redoing the meal.
@@ -1674,6 +1695,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       pendingAnalysisCount,
       syncMode,
       refreshCloudState,
+      removeLoggedItem,
       loadExistingAccount,
       loadAppleAccount,
       retryAccountRecovery,
@@ -1706,7 +1728,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       adjustLoggedMealPortion,
       setLoggedMealType,
     }),
-    [todaysMeals, answerClarify, clarify, descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
+    [todaysMeals, removeLoggedItem, answerClarify, clarify, descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
