@@ -161,7 +161,7 @@ assert.match(app, /origin: costsAnalysis \? 'scan' : 'plan'/,
   'a refunded/manual repair must not spend a credit on the next history hydration');
 const guard = read('src/components/AppRouteGuard.tsx');
 assert.match(guard, /segments\[0\] === 'result'[\s\S]*!canSaveMealDraft\(detectedItems\)/);
-assert.match(guard, /if \(missingMealDraft \|\| incompleteResult\) return/);
+assert.match(guard, /const gated = [^\n]*missingMealDraft \|\| incompleteResult/);
 assert.match(read('supabase/functions/nutrition/index.ts'), /result\.body\.correctionRequired === true\) \{\s*await refundAnalysis/);
 for (const route of ['photo', 'text']) assert.ok(read('supabase/functions/nutrition/index.ts').includes(`'${route}', claimUsda, input.ingredientCorrection`));
 const search = read('src/app/correct-food.tsx');
