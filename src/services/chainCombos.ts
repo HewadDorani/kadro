@@ -91,7 +91,8 @@ export type ChainCombo = Nutrition & {
   score: number;
 };
 
-export const CHAIN_DATA: Record<MarketRegion, ChainDataset> = {
+// Europe has no file: chains publish per country, so the dish catalogue answers there.
+export const CHAIN_DATA: Partial<Record<MarketRegion, ChainDataset>> = {
   de: deChains as unknown as ChainDataset,
   gb: gbChains as unknown as ChainDataset,
   us: usChains as unknown as ChainDataset,

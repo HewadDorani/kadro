@@ -60,6 +60,13 @@ const MARKETS = {
   us: { country: 'en:united-states', lang: 'en', output: 'src/data/supermarketProducts.us.json', site: 'site/data/supermarket-products.us.json',
     attribution: 'Product data: Open Food Facts (openfoodfacts.org), ODbL 1.0' },
 };
+// One market for the rest of Europe: 30 days of downloads (03.10.–01.11.2026)
+// spread 52 of 125 over some 30 countries, led by Denmark and Norway, so a market
+// per country would stay empty. Labels stay in the language of the pack.
+const ISO_BY_TAG = { 'en:denmark': 'DK', 'en:norway': 'NO', 'en:sweden': 'SE', 'en:finland': 'FI', 'en:netherlands': 'NL', 'en:belgium': 'BE', 'en:france': 'FR', 'en:spain': 'ES', 'en:portugal': 'PT', 'en:italy': 'IT', 'en:ireland': 'IE', 'en:poland': 'PL', 'en:czech-republic': 'CZ', 'en:slovakia': 'SK', 'en:croatia': 'HR', 'en:slovenia': 'SI', 'en:romania': 'RO', 'en:bulgaria': 'BG', 'en:greece': 'GR', 'en:hungary': 'HU' };
+MARKETS.eu = { countries: ['en:denmark', 'en:norway', 'en:sweden', 'en:finland', 'en:netherlands', 'en:belgium', 'en:france', 'en:spain', 'en:portugal', 'en:italy', 'en:ireland', 'en:poland', 'en:czech-republic', 'en:slovakia', 'en:croatia', 'en:slovenia', 'en:romania', 'en:bulgaria', 'en:greece', 'en:hungary'],
+  lang: 'en', anyLabel: true, output: 'src/data/supermarketProducts.eu.json', site: 'site/data/supermarket-products.eu.json',
+  attribution: 'Product data: Open Food Facts (openfoodfacts.org), ODbL 1.0' };
 if (!MARKETS[MARKET]) throw new Error(`--market must be one of ${Object.keys(MARKETS).join(', ')}`);
 const MARKET_CONFIG = MARKETS[MARKET];
 const OUTPUT = resolve(root, MARKET_CONFIG.output);
@@ -90,7 +97,10 @@ async function politeJson(url) {
 }
 
 // --- discovery ------------------------------------------------------------
-const MARKET_FILTER = `countries_tags:"${MARKET_CONFIG.country}" AND lang:"${MARKET_CONFIG.lang}"`;
+const MARKET_COUNTRIES = MARKET_CONFIG.countries ?? [MARKET_CONFIG.country];
+const MARKET_FILTER = MARKET_CONFIG.anyLabel
+  ? `(${MARKET_COUNTRIES.map((country) => `countries_tags:"${country}"`).join(' OR ')})`
+  : `countries_tags:"${MARKET_CONFIG.country}" AND lang:"${MARKET_CONFIG.lang}"`;
 const cat = (tag) => `categories_tags:"${tag}"`;
 /**
  * Each query names what we are looking for; `limit` is the number of most
@@ -124,6 +134,7 @@ const QUERIES = [
   { q: `${cat('en:sandwiches')} AND NOT ${cat('en:breads')}`, limit: 60 },
   ...(MARKET === 'de' ? [{ q: 'brands_tags:"rewe-to-go"', limit: 80 }] : []),
   ...(MARKET === 'gb' ? [{ q: 'meal deal', limit: 40 }, { q: cat('en:greek-style-yogurts'), limit: 30 }] : []),
+  ...(MARKET === 'eu' ? [{ q: cat('en:greek-style-yogurts'), limit: 30 }] : []),
   ...(MARKET === 'us' ? [{ q: cat('en:greek-yogurts'), limit: 50 }, { q: cat('en:string-cheese'), limit: 15 }, { q: cat('en:beef-jerky'), limit: 20 }] : []),
   { q: cat('en:pasta-salads'), limit: 15 },
   { q: cat('en:prepared-salads'), limit: 40, minProtein: 5 },
@@ -132,6 +143,7 @@ const QUERIES = [
   ...({
     de: ['milbona', 'milsani', 'ja', 'gut-gunstig', 'rewe-beste-wahl', 'k-classic', 'golden-seafood', 'rugenwalder-muhle', 'ehrmann', 'dulano', 'chef-select', 'vemondo', 'alpro'],
     gb: ['tesco', 'sainsbury-s', 'asda', 'morrisons', 'marks-spencer', 'm-s', 'waitrose', 'co-op', 'aldi', 'lidl', 'milbona', 'yeo-valley', 'arla', 'fage', 'grenade', 'fulfil', 'graze', 'quorn', 'alpro'],
+    eu: ['milbona', 'pilos', 'favorit', 'arla', 'fage', 'alpro', 'carrefour', 'albert-heijn', 'ah', 'coop', 'rema-1000', 'ica', 'mercadona', 'hacendado', 'biedronka', 'spar', 'lidl', 'aldi', 'barebells', 'oatly'],
     us: ['great-value', 'kirkland-signature', 'trader-joe-s', '365-by-whole-foods-market', 'good-gather', 'simple-truth', 'kroger', 'friendly-farms', 'chobani', 'fairlife', 'oikos', 'siggi-s', 'quest', 'premier-protein', 'pure-protein', 'good-culture', 'tyson'],
   }[MARKET]).map((brand) => ({ q: `brands_tags:"${brand}"`, limit: 60, minProtein: 8 })),
   // sides
@@ -276,6 +288,10 @@ const STORES_BY_MARKET = {
     'm-s-food': 'ms', waitrose: 'waitrose', 'waitrose-partners': 'waitrose', 'co-op': 'coop', 'the-co-operative': 'coop', 'co-operative': 'coop',
     'coop': 'coop', aldi: 'aldi', 'aldi-uk': 'aldi', lidl: 'lidl', 'lidl-uk': 'lidl', iceland: 'iceland',
   },
+  eu: {
+    lidl: 'lidl', aldi: 'aldi', netto: 'netto', 'rema-1000': 'rema', rema: 'rema', coop: 'coop', ica: 'ica', carrefour: 'carrefour', 'carrefour-market': 'carrefour', 'carrefour-city': 'carrefour',
+    'albert-heijn': 'ah', ah: 'ah', mercadona: 'mercadona', biedronka: 'biedronka', spar: 'spar', 'interspar': 'spar', eurospar: 'spar', kaufland: 'kaufland', auchan: 'auchan', leclerc: 'leclerc', 'e-leclerc': 'leclerc', conad: 'conad',
+  },
   us: {
     walmart: 'walmart', 'wal-mart': 'walmart', 'walmart-supercenter': 'walmart', costco: 'costco', 'trader-joe-s': 'traderjoes', 'trader-joes': 'traderjoes',
     'whole-foods': 'wholefoods', 'whole-foods-market': 'wholefoods', target: 'target', 'super-target': 'target', kroger: 'kroger',
@@ -304,7 +320,7 @@ const anyCategory = (product, tags) => tags.some((tag) => has(product, 'categori
 
 function displayName(product) {
   const lang = MARKET_CONFIG.lang;
-  let name = String(product[`product_name_${lang}`] || (product.lang === lang ? product.product_name : '') || '').replace(/\s+/g, ' ').trim();
+  let name = String(product[`product_name_${lang}`] || (product.lang === lang || MARKET_CONFIG.anyLabel ? product.product_name : '') || '').replace(/\s+/g, ' ').trim();
   // Some records carry the barcode or a price in the name.
   name = name.replace(/\s*\b\d{8,14}\b\s*/g, ' ').replace(/[\u2013\u2014]/g, '-').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   if (!name) return null;
@@ -485,7 +501,7 @@ async function main() {
     const product = body?.status === 1 ? body.product : null;
     if (!product) { drop('not found'); continue; }
     if (product.obsolete === 'on' || product.obsolete === true) { drop('obsolete'); continue; }
-    if (!(product.countries_tags ?? []).includes(MARKET_CONFIG.country)) { drop(`not sold in ${MARKET_CONFIG.country}`); continue; }
+    if (!MARKET_COUNTRIES.some((country) => (product.countries_tags ?? []).includes(country))) { drop(`not sold in ${MARKET_COUNTRIES[0]}`); continue; }
     if (isVolume(product)) { drop('volume label'); continue; }
     const name = displayName(product);
     if (!name) { drop(`no ${MARKET_CONFIG.lang} name`); continue; }
@@ -513,6 +529,7 @@ async function main() {
       name,
       brand,
       stores: stores(product),
+      ...(MARKET === 'eu' ? { countries: (product.countries_tags ?? []).map((tag) => ISO_BY_TAG[tag]).filter(Boolean).sort() } : {}),
       ...(pack.packageG ? { packageG: pack.packageG } : {}),
       ...(pack.unit ? { unit: pack.unit } : {}),
       ...(pack.servingG ? { servingG: pack.servingG } : {}),

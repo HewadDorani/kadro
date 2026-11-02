@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
  * lookup order, supermarket baskets and store brands.
  *
  * 'de' covers Germany, Austria and Switzerland; 'gb' the United Kingdom; 'us'
- * the United States. The device region decides (expo-localization), not the
+ * the United States; 'eu' the rest of Europe as one market, because no single
+ * country there has enough people or data of its own. The device region decides (expo-localization), not the
  * app language: somebody in London with the app in German still shops at
  * Tesco. Other regions fall back to the device language (German → 'de',
  * anything else → 'us'). The person can override it in Du → "Land für
@@ -15,17 +16,18 @@ import { useEffect, useState } from 'react';
  * Kandro's server only as the `region` parameter of product searches and
  * barcode lookups.
  */
-export type MarketRegion = 'de' | 'gb' | 'us';
+export type MarketRegion = 'de' | 'gb' | 'us' | 'eu';
 /** What the person chose in Du: a market, or follow the device. */
 export type MarketRegionSetting = MarketRegion | 'auto';
 
-export const MARKET_REGIONS: readonly MarketRegion[] = ['de', 'gb', 'us'];
+export const MARKET_REGIONS: readonly MarketRegion[] = ['de', 'gb', 'us', 'eu'];
 export const MARKET_REGION_KEY = '@kandro/market-region:v1';
 
 const DACH = new Set(['DE', 'AT', 'CH']);
+const EUROPE = new Set(['DK', 'NO', 'SE', 'FI', 'IS', 'NL', 'BE', 'LU', 'FR', 'ES', 'PT', 'IT', 'MT', 'IE', 'PL', 'CZ', 'SK', 'HU', 'SI', 'HR', 'RO', 'BG', 'GR', 'CY', 'EE', 'LV', 'LT']);
 
 export const isMarketRegion = (value: unknown): value is MarketRegion =>
-  value === 'de' || value === 'gb' || value === 'us';
+  value === 'de' || value === 'gb' || value === 'us' || value === 'eu';
 
 /** Pure mapping, exported for tests: ISO region code and language code → market. */
 export function marketRegionFor(regionCode?: string | null, languageCode?: string | null): MarketRegion {
@@ -33,7 +35,21 @@ export function marketRegionFor(regionCode?: string | null, languageCode?: strin
   if (DACH.has(region)) return 'de';
   if (region === 'GB' || region === 'UK') return 'gb';
   if (region === 'US') return 'us';
-  return (languageCode ?? '').toLowerCase().split(/[-_]/)[0] === 'de' ? 'de' : 'us';
+  // Ireland shops at Tesco, Aldi and Lidl and reads English labels.
+  if (region === 'IE') return 'gb';
+  const german = (languageCode ?? '').toLowerCase().split(/[-_]/)[0] === 'de';
+  if (german) return 'de';
+  return EUROPE.has(region) ? 'eu' : 'us';
+}
+
+/** ISO country of the device, for shelves that differ inside a market. */
+export function deviceCountry(): string | null {
+  try {
+    const locale = getLocales()[0];
+    return locale?.regionCode?.toUpperCase() ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** The market the device settings point to, ignoring any override. */
@@ -74,6 +90,14 @@ export function loadMarketRegion(): Promise<void> {
     })
     .catch(() => undefined);
   return loading;
+}
+
+/**
+ * The server's product index for a market. Europe has no index of its own yet:
+ * the UK one has the English names, and barcodes are found in every market.
+ */
+export function productIndexRegion(region: MarketRegion = getMarketRegion()): Exclude<MarketRegion, 'eu'> {
+  return region === 'eu' ? 'gb' : region;
 }
 
 /** The market in effect now: the override, else the device. Synchronous. */

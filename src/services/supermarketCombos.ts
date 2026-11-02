@@ -1,6 +1,7 @@
 import productData from '@/data/supermarketProducts.json';
 import productDataGb from '@/data/supermarketProducts.gb.json';
 import productDataUs from '@/data/supermarketProducts.us.json';
+import productDataEu from '@/data/supermarketProducts.eu.json';
 import type { FoodSearchResult } from '@/services/mealAnalysis';
 import { meetsDiet, preferenceBonus } from '@/services/preferences';
 import type { MarketRegion } from '@/services/region';
@@ -38,6 +39,8 @@ export type SupermarketProduct = {
   brand: string;
   /** Only from the product's own Open Food Facts stores tag. Empty = unknown. */
   stores: string[];
+  /** Europe market: ISO countries it is sold in, so nobody in Denmark is sent to Carrefour. */
+  countries?: string[];
   packageG?: number;
   /** Multipack cup or piece weight from the label; `estimated` for loose produce. */
   unit?: { g: number; count: number; estimated?: boolean };
@@ -82,10 +85,36 @@ export const SUPERMARKET_DATASETS: Readonly<Record<MarketRegion, SupermarketData
   de: SUPERMARKET_DATA,
   gb: productDataGb as unknown as SupermarketDataset,
   us: productDataUs as unknown as SupermarketDataset,
+  eu: productDataEu as unknown as SupermarketDataset,
 };
 /** The bundled products of a shopping market; unknown regions get the German set. */
 export function supermarketDataset(region: MarketRegion): SupermarketDataset {
   return SUPERMARKET_DATASETS[region] ?? SUPERMARKET_DATA;
+}
+
+/**
+ * The part of the Europe set that is on a shelf near this person. Below a usable
+ * range it widens to Lidl, which trades across Europe. A store that does not
+ * exist in the country is never named; without enough products the Plan falls
+ * back to its dish catalogue (Norway has no Lidl and almost no data).
+ */
+const LOCAL_MINIMUM = 80;
+const STORE_COUNTRIES: Readonly<Record<string, readonly string[]>> = {
+  lidl: ['DK', 'SE', 'FI', 'NL', 'BE', 'FR', 'ES', 'PT', 'IT', 'IE', 'PL', 'CZ', 'SK', 'HU', 'SI', 'HR', 'RO', 'BG', 'GR', 'CY', 'MT', 'EE', 'LV', 'LT', 'LU'],
+  aldi: ['FR', 'ES', 'PT', 'IT', 'BE', 'NL', 'PL', 'HU', 'SI', 'IE', 'LU'],
+  carrefour: ['FR', 'ES', 'IT', 'BE', 'PL', 'RO'], auchan: ['FR', 'ES', 'PT', 'IT', 'PL', 'RO', 'HU'], leclerc: ['FR', 'ES', 'PT', 'PL'],
+  mercadona: ['ES', 'PT'], ah: ['NL', 'BE'], biedronka: ['PL'], ica: ['SE'], rema: ['NO', 'DK'], conad: ['IT'],
+  netto: ['DK', 'SE', 'PL'], kaufland: ['PL', 'CZ', 'SK', 'HR', 'RO', 'BG'], spar: ['NL', 'BE', 'IT', 'SI', 'HR', 'HU', 'PT'], coop: ['DK', 'NO', 'SE', 'FI', 'IT'],
+};
+const storesIn = (product: SupermarketProduct, country: string) => product.stores.filter((store) => STORE_COUNTRIES[store]?.includes(country));
+export function productsForCountry(products: readonly SupermarketProduct[], country: string | null): SupermarketProduct[] {
+  if (!country || !products.some((product) => product.countries)) return [...products];
+  const local = products
+    .filter((product) => !product.countries || product.countries.includes(country))
+    .map((product) => ({ ...product, stores: storesIn(product, country) }));
+  if (local.length >= LOCAL_MINIMUM || !STORE_COUNTRIES.lidl.includes(country)) return local;
+  const known = new Set(local.map((product) => product.id));
+  return [...local, ...products.filter((product) => !known.has(product.id) && product.stores.includes('lidl')).map((product) => ({ ...product, stores: ['lidl'] }))];
 }
 
 /** Store ids the data may carry; display names live in the dictionaries (plan.marketStores). */
@@ -93,12 +122,14 @@ export const STORE_IDS = [
   'lidl', 'aldi', 'aldi-nord', 'aldi-sued', 'rewe', 'edeka', 'kaufland', 'dm', 'penny', 'netto', 'rossmann',
   'tesco', 'sainsburys', 'asda', 'morrisons', 'ms', 'waitrose', 'coop', 'iceland',
   'walmart', 'costco', 'traderjoes', 'wholefoods', 'target', 'kroger', 'safeway', 'albertsons',
+  'rema', 'ica', 'carrefour', 'ah', 'mercadona', 'biedronka', 'spar', 'auchan', 'leclerc', 'conad',
 ] as const;
 /** Which store ids belong to which market (Aldi and Lidl trade in more than one). */
 export const MARKET_STORE_IDS: Readonly<Record<MarketRegion, readonly StoreId[]>> = {
   de: ['lidl', 'aldi', 'aldi-nord', 'aldi-sued', 'rewe', 'edeka', 'kaufland', 'dm', 'penny', 'netto', 'rossmann'],
   gb: ['tesco', 'sainsburys', 'asda', 'morrisons', 'ms', 'waitrose', 'coop', 'aldi', 'lidl', 'iceland'],
   us: ['walmart', 'costco', 'traderjoes', 'wholefoods', 'target', 'kroger', 'aldi', 'safeway', 'albertsons'],
+  eu: ['lidl', 'aldi', 'netto', 'coop', 'kaufland', 'rema', 'ica', 'carrefour', 'ah', 'mercadona', 'biedronka', 'spar', 'auchan', 'leclerc', 'conad'],
 };
 export type StoreId = (typeof STORE_IDS)[number];
 

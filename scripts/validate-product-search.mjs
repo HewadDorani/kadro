@@ -121,7 +121,7 @@ const bindings = {
   process: { env: { EXPO_PUBLIC_ANALYSIS_API_URL: 'http://127.0.0.1:8787' } },
   functionsBaseUrl: '', supabaseAnonKey: '', getAccessToken: async () => null, isSupabaseConfigured: false,
   getLocalDataGeneration: () => 0, getDictionary: () => dictionary, getLanguage: () => 'de', getLocale: () => 'de-DE',
-  getMarketRegion: () => 'gb', loadMarketRegion: async () => {},
+  getMarketRegion: () => 'gb', productIndexRegion: () => 'gb', loadMarketRegion: async () => {},
   fetch: async (url) => { requests.push(url); return { ok: reply.ok, status: reply.status, headers: { get: () => null }, json: async () => reply.body }; },
   AbortController, setTimeout, clearTimeout,
 };
@@ -208,7 +208,7 @@ function searchScreen({ local, productReply }) {
     '@/components/ManualFoodForm': { ManualFoodForm: 'ManualFoodForm' },
     '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: suggest.mergeSuggestions, recentFoods: () => [], frequentFoods: () => [], suggestFoods: () => local, foodSourceBadge: suggest.foodSourceBadge },
     '@/services/productSearch': hints,
-    '@/services/region': { getMarketRegion: () => 'de' },
+    '@/services/region': { getMarketRegion: () => 'de', productIndexRegion: () => 'de' },
     '@/services/customFoods': { customFoodResult: x => x, deleteCustomFood: async () => {}, isCustomFoodResult: () => false, matchCustomFoods: () => [] },
     '@/hooks/useCustomFoods': { useCustomFoods: () => [] },
     '@/components/QuickAddForm': { QuickAddForm: 'QuickAddForm', isQuickAddResult: () => false },

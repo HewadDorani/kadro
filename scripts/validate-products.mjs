@@ -330,8 +330,8 @@ assert.match(notices, /scripts\/build-products\.py/);
 
 // --- Client: the region rides along with product search and barcode ---------
 const client = read('src/services/mealAnalysis.ts');
-assert.match(client, /\/v1\/search\?q=\$\{encodeURIComponent\(term\)\}&language=\$\{getLanguage\(\)\}&scope=products&region=\$\{getMarketRegion\(\)\}/);
-assert.match(client, /\/v1\/barcode\/\$\{encodeURIComponent\(barcode\)\}\?language=\$\{getLanguage\(\)\}&region=\$\{getMarketRegion\(\)\}/);
+assert.match(client, /\/v1\/search\?q=\$\{encodeURIComponent\(term\)\}&language=\$\{getLanguage\(\)\}&scope=products&region=\$\{productIndexRegion\(\)\}/);
+assert.match(client, /\/v1\/barcode\/\$\{encodeURIComponent\(barcode\)\}\?language=\$\{getLanguage\(\)\}&region=\$\{productIndexRegion\(\)\}/);
 assert.match(client, /await loadMarketRegion\(\);\n  const response = await gatewayFetch\(`\/v1\/barcode/, 'the saved override is read before the first lookup');
 
 if (process.env.KANDRO_TEST_PG_SOCKET) {

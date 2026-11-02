@@ -16,8 +16,8 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { recordRecommendationFeedback, recordRecommendationSet } from '@/services/cloudRepository';
 import { ChainCombo, chainComboSearchEntries, chainCombos, chainsWithOrders } from '@/services/chainCombos';
 import { recommendMeals } from '@/services/recommendations';
-import { useMarketRegion } from '@/services/region';
-import { ComboItem, ComboPortion, comboSearchEntries, productName, StoreId, supermarketCombos, SupermarketCombo, supermarketDataset } from '@/services/supermarketCombos';
+import { deviceCountry, useMarketRegion } from '@/services/region';
+import { ComboItem, ComboPortion, comboSearchEntries, productName, productsForCountry, StoreId, supermarketCombos, SupermarketCombo, supermarketDataset } from '@/services/supermarketCombos';
 import { optionFits, SMALL_MEAL_CALORIES, suggestedNutrition } from '@/utils/mealSuggestions';
 import { trackEvent } from '@/services/telemetry';
 import { markUsage } from '@/services/usageSignals';
@@ -71,7 +71,7 @@ export default function PlanScreen() {
   // Supermarkt shows real products. The dish catalogue stays the fallback if
   // the bundled product data ever cannot fill three baskets.
   const combos = useMemo(
-    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences, marketData.products, excluded) : []),
+    () => (selected === 'supermarket' ? supermarketCombos(remaining, profile.preferences, productsForCountry(marketData.products, deviceCountry()), excluded) : []),
     [excluded, marketData, profile.preferences, remaining, selected],
   );
   const marketMode = selected === 'supermarket' && combos.length === 3;

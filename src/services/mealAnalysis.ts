@@ -14,7 +14,7 @@ import { MealItem, Nutrition } from '@/types/nutrition';
 import { getDictionary, getLanguage, getLocale } from '@/i18n/active';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { customFoodResult, findCustomFoodByBarcode } from '@/services/customFoods';
-import { getMarketRegion, loadMarketRegion } from '@/services/region';
+import { loadMarketRegion, productIndexRegion } from '@/services/region';
 
 /**
  * Optional local override for development. When it is unset the app talks to
@@ -365,7 +365,7 @@ export async function analyzeBarcode(barcode: string): Promise<MealAnalysisResul
   // The region only orders the lookup (that market's index first); any
   // market's product is still found.
   await loadMarketRegion();
-  const response = await gatewayFetch(`/v1/barcode/${encodeURIComponent(barcode)}?language=${getLanguage()}&region=${getMarketRegion()}`);
+  const response = await gatewayFetch(`/v1/barcode/${encodeURIComponent(barcode)}?language=${getLanguage()}&region=${productIndexRegion()}`);
   const payload = (await response.json().catch(() => null)) as BarcodePayload | null;
   if (!response.ok || !payload) {
     // Remembered so "Nährwerttabelle fotografieren" can link the new product.
@@ -500,7 +500,7 @@ export async function searchFoods(query: string, options: { catalogueOnly?: bool
   // Packaged products in these rows come from the shopping region's index too.
   await loadMarketRegion();
   const response = await gatewayFetch(
-    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}${options.catalogueOnly ? '&scope=catalogue' : `&region=${getMarketRegion()}`}`,
+    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}${options.catalogueOnly ? '&scope=catalogue' : `&region=${productIndexRegion()}`}`,
   );
   const payload = (await response.json().catch(() => null)) as
     { results?: FoodSearchResult[]; searchStatus?: FoodSearchResults['searchStatus']; issues?: {code:string;retryAfter?:string}[]; code?: string; message?: string } | null;
@@ -614,7 +614,7 @@ export async function searchProducts(query: string, options: { brands?: readonly
   // Products of the shelves the person shops at (de = DE/AT/CH, gb, us).
   await loadMarketRegion();
   const response = await gatewayFetch(
-    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}&scope=products&region=${getMarketRegion()}${brands.length ? `&brands=${encodeURIComponent(brands.join(','))}` : ''}`,
+    `/v1/search?q=${encodeURIComponent(term)}&language=${getLanguage()}&scope=products&region=${productIndexRegion()}${brands.length ? `&brands=${encodeURIComponent(brands.join(','))}` : ''}`,
   );
   const payload = (await response.json().catch(() => null)) as
     { results?: unknown[]; products?: unknown[]; searchStatus?: ProductSearchResults['searchStatus']; code?: string; message?: string } | null;

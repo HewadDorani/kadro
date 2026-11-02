@@ -260,7 +260,7 @@ function scanScreenHarness() {
     '@/components/LogTargetPicker': { LogTargetRow: 'LogTargetRow' },
     '@/services/mealAnalysis': { lookupBarcodeFood: async () => null, MealAnalysisError: class extends Error {}, searchProducts: async () => ({ generic: [], products: [] }), deleteTemporaryPhoto() {} },
     '@/services/productSearch': { productSearchHint: () => ({ brandQuery: false, brands: [] }), productsFirst: () => false },
-    '@/services/region': { getMarketRegion: () => 'de' },
+    '@/services/region': { getMarketRegion: () => 'de', productIndexRegion: () => 'de' },
     '@/context/SubscriptionContext': { useSubscription: () => ({ status: 'active' }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ locale: 'en-GB', t: { scan: copy, common: copy, errors: copy } }) },
     '@/services/haptics': { primaryHaptic() {}, successHaptic() {} },

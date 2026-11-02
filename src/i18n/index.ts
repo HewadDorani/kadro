@@ -62,7 +62,7 @@ export function dictionaryFor(language: Language): Dictionary {
  * American reads "6:30 PM" and "October 26", everyone else the British
  * 24-hour clock and "26 October".
  */
-export function localeTag(language: Language, market?: 'de' | 'gb' | 'us') {
+export function localeTag(language: Language, market?: 'de' | 'gb' | 'us' | 'eu') {
   if (language === 'de') return 'de-DE';
   return market === 'us' ? 'en-US' : 'en-GB';
 }

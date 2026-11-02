@@ -43,10 +43,12 @@ const MARKETS = {
     categories: ['protein-bar', 'yogurt', 'poultry', 'fruit', 'bread', 'nuts', 'sandwich'] },
   us: { path: 'src/data/supermarketProducts.us.json', site: 'site/data/supermarket-products.us.json', maxKb: 150, country: 'en:united-states', language: 'en',
     categories: ['protein-bar', 'yogurt', 'skyr', 'poultry', 'tuna', 'fruit', 'bread', 'nuts'] },
+  eu: { path: 'src/data/supermarketProducts.eu.json', site: 'site/data/supermarket-products.eu.json', maxKb: 150, country: null, language: null,
+    categories: ['protein-bar', 'yogurt', 'skyr', 'poultry', 'tuna', 'fruit', 'bread', 'nuts'] },
 };
-assert.deepEqual(Object.keys(SUPERMARKET_DATASETS).sort(), ['de', 'gb', 'us']);
+assert.deepEqual(Object.keys(SUPERMARKET_DATASETS).sort(), ['de', 'eu', 'gb', 'us']);
 assert.equal(supermarketDataset('de').products.length, JSON.parse(read(MARKETS.de.path)).products.length, 'de is the German dataset');
-const STORES_OF = { de: new Set(MARKET_STORE_IDS.de), gb: new Set(MARKET_STORE_IDS.gb), us: new Set(MARKET_STORE_IDS.us) };
+const STORES_OF = { de: new Set(MARKET_STORE_IDS.de), gb: new Set(MARKET_STORE_IDS.gb), us: new Set(MARKET_STORE_IDS.us), eu: new Set(MARKET_STORE_IDS.eu) };
 assert.ok(!STORES_OF.gb.has('rewe') && !STORES_OF.us.has('rewe') && !STORES_OF.de.has('tesco') && !STORES_OF.de.has('walmart'), 'store lists never cross markets');
 for (const store of Object.values(MARKET_STORE_IDS).flat()) assert.ok(STORE_IDS.includes(store), `store id ${store}`);
 const summaries = [];
@@ -203,6 +205,23 @@ summaries.push(`${market}: ${data.products.length} products (${(size / 1024).toF
 }
 
 for (const market of Object.keys(MARKETS)) validateMarket(market);
+
+// Europe: nobody is sent to a store their country does not have.
+{
+  const { productsForCountry, SUPERMARKET_DATASETS: sets, supermarketCombos: combos } = load('src/services/supermarketCombos.ts');
+  const all = sets.eu.products;
+  const stores = (country) => new Set(productsForCountry(all, country).flatMap((product) => product.stores));
+  assert.ok(!stores('DK').has('carrefour') && !stores('DK').has('leclerc'), 'Denmark has no Carrefour or Leclerc');
+  assert.ok(stores('FR').has('carrefour') && !stores('FR').has('mercadona'), 'France shops at Carrefour, not Mercadona');
+  assert.ok(productsForCountry(all, 'NO').every((product) => !product.stores.length), 'Norway has neither Lidl nor data: no store is named');
+  assert.ok(productsForCountry(all, 'DK').length >= 80, 'Denmark widens to Lidl');
+  assert.equal(productsForCountry(all, null).length, all.length, 'a device without a country keeps the whole set');
+  const remaining = { calories: 640, protein: 45, carbs: 60, fat: 20 };
+  assert.ok(combos(remaining, [], productsForCountry(all, 'NO')).length < 3, 'fewer than three baskets hands over to the dish catalogue');
+  for (const country of ['FR', 'ES', 'DK', 'NL', 'PL', 'SE']) {
+    assert.equal(combos(remaining, [], productsForCountry(all, country)).length, 3, `${country} gets three baskets`);
+  }
+}
 
 // Stores only from Open Food Facts tags: the build script has no brand→store mapping.
 const build = read('scripts/build-supermarket-products.mjs');

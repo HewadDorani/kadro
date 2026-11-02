@@ -9,6 +9,16 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-11-02 – Europa-Markt (1.0.9)
+
+Downloads 03.10.–01.11.2026: 125 gesamt, 44 DACH, 17 UK, 12 USA, 52 verteilt auf rund 30 Länder (Dänemark 7, Norwegen 5). Für einzelne Länder reicht weder die Menge noch die Datenlage, deshalb ein gemeinsamer Markt.
+
+- [x] Markt `eu`: europäische Geräte landen nicht mehr bei US-Daten. Irland zählt zu UK, Deutschsprachige außerhalb DACH zu `de`.
+- [x] 418 geprüfte Open-Food-Facts-Produkte mit Verkaufsländern (Lidl 90, Carrefour 83, Leclerc 46, Auchan 42). Frankreich 329, Spanien 99, Belgien 63, Portugal 50, Dänemark 4, Norwegen 0.
+- [x] `productsForCountry`: nur Geschäfte, die es im Land gibt; unter 80 Produkten kommen Lidl-Produkte dazu. Ohne drei Körbe (Norwegen) antwortet der Gerichte-Katalog.
+- [x] Unterwegs: keine europäischen Kettendaten, weil Ketten je Land veröffentlichen. Der Gerichte-Katalog antwortet, bis es das Speisekarten-Foto gibt.
+- [ ] Eigener Produktindex `eu` in Supabase. Bis dahin nutzt die Suche den UK-Index (`productIndexRegion`); Barcodes werden in allen Märkten gefunden.
+
 ## 2026-11-02 – Schneller eintragen
 
 Eigentümer-Rückmeldung aus der eigenen Nutzung (Muskelaufbau): 100-g-Werte statt Stücke, kein Serien-Scan, zu viel Text nach dem Scan, Einträge „verschwinden“.

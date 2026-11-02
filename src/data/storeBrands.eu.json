@@ -1,0 +1,53 @@
+{
+  "stores": {
+    "Lidl": [
+      "Lidl",
+      "Milbona",
+      "Pilos",
+      "Favorina"
+    ],
+    "Aldi": [
+      "Aldi",
+      "Milsani"
+    ],
+    "Carrefour": [
+      "Carrefour"
+    ],
+    "Albert Heijn": [
+      "AH",
+      "Albert Heijn"
+    ],
+    "Mercadona": [
+      "Hacendado"
+    ],
+    "REMA 1000": [
+      "REMA 1000"
+    ],
+    "ICA": [
+      "ICA"
+    ],
+    "SPAR": [
+      "SPAR"
+    ]
+  },
+  "storeWords": {
+    "lidl": "Lidl",
+    "aldi": "Aldi",
+    "carrefour": "Carrefour",
+    "albert heijn": "Albert Heijn",
+    "ah": "Albert Heijn",
+    "mercadona": "Mercadona",
+    "rema": "REMA 1000",
+    "ica": "ICA",
+    "spar": "SPAR"
+  },
+  "manufacturers": [
+    "Arla",
+    "Fage",
+    "Alpro",
+    "Barebells",
+    "Oatly",
+    "Danone"
+  ],
+  "aliases": {}
+}

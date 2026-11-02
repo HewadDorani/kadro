@@ -31,11 +31,12 @@ const DATA: Record<MarketRegion, StoreBrandData> = {
   de: require('../data/storeBrands.json') as StoreBrandData,
   gb: require('../data/storeBrands.gb.json') as StoreBrandData,
   us: require('../data/storeBrands.us.json') as StoreBrandData,
+  eu: require('../data/storeBrands.eu.json') as StoreBrandData,
 };
 /* eslint-enable @typescript-eslint/no-var-requires */
 /** Store → own brands per market. */
 export const STORE_BRANDS_BY_REGION: Readonly<Record<MarketRegion, Readonly<Record<string, readonly string[]>>>> = {
-  de: DATA.de.stores, gb: DATA.gb.stores, us: DATA.us.stores,
+  de: DATA.de.stores, gb: DATA.gb.stores, us: DATA.us.stores, eu: DATA.eu.stores,
 };
 /** The German (DE/AT/CH) store brands. */
 export const STORE_BRANDS = STORE_BRANDS_BY_REGION.de;

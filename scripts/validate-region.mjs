@@ -53,7 +53,7 @@ await test('device region → market: DACH, UK, US, and the language fallback', 
   const cases = [
     ['DE', 'de', 'de'], ['AT', 'de', 'de'], ['CH', 'fr', 'de'], ['CH', 'it', 'de'], ['GB', 'en', 'gb'], ['UK', 'en', 'gb'], ['gb', 'de', 'gb'],
     ['US', 'en', 'us'], ['US', 'de', 'us'], ['DE', 'en', 'de'],
-    ['FR', 'fr', 'us'], ['IE', 'en', 'us'], ['LU', 'de', 'de'], ['BE', 'de-BE', 'de'], [null, 'de', 'de'], [null, 'en', 'us'], [undefined, undefined, 'us'],
+    ['FR', 'fr', 'eu'], ['DK', 'da', 'eu'], ['NO', 'nb', 'eu'], ['ES', 'es', 'eu'], ['IE', 'en', 'gb'], ['AU', 'en', 'us'], ['LU', 'de', 'de'], ['BE', 'de-BE', 'de'], [null, 'de', 'de'], [null, 'en', 'us'], [undefined, undefined, 'us'],
   ];
   for (const [code, language, market] of cases) assert.equal(region.marketRegionFor(code, language), market, `${code}/${language}`);
   locales = [{ regionCode: 'AT', languageCode: 'de', languageTag: 'de-AT' }];
@@ -141,8 +141,8 @@ await test('store brands follow the market: no Tesco in Germany, no Rewe in the 
 
 await test('requests carry the region; Du offers the setting; Plan follows the region', () => {
   const client = read('src/services/mealAnalysis.ts');
-  assert.match(client, /&scope=products&region=\$\{getMarketRegion\(\)\}/);
-  assert.match(client, /\?language=\$\{getLanguage\(\)\}&region=\$\{getMarketRegion\(\)\}/);
+  assert.match(client, /&scope=products&region=\$\{productIndexRegion\(\)\}/);
+  assert.match(client, /\?language=\$\{getLanguage\(\)\}&region=\$\{productIndexRegion\(\)\}/);
   const scan = read('src/app/(tabs)/scan.tsx');
   assert.match(scan, /productSearchHint\(term, getMarketRegion\(\)\)/);
   assert.match(scan, /productsFirst\(typedQuery, searchResults\.length, productResults\.length, getMarketRegion\(\)\)/);
@@ -158,7 +158,7 @@ await test('requests carry the region; Du offers the setting; Plan follows the r
     for (const key of ['marketRegion:', 'marketRegionDetail:', 'marketRegionAuto:', 'marketRegionAutoDetail:', 'marketRegionNames:', 'ctxMarketStores:']) {
       assert.ok(dictionary.includes(key), `${language}: ${key}`);
     }
-    assert.match(dictionary, /ctxMarketStores: \{ de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target' \}/);
+    assert.match(dictionary, /ctxMarketStores: \{ de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: 'Lidl, Aldi, Carrefour' \}/);
   }
   assert.match(read('src/i18n/de.ts'), /marketRegion: 'Land für Vorschläge'/);
   assert.match(read('src/i18n/de.ts'), /marketRegionAuto: 'Automatisch'/);

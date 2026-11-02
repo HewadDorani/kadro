@@ -272,7 +272,7 @@ for (const [name, dictionary] of [['de', read('src/i18n/de.ts')], ['en', read('s
 // The Unterwegs subtitle names chains of the chosen market only, so a country switch is visible before tapping.
 if (!/detail: t\.plan\.ctxOutChains\[region\]/.test(read('src/app/(tabs)/plan.tsx'))) problems.push('plan.tsx: Unterwegs subtitle must follow the market (ctxOutChains[region])');
 for (const [name, dictionary] of [['de', read('src/i18n/de.ts')], ['en', read('src/i18n/en.ts')]]) {
-  const line = dictionary.match(/ctxOutChains: \{ de: '([^']+)', gb: '([^']+)', us: '([^']+)' \}/);
+  const line = dictionary.match(/ctxOutChains: \{ de: '([^']+)', gb: '([^']+)', us: '([^']+)', eu: '[^']+' \}/);
   if (!line) { problems.push(`${name}: plan.ctxOutChains missing`); continue; }
   MARKETS.forEach((market, index) => {
     const known = new Set(datasets[market].chains.map((chain) => chain.name.replace(/[’']/g, "'").toLowerCase()));
