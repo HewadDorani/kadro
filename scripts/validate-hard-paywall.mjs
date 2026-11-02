@@ -251,6 +251,6 @@ console.log(`PASS ${passed.length} hard-paywall checks.`);
   const sample = read('src/app/first-sample.tsx');
   assertOk(/markHardWallUsed\(\)/.test(sample) && /setFirstRunStage\('paywall'\)/.test(sample) && !/saveSyncedMeal|logScannedMeal|analyze/.test(sample), 'the example ends the free scope but analyses and saves nothing');
   assertOk(/later: 'Erst ein Beispiel ansehen'/.test(de), 'the way past the first scan says it shows an example');
-  assertOk(/if \(firstRunSearch && !added\.length\) \{[\s\S]*?applySearchResult\(pendingFood, grams\);[\s\S]*?confirmAfterSearchDismiss\.current = true;/.test(scanScreen), 'first pick goes through confirm and result');
+  assertOk(/if \(firstRunSearch && !added\.length\) \{[\s\S]*?applySearchResult\(withPieces\(pendingFood\), grams\);[\s\S]*?confirmAfterSearchDismiss\.current = true;/.test(scanScreen), 'first pick goes through confirm and result');
   console.log('PASS first-run search: free search option, confirm → result before the paywall, quiet skip');
 }

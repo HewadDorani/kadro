@@ -71,7 +71,7 @@ export function CalorieRing({
   const side = (value: number, label: string) => (
     <View style={styles.side}>
       <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.sideValue}>{formatNumber(value, locale)}</Text>
-      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.sideLabel}>{label}</Text>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} minimumFontScale={0.7} numberOfLines={1} style={styles.sideLabel}>{label}</Text>
     </View>
   );
 

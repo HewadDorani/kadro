@@ -93,7 +93,7 @@ assert.doesNotThrow(() => assertSaveable([item]));
 assert.throws(() => assertSaveable([{ included: true }]), /incomplete meal/);
 const resultScreen = read('src/app/result.tsx');
 assert.match(resultScreen, /const dayIsDone = projected.calories < 200;/);
-assert.match(resultScreen, /\{pastDay \? null : dayIsDone \? \([\s\S]*t.today.dayComplete[\s\S]*\) : <Card/);
+assert.match(resultScreen, /\{pastDay \? null : \([\s\S]*dayIsDone \? t\.plan\.smallIdeas/);
 assert.match(scan, /<PortionSheet\s+embedded/, 'search must not present a second sibling native modal');
 assert.equal((scan.match(/<PortionSheet/g) ?? []).length, 1);
 console.log('Build 8 regressions passed: counted portions, repeated correction, search ranking, theme contrast and dialog wiring. Native keyboard/touch checks still require an iPhone.');

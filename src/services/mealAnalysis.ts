@@ -685,6 +685,14 @@ export function mealFromSearch(result: FoodSearchResult, grams: number): MealAna
   };
 }
 
+/** A scanned product as a food to portion, for logging without the confirm screen. */
+export async function lookupBarcodeFood(barcode: string): Promise<FoodSearchResult> {
+  const meal = await analyzeBarcode(barcode);
+  const item = meal.items[0];
+  if (!item?.nutritionPer100g) throw new MealAnalysisError('product-not-found', gatewayMessage('missing_nutrition', undefined));
+  return { id: item.id, name: item.name, per100g: item.nutritionPer100g, defaultGrams: item.amountG, portions: item.portions, source: item.source };
+}
+
 export type CaptureCapabilities = { gemini: boolean; searchAssistance: boolean; consentVersion: string };
 export type SearchAssistance = { proposal?: { canonical: string; preserve: string[]; question: string; candidateIds: string[]; variants: string[] }; results: FoodSearchResult[]; confirmationRequired: boolean };
 export async function captureCapabilities(): Promise<CaptureCapabilities | null> {

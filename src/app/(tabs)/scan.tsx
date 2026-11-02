@@ -22,7 +22,9 @@ import { radii, typeScale } from '@/constants/theme';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { frameToPhotoCrop, type Rect } from '@/utils/cameraCrop';
 import { useApp } from '@/context/AppContext';
-import { deleteTemporaryPhoto, FoodSearchResult, MealAnalysisError, PHOTO_NOTE_MAX, searchProducts } from '@/services/mealAnalysis';
+import { deleteTemporaryPhoto, FoodSearchResult, lookupBarcodeFood, MealAnalysisError, PHOTO_NOTE_MAX, searchProducts } from '@/services/mealAnalysis';
+import { forgetPieceWeights, loadPieceWeights, pieceKey, piecePortions } from '@/services/pieceWeights';
+import { LogTargetRow } from '@/components/LogTargetPicker';
 import { productSearchHint, productsFirst } from '@/services/productSearch';
 import { getMarketRegion } from '@/services/region';
 import { markUsage } from '@/services/usageSignals';
@@ -51,6 +53,8 @@ const PRODUCT_SEARCH_DEBOUNCE_MS = 300;
 // phone. Run it once typing pauses, not on every key, so the field never
 // stutters; the typed text itself updates immediately.
 const LOCAL_SUGGEST_DELAY_MS = 90;
+/** The same code still in view after adding it must not open it again. */
+const SAME_CODE_PAUSE_MS = 1800;
 
 export default function ScanScreen() {
   const { colors } = useTheme();
@@ -64,7 +68,7 @@ export default function ScanScreen() {
     const subscription = AppState.addEventListener('change', (state) => setForeground(state === 'active'));
     return () => subscription.remove();
   }, []);
-  const { applySearchResult, logFoodsDirect, plannedMealDate, plannedMealType, setPlannedMealDate, setPlannedMealType, descriptionInput, freeScansLeft, hasEverLoggedScan, isCurrentScanLogged, mealHistory, resetScan, scannedMeal, scanMode, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan } = useApp();
+  const { applySearchResult, deleteLoggedMeal, logFoodsDirect, plannedMealDate, plannedMealType, setPlannedMealDate, setPlannedMealType, descriptionInput, freeScansLeft, hasEverLoggedScan, isCurrentScanLogged, mealHistory, resetScan, scannedMeal, scanMode, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan } = useApp();
   const { status: subscriptionStatus } = useSubscription();
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
@@ -110,6 +114,12 @@ export default function ScanScreen() {
   const pickSerial = useRef(0);
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // Barcodes logged in this camera session, each saved the moment it is added:
+  // the camera stays open for the next pack and nothing waits on a final save.
+  const [serial, setSerial] = useState<{ mealId: string; name: string; kcal: number }[]>([]);
+  const [barcodeSheet, setBarcodeSheet] = useState(false);
+  const lastCode = useRef({ code: '', at: 0 });
+  const typedBarcode = useRef<string | null>(null);
   const [portionDraft, setPortionDraft] = useState(restoredInput?.portion ?? null);
   const [torchOn, setTorchOn] = useState(false);
   const [showBarcodeEntry, setShowBarcodeEntry] = useState(false);
@@ -153,7 +163,9 @@ export default function ScanScreen() {
     inputRevision.current = getScanInputRevision();
     clearInputDraft();
   }, [scannedMeal.id, isCurrentScanLogged, inputOwnerChanged, clearInputDraft]);
+  useEffect(() => { void loadPieceWeights(); }, []);
   useEffect(() => subscribePrivateDataInvalidation(async () => {
+    forgetPieceWeights();
     // Clear the mounted form immediately, even before account recovery has
     // replaced AppContext. Its old submitted text must not be restored later.
     invalidatedScanId.current = currentScan.current.id;
@@ -285,7 +297,7 @@ export default function ScanScreen() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     setScannerClosed(true);
     setDescription(''); setSearchQuery(''); setBarcodeEntry(''); setPendingFood(null); setPortionDraft(null); setScanInputDraft(null);
-    setAdded([]); setAddError(null);
+    setAdded([]); setAddError(null); setSerial([]);
     resetScan();
     setTorchOn(false);
     Keyboard.dismiss();
@@ -315,6 +327,9 @@ export default function ScanScreen() {
     const target = afterSheetDismiss.current;
     afterSheetDismiss.current = null;
     if (target && scanFocused.current) router.push(target);
+    const typed = typedBarcode.current;
+    typedBarcode.current = null;
+    if (typed) openBarcode(typed, mealHistory.length > 0);
   };
 
   const hasScanAccess = () => {
@@ -541,7 +556,14 @@ export default function ScanScreen() {
     setPortionDraft(null);
     setPendingFood(result);
   };
-  const cancelPortion = () => { setPendingFood(null); setPortionDraft(null); if (searchQuery.trim().length >= 2) runSearch(searchQuery); };
+  const closeBarcodeSheet = () => {
+    setBarcodeSheet(false); setPendingFood(null); setPortionDraft(null); setShowSearch(false); setScanInputDraft(null);
+    barcodeLock.current = false;
+  };
+  const cancelPortion = () => {
+    if (barcodeSheet) { closeBarcodeSheet(); return; }
+    setPendingFood(null); setPortionDraft(null); if (searchQuery.trim().length >= 2) runSearch(searchQuery);
+  };
   const cancelSearch = () => {
     if (added.length) {
       // Picks are not saved yet, so leaving must not silently drop or save them.
@@ -573,11 +595,39 @@ export default function ScanScreen() {
     ]);
   };
 
+  // The saved meal keeps the piece, so reopening it still counts in slices.
+  const withPieces = (food: FoodSearchResult) => ({ ...food, portions: piecePortions(food.name, food.portions, pieceKey(food.name, food.source.referenceId)) });
+  const logBarcodeFood = async (food: FoodSearchResult, grams: number) => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      const meal = await logFoodsDirect([{ result: withPieces(food), grams }], 'barcode');
+      void successHaptic();
+      setSerial(list => [...list, { mealId: meal.id, name: food.name, kcal: meal.calories }]);
+      closeBarcodeSheet();
+    } catch (error) {
+      Alert.alert(t.result.saveFailed, error instanceof MealAnalysisError ? error.message : undefined);
+    } finally {
+      setAdding(false);
+    }
+  };
+  const undoSerial = async () => {
+    const last = serial[serial.length - 1];
+    if (!last) return;
+    await deleteLoggedMeal(last.mealId);
+    setSerial(list => list.filter(entry => entry.mealId !== last.mealId));
+  };
+  const finishSerial = () => {
+    setSerial([]); setPlannedMealType(null); setPlannedMealDate(null);
+    router.replace('/(tabs)/today');
+  };
+
   const confirmPortion = (grams: number) => {
     if (!pendingFood) return;
+    if (barcodeSheet) { void logBarcodeFood(pendingFood, grams); return; }
     if (firstRunSearch && !added.length) {
       void successHaptic();
-      applySearchResult(pendingFood, grams);
+      applySearchResult(withPieces(pendingFood), grams);
       setPendingFood(null); setPortionDraft(null);
       confirmAfterSearchDismiss.current = true;
       Keyboard.dismiss();
@@ -591,7 +641,7 @@ export default function ScanScreen() {
     setAddError(null);
     void successHaptic();
     const kcal = Math.round(food.per100g.calories * grams / 100);
-    setAdded(list => [...list, { id: `pick-${++pickSerial.current}`, food, name: food.name, grams, kcal }]);
+    setAdded(list => [...list, { id: `pick-${++pickSerial.current}`, food: withPieces(food), name: food.name, grams, kcal }]);
     setPendingFood(null); setPortionDraft(null); setManualFor(null); setQuickAddFor(null);
     setSearchQuery(''); setSearchResults([]); setProductResults([]); setScanInputDraft(null);
     setSearchError(null); setSearchNotice(null); setCompletedEmptySearch(false); setSearching(false);
@@ -641,18 +691,33 @@ export default function ScanScreen() {
     navigateAfterSheet('/analyzing');
   };
 
-  const openBarcode = (data: string) => {
-    if (!scanFocused.current || barcodeLock.current || !/^\d{7,14}$/.test(data)) return;
+  const openBarcode = (data: string, quick = false) => {
+    if (!/^\d{7,14}$/.test(data)) return;
+    const now = Date.now();
+    const seen = lastCode.current;
+    // Refreshed on every sighting: the pause ends once the pack left the frame.
+    if (seen.code === data && now - seen.at < SAME_CODE_PAUSE_MS) { seen.at = now; return; }
+    if (barcodeLock.current || !scanFocused.current) return;
+    lastCode.current = { code: data, at: now };
     barcodeLock.current = true;
     setBarcodeBusy(true);
     void successHaptic();
-    startBarcodeScan(data);
     setBarcodeEntry(''); setDescription(''); setSearchQuery(''); setScanInputDraft(null);
-    navigateAfterSheet('/analyzing');
+    const openFull = () => { startBarcodeScan(data); navigateAfterSheet('/analyzing'); };
+    if (!quick) { openFull(); return; }
+    const visit = scanVisit.current;
+    void lookupBarcodeFood(data).then((food) => {
+      if (!scanFocused.current || visit !== scanVisit.current) { barcodeLock.current = false; return; }
+      setPortionDraft(null); setBarcodeSheet(true); setPendingFood(food); setShowSearch(true);
+    }).catch(() => {
+      // Unknown product, no network: the full screen explains it and offers the label photo.
+      if (scanFocused.current && visit === scanVisit.current) openFull();
+    }).finally(() => setBarcodeBusy(false));
   };
 
+  // The very first meal keeps Confirm and Result: that reveal is the app's promise.
   const handleBarcode = ({ data }: BarcodeScanningResult) => {
-    if (cameraActive && mode === 'barcode') openBarcode(data);
+    if (cameraActive && mode === 'barcode') openBarcode(data, mealHistory.length > 0);
   };
 
   const submitBarcodeEntry = () => {
@@ -661,8 +726,10 @@ export default function ScanScreen() {
       Alert.alert(t.scan.barcodeManualInvalidTitle, t.scan.barcodeManualInvalidBody);
       return;
     }
+    // The next sheet may only open once this native modal is gone.
+    if (Platform.OS === 'ios') typedBarcode.current = normalized;
     setShowBarcodeEntry(false);
-    openBarcode(normalized);
+    if (Platform.OS !== 'ios') openBarcode(normalized, mealHistory.length > 0);
   };
 
   const renderResult = (result: FoodSearchResult) => {
@@ -869,6 +936,20 @@ export default function ScanScreen() {
                 <Text style={styles.demoControlText}>{t.scan.demo}</Text>
               </Pressable>
             </View>
+          ) : mode === 'barcode' && serial.length ? (
+            <View accessibilityLiveRegion="polite" style={styles.serialTray}>
+              <Ionicons color={colors.accent} name="checkmark-circle" size={24} />
+              <View style={styles.serialCopy}>
+                <Text numberOfLines={1} style={styles.serialName}>{serial[serial.length - 1].name}</Text>
+                <Text numberOfLines={1} style={styles.serialMeta}>{t.scan.serialSummary(serial.length, formatNumber(serial.reduce((sum, entry) => sum + entry.kcal, 0), locale))}</Text>
+              </View>
+              <Pressable accessibilityLabel={t.scan.serialUndo} accessibilityRole="button" hitSlop={6} onPress={() => void undoSerial()} style={styles.serialUndo}>
+                <Ionicons color={colors.white} name="arrow-undo" size={19} />
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={finishSerial} style={styles.serialDone}>
+                <Text style={styles.serialDoneText}>{t.scan.serialDone}</Text>
+              </Pressable>
+            </View>
           ) : mode === 'barcode' ? (
             <View style={styles.barcodeState}>
               <Ionicons color={colors.accent} name="barcode-outline" size={30} />
@@ -884,7 +965,11 @@ export default function ScanScreen() {
               <Text style={styles.describeButtonText}>{t.scan.openDescription}</Text>
             </Pressable>
           )}
-          <Text style={styles.privacy}>{mode === 'photo' ? t.scan.privacyPhoto : t.scan.privacyOther}</Text>
+          {mode === 'barcode' && serial.length ? (
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setShowBarcodeEntry(true)}>
+              <Text style={styles.serialManual}>{t.scan.barcodeManual}</Text>
+            </Pressable>
+          ) : <Text style={styles.privacy}>{mode === 'photo' ? t.scan.privacyPhoto : t.scan.privacyOther}</Text>}
         </View>
       </SafeAreaView>
 
@@ -931,7 +1016,8 @@ export default function ScanScreen() {
           onDraftChange={setPortionDraft}
           onCancel={cancelPortion}
           onConfirm={confirmPortion}
-          target={{ name: pendingFood.name, per100g: pendingFood.per100g, defaultGrams: pendingFood.lastGrams ?? pendingFood.defaultGrams, amountIsChosen: Boolean(pendingFood.lastGrams), adding: true, portions: pendingFood.portions, sourceLabel: pendingFood.source.label }}
+          accessory={barcodeSheet ? <LogTargetRow date={plannedMealDate ?? localDateKey()} onChange={(type, date) => { setPlannedMealType(type); setPlannedMealDate(date); }} type={saveSlot} /> : undefined}
+          target={{ name: pendingFood.name, per100g: pendingFood.per100g, defaultGrams: pendingFood.lastGrams ?? pendingFood.defaultGrams, amountIsChosen: Boolean(pendingFood.lastGrams), adding: true, portions: pendingFood.portions, sourceLabel: pendingFood.source.label, pieceKey: pieceKey(pendingFood.name, pendingFood.source.referenceId) }}
           visible
         /> : (
         <Animated.View style={[styles.modalScrim, { paddingBottom: searchRides ? keyboardInset : 0 }]}>
@@ -1172,6 +1258,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   barcodeText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
   barcodeManualButton: { minHeight: 34, borderRadius: radii.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', backgroundColor: 'rgba(255,255,255,0.10)', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
   barcodeManualText: { ...typeScale.caption, color: colors.white, fontWeight: '700' },
+  serialTray: { width: '100%', minHeight: 72, borderRadius: radii.card, backgroundColor: 'rgba(17,19,15,0.72)', paddingLeft: 14, paddingRight: 10, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  serialCopy: { flex: 1, minWidth: 0, gap: 2 },
+  serialName: { ...typeScale.footnote, color: colors.white, fontWeight: '700' },
+  serialMeta: { ...typeScale.caption, color: 'rgba(255,255,255,0.68)', fontVariant: ['tabular-nums'] },
+  serialUndo: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  serialManual: { ...typeScale.caption, color: 'rgba(255,255,255,0.72)', fontWeight: '700' },
+  serialDone: { minHeight: 44, borderRadius: radii.pill, backgroundColor: colors.accent, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+  serialDoneText: { ...typeScale.footnote, color: colors.onAccent, fontWeight: '800' },
   describeButton: { minHeight: 52, borderRadius: radii.pill, backgroundColor: colors.accent, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   describeButtonText: { ...typeScale.footnote, color: colors.onAccent, fontWeight: '800' },
   privacy: { ...typeScale.caption, color: 'rgba(255,255,255,0.48)' },

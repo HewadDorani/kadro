@@ -98,7 +98,6 @@ test('next slot follows the day and never goes back in time', () => {
   assert.equal(share.latestMainSlot(['Lunch', 'Breakfast', 'Snack']), 'Lunch');
   assert.equal(share.latestMainSlot(['Snack']), null);
   assert.equal(de.shareDay.ideasFor('Dinner'), '3 Ideen fürs Abendessen');
-  assert.equal(de.result.nextStep('820', de.shareDay.ideasFor('Dinner')), 'Noch 820 kcal · 3 Ideen fürs Abendessen');
 });
 
 // --- 4. Time-scaled weight chart ---------------------------------------------
@@ -133,7 +132,7 @@ test('result settles the ring once, with a success tick, and respects Reduce Mot
   assert.match(result, /if \(landed\.current\) return;\s*landed\.current = true;/, 'the landing fires once');
   assert.match(result, /void successHaptic\(\);\s*if \(reduceMotionRef\.current\) return;/, 'Reduce Motion keeps the tick and skips the movement');
   assert.match(result, /reduceMotionRef\.current = reduceMotion;\s*if \(reduceMotion\) \{/);
-  assert.match(result, /t\.result\.nextStep\(formatNumber\(projected\.calories, locale\), t\.shareDay\.ideasFor\(nextSlot\)\)/);
+  assert.match(result, /t\.shareDay\.ideasFor\(nextSlot\)/);
   assert.match(result, /const canShareDay = !pastDay && !demo;/, 'the example meal and back-dated meals are not shared as a day');
   const today = read('src/app/(tabs)/today.tsx');
   assert.match(today, /<ShareDayModal/);

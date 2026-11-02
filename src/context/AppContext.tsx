@@ -47,6 +47,7 @@ import { deleteSyncedMeal, hydrateCloudState, hydrateExistingCloudAccount, saveS
 import { getCurrentSessionUserId, isSupabaseConfigured, rememberSupabaseUser, startSupabaseAuthLifecycle, supabase } from '@/services/supabaseClient';
 import { applyAnalyticsAgePolicy, captureOperationalError, clearTelemetryForAccountSwitch, countBucket, durationBucket, trackEvent } from '@/services/telemetry';
 import { DailyTargets, Meal, MealItem, MealSuggestion, Nutrition, PortionFactor, UserProfile, WeightEntry } from '@/types/nutrition';
+import { forgetPieceWeights } from '@/services/pieceWeights';
 import { localDateKey } from '@/utils/date';
 import { mealTypeForHour } from '@/utils/daypart';
 import { clampLogDate, mealMoment } from '@/utils/mealDay';
@@ -141,7 +142,7 @@ type AppContextValue = {
   /** `title` names the meal (a chain order: "Nando's: Chicken Butterfly"); else the item names. */
   startPlannedDraft: (entries: { result: FoodSearchResult; grams: number }[], title?: string) => void;
   /** Logs the foods picked in one search session as one meal (free, no confirmation screen). */
-  logFoodsDirect: (entries: { result: FoodSearchResult; grams: number }[]) => Promise<Meal>;
+  logFoodsDirect: (entries: { result: FoodSearchResult; grams: number }[], source?: 'search' | 'barcode') => Promise<Meal>;
   replaceDetectedItem: (id: string, result: FoodSearchResult, grams: number) => void;
   /** The question for the current draft, if any (see clarifyKind in the gateway). */
   draftClarify: MealAnalysisResult['clarify'] | null;
@@ -609,8 +610,11 @@ export function AppProvider({ children }: PropsWithChildren) {
         setSyncMode('local');
         return;
       }
-      setMeals(cloudState.meals);
-      setMealHistory(cloudState.mealHistory);
+      // The snapshot was taken before the network answered. A meal saved in the
+      // meantime is on disk but not in it, and replacing the list hid that meal.
+      const stored = await loadAllStoredScans();
+      setMeals(stored.filter((meal) => meal.date === localDateKey()));
+      setMealHistory(stored);
       await adoptScanCount(Math.max(countScans(cloudState.mealHistory), cloudState.hasEverLoggedScan ? 1 : 0));
       setTargets(cloudState.targets);
       await adoptProfile(cloudState.profile);
@@ -779,13 +783,16 @@ export function AppProvider({ children }: PropsWithChildren) {
     setMeals(mealHistory.filter((meal) => meal.date === currentDay));
   }, [currentDay, mealHistory]);
 
-  const consumed = useMemo(() => sumMeals(meals.filter(meal => meal.date === currentDay)), [meals, currentDay]);
+  // What screens read as "today". Filtered here and not only on day change: an
+  // app resumed after a weekend still held Friday's list for a render or more.
+  const todaysMeals = useMemo(() => meals.filter(meal => meal.date === currentDay), [meals, currentDay]);
+  const consumed = useMemo(() => sumMeals(todaysMeals), [todaysMeals]);
   const remaining = useMemo(() => getRemaining(targets, consumed), [consumed, targets]);
   const scannedMeal = useMemo(
     () => createScannedMeal(detectedItems, mealTitle, scanId),
     [detectedItems, mealTitle, scanId],
   );
-  const hasLoggedScan = meals.some((meal) => meal.origin === 'scan' || meal.origin === 'plan');
+  const hasLoggedScan = todaysMeals.some((meal) => meal.origin === 'scan' || meal.origin === 'plan');
   const hasEverLoggedScan = lifetimeScanCount > 0 || mealHistory.some((meal) => meal.origin === 'scan');
   // 3 free AI analyses for existing installs, 1 behind the hard wall.
   const { allowance: freeScanAllowance } = useFreeScanAllowance();
@@ -1287,6 +1294,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, [photoUri]);
 
   const resetAfterAccountDeletion = useCallback(() => {
+    forgetPieceWeights();
     setAppleReauthenticationRequired(false);
     setLocalStorageError(false);
     setHydrationReady(true);
@@ -1418,7 +1426,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     return persisted;
   }, []);
 
-  const repeatMeals = useMemo(() => availableRepeats(mealHistory, meals), [mealHistory, meals]);
+  const repeatMeals = useMemo(() => availableRepeats(mealHistory, todaysMeals), [mealHistory, todaysMeals]);
 
   const scanTarget = useMemo(() => {
     const existing = mealHistory.find((meal) => meal.id === scanId);
@@ -1474,7 +1482,7 @@ export function AppProvider({ children }: PropsWithChildren) {
    * separate entries. The slot and day stay chosen for the whole session and
    * are released when the search closes (setPlannedMealType(null)).
    */
-  const logFoodsDirect = useCallback(async (entries: { result: FoodSearchResult; grams: number }[]) => {
+  const logFoodsDirect = useCallback(async (entries: { result: FoodSearchResult; grams: number }[], source: 'search' | 'barcode' = 'search') => {
     if (!entries.length) throw new Error('Cannot save an empty meal');
     const generation = getLocalDataGeneration();
     const now = new Date();
@@ -1497,7 +1505,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       time: formatClockTime(moment.at),
       savedAt: moment.at.toISOString(),
     };
-    await saveSyncedMeal(meal, 'search');
+    await saveSyncedMeal(meal, source);
     if (generation !== getLocalDataGeneration()) throw new Error('cloud_identity_changed');
     setMeals((current) => [...current.filter((entry) => entry.id !== meal.id), ...(meal.date === today ? [meal] : [])]);
     setMealHistory((current) => [...current.filter((entry) => entry.id !== meal.id), meal]);
@@ -1639,7 +1647,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       appleReauthenticationRequired,
       wellnessConsentGranted,
       targets,
-      meals,
+      meals: todaysMeals,
       mealHistory,
       weightEntries,
       consumed,
@@ -1697,7 +1705,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       adjustLoggedMealPortion,
       setLoggedMealType,
     }),
-    [answerClarify, clarify, descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
+    [todaysMeals, answerClarify, clarify, descriptionInput, addWeightEntry, adjustLoggedMealPortion, analysisError, applySearchResult, analysisMessage, analysisStatus, analyzeCurrentPhoto, completeOnboarding, consumed, deleteLoggedMeal, detectedItems, freeScansLeft, grantWellnessConsent, hasEverLoggedScan, hasLoggedScan, lifetimeScanCount, hydrationReady, localStorageError, appleReauthenticationRequired, isCurrentScanLogged, loadExistingAccount, loadAppleAccount, logFoodsDirect, setLoggedItemAmount, plannedMealDate, setPlannedMealDate, scanTarget, favoriteMeals, toggleFavoriteMeal, addFavoriteMeal, removeFavoriteMeal, renameFavoriteMeal, scanFavorite, setScanFavorite, analysisPhase, portionEstimated, autoMatchedItemIds, logPlannedMeal, logRepeatMeal, logScannedMeal, mealHistory, repeatMeals, mealPortion, meals, pendingAnalysisCount, photoUri, profile, refreshCloudState, remaining, resetAfterAccountDeletion, resetScan, resumeLatestAnalysis, cancelAnalysis, retryAccountRecovery, scanMode, setUnitSystem, setLoggedMealType, plannedMealType, setPlannedMealType, scannedMeal, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan, startPlannedDraft, syncMode, targets, userName, weightEntries, wellnessConsentGranted, withdrawWellnessConsent],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

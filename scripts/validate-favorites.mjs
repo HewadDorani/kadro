@@ -250,7 +250,7 @@ await test('Slot flow (Today "+ Abendessen" → scan → Favoriten): the planned
 await test('Confirm and Result offer "Zu Favoriten hinzufügen" (never for the example meal); the save fulfils a star set before it', () => {
   const confirm = read('src/app/confirm.tsx'), result = read('src/app/result.tsx'), toggle = read('src/components/FavoriteToggle.tsx');
   assert.match(confirm, /\{scanMode !== 'demo' && canConfirm \? <FavoriteToggle onToast=\{showToast\} \/> : null\}/);
-  assert.match(result, /\{demo \? null : <FavoriteToggle onToast=\{showToast\} \/>\}/);
+  assert.match(result, /\{demo \? null : <FavoriteToggle compact onToast=\{showToast\} \/>\}/);
   for (const source of [confirm, result]) assert.match(source, /<Screen overlay=\{toast\}>/, 'the toast is shown');
   assert.match(toggle, /accessibilityRole="switch"/); assert.match(toggle, /accessibilityState=\{\{ checked: scanFavorite/);
   assert.match(toggle, /successHaptic\(\)/); assert.match(toggle, /t\.favorites\.toastAdded/);

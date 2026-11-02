@@ -22,6 +22,36 @@ export function offMassPortions(product) {
   return [{label:label.slice(0,40)||'1',grams}];
 }
 
+const PIECE_WORDS=[
+  [/scheiben?|slices?/i,{de:'1 Scheibe',en:'1 slice'}],
+  [/riegel|bars?/i,{de:'1 Riegel',en:'1 bar'}],
+  [/st(?:ü|ue)ck|stk\.?|pieces?|pcs\.?/i,{de:'1 Stück',en:'1 piece'}],
+];
+
+/**
+ * One piece from the pack statement: "400 g (16 Scheiben)" or "6 x 50 g".
+ * Arithmetic on what the pack says, never a guess; anything unclear stays null.
+ */
+export function offPiecePortion(product,language='de'){
+  const lang=language==='en'?'en':'de';
+  const quantity=String(product?.quantity??'');
+  const multi=quantity.match(/(\d{1,3})\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*g\b/i);
+  if(multi){
+    const grams=Number(multi[2].replace(',','.'));
+    return grams>=1&&grams<=2000?{label:PIECE_WORDS[2][1][lang],grams}:null;
+  }
+  const pack=offPackageGrams(product);
+  if(!pack)return null;
+  for(const [word,label] of PIECE_WORDS){
+    const count=quantity.match(new RegExp(`(\\d{1,3})\\s*(?:${word.source})(?![a-zäöü])`,'i'));
+    if(!count)continue;
+    const pieces=Number(count[1]);
+    const grams=Math.round(pack/pieces*10)/10;
+    return pieces>=2&&grams>=1&&grams<=2000?{label:label[lang],grams}:null;
+  }
+  return null;
+}
+
 /** Fields requested from Open Food Facts; German name/brand fields included. */
 export const OFF_PRODUCT_FIELDS = 'code,lang,lc,product_name,product_name_de,product_name_en,generic_name_de,brands,nutriments,serving_size,serving_quantity,serving_quantity_unit,nutrition_data_per,quantity,product_quantity,product_quantity_unit';
 

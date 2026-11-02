@@ -46,7 +46,7 @@ assert.match(plan, /t.plan.dayDoneText/);
 assert.match(read('src/components/PlanOptionCard.tsx'), /t\.plan\.afterOver/);
 assert.match(plan, /<PlanOptionCard[\s\S]*availableCalories/);
 const result = read('src/app/result.tsx');
-assert.match(result, /label=\{t.plan.smallIdeas\}/);
+assert.match(result, /label=\{dayIsDone \? t\.plan\.smallIdeas/);
 
 for (const dict of ['src/i18n/de.ts', 'src/i18n/en.ts']) {
   const source = read(dict);

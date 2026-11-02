@@ -11,6 +11,7 @@ const PENDING_KEY = '@kandro/reminder-onboarding:v1';
 const DECISION_KEY = '@kandro/reminder-decision:v1';
 // Owned by services/motivation.ts; named here so account deletion clears it with the rest.
 const MOTIVATION_KEY = '@kandro/motivation:v1';
+const PIECE_WEIGHTS_KEY = '@kandro/piece-weights:v1';
 export const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner', 'evening'] as const;
 export type MealSlot = typeof MEAL_SLOTS[number];
 export type SlotSetting = { enabled: boolean; hour: number; minute: number };
@@ -460,7 +461,7 @@ export function clearRemindersAfterAccountDeletion() {
   publishOnboardingPending(false);
   return serialize(async () => {
     if (remindersSupported) { await cancelOwn(); await cancelTrial().catch(() => undefined); await cancelTrialEnding().catch(() => undefined); await cancelReengagement().catch(() => undefined); await Notifications.cancelScheduledNotificationAsync(STREAK_ID).catch(() => undefined); }
-    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, TRIAL_ENDING_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY, MOTIVATION_KEY]);
+    await AsyncStorage.multiRemove([KEY, LEGACY_KEY, OFFER_KEY, PENDING_KEY, DECISION_KEY, TRIAL_KEY, TRIAL_ENDING_KEY, FIRST_MEAL_KEY, STREAK_KEY, REENGAGE_KEY, MOTIVATION_KEY, PIECE_WEIGHTS_KEY]);
   });
 }
 export const clearRemindersForAccountSwitch = clearRemindersAfterAccountDeletion;

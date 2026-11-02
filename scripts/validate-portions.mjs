@@ -101,9 +101,29 @@ assert.deepEqual(initialSelection(Number.NaN, [], chosen), { unitIndex: -1, amou
  * an item that offered grams only, and the barcode path never asked Open Food
  * Facts for the pack's serving at all.
  */
+// --- One piece of a packaged food --------------------------------------------
+{
+  const guessSource = (await readFile(resolve(projectRoot, 'src/utils/pieceGuess.ts'), 'utf8'));
+  const compiled = ts.transpileModule(guessSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const { guessPiece } = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(compiled)}`);
+  assert.deepEqual(guessPiece('Gouda jung in Scheiben (Ja!)'), { kind: 'slice', grams: 25 });
+  assert.deepEqual(guessPiece('Knäckebrot Roggen'), { kind: 'slice', grams: 10 }, 'the narrower word wins over Brot');
+  assert.deepEqual(guessPiece('Vollkornbrötchen'), { kind: 'piece', grams: 60 }, 'a roll is not a slice of bread');
+  assert.equal(guessPiece('Skyr Natur'), null, 'a food without a natural piece stays in grams');
+  assert.equal(guessPiece('Haferflocken'), null);
+  const { offPiecePortion } = await import(resolve(projectRoot, 'supabase/functions/_shared/off-product.mjs'));
+  const pack = (quantity, grams) => ({ quantity, product_quantity: grams, product_quantity_unit: 'g' });
+  assert.deepEqual(offPiecePortion(pack('400 g (16 Scheiben)', 400)), { label: '1 Scheibe', grams: 25 });
+  assert.deepEqual(offPiecePortion(pack('200g, 10 slices', 200), 'en'), { label: '1 slice', grams: 20 });
+  assert.deepEqual(offPiecePortion(pack('6 x 50 g', 300)), { label: '1 Stück', grams: 50 });
+  assert.equal(offPiecePortion(pack('400 g', 400)), null, 'no count on the pack means no piece');
+  assert.equal(offPiecePortion(pack('1 Stück', 400)), null, 'one piece is the pack, not a portion');
+  assert.equal(offPiecePortion({ quantity: '10 Stück' }), null, 'no pack weight, nothing to divide');
+}
+
 const readSource = (relative) => readFileSync(resolve(projectRoot, relative), 'utf8');
 const hops = [
-  ['supabase/functions/nutrition/index.ts', /portions: servingPortion\(product\)/, 'the barcode endpoint does not return the pack serving'],
+  ['supabase/functions/nutrition/index.ts', /portions: servingPortion\(product, language\)/, 'the barcode endpoint does not return the pack serving'],
   ['supabase/functions/nutrition/index.ts', /product\/\$\{code\}\.json\?fields=\$\{OFF_PRODUCT_FIELDS\}/, 'the barcode lookup does not ask for the shared field list'],
   ['supabase/functions/_shared/off-product.mjs', /serving_size,serving_quantity/, 'the barcode lookup does not ask for the serving fields'],
   ['supabase/functions/nutrition/index.ts', /portions: usdaPortions\(entry\)/, 'search results carry no household measures'],

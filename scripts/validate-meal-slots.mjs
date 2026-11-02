@@ -50,7 +50,7 @@ for (const [file, source] of [['AppContext.tsx', context], ['mealDay.ts', mealDa
 }
 // Back-dating: a slot tapped while Today shows an earlier day files the meal
 // on that day; the choice is cleared with the slot and spent by the meal.
-if (!/if \(!isToday\) setPlannedMealDate\(viewDay\);/.test(startScan)) {
+if (!/if \(!isToday\) \{ setPlannedMealDate\(viewDay\);/.test(startScan)) {
   problems.push('today.tsx: logging from an earlier day does not carry that day to the meal');
 }
 

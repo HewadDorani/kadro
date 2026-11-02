@@ -8,7 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/ui';
 import { PortionSheet } from '@/components/PortionSheet';
-import { formatItemAmount, itemNutritionPer100g } from '@/utils/portions';
+import { pieceKey, portionName } from '@/services/pieceWeights';
+import { formatItemAmount, initialSelection, itemNutritionPer100g } from '@/utils/portions';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
@@ -96,6 +97,11 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
   };
 
   const included = meal.items.filter((item) => item.included);
+  const amountLabel = (item: (typeof included)[number]) => {
+    const selection = initialSelection(item.amountG, item.portions, { chosen: true });
+    const portion = selection.unitIndex >= 0 ? item.portions![selection.unitIndex] : null;
+    return !portion || portion.unitOnly ? formatItemAmount(item, locale) : `${formatNumber(Number(selection.amount), locale)} × ${portionName(portion.label)}`;
+  };
   const editing = included.find((item) => item.id === editingItem) ?? null;
 
   const saveItemAmount = async (grams: number) => {
@@ -116,7 +122,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
           embedded
           onCancel={() => setEditingItem(null)}
           onConfirm={(grams) => { void saveItemAmount(grams); }}
-          target={{ name: editing.name, per100g: itemNutritionPer100g(editing), defaultGrams: editing.amountG, amountIsChosen: true, portions: editing.portions, sourceLabel: editing.source.label }}
+          target={{ name: editing.name, per100g: itemNutritionPer100g(editing), defaultGrams: editing.amountG, amountIsChosen: true, portions: editing.portions, sourceLabel: editing.source.label, pieceKey: pieceKey(editing.name, editing.source.referenceId) }}
           visible
         />
       </Modal>
@@ -175,17 +181,15 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
                     <Text numberOfLines={1} style={styles.itemName}>{item.name}</Text>
                     <Text numberOfLines={1} style={styles.sourceNote}>{friendlySource(item.source.label) ?? ''}</Text>
                   </View>
-                  <Text style={styles.itemAmount}>{formatItemAmount(item, locale)} · ~{formatNumber(item.calories, locale)} kcal</Text>
+                  <Text style={styles.itemAmount}>{amountLabel(item)} · ~{formatNumber(item.calories, locale)} kcal</Text>
                   <Ionicons color={colors.muted} name="create-outline" size={16} />
                 </Pressable>
               ))}
-              <Text style={styles.sectionHint}>{t.mealSheet.editItemHint}</Text>
             </View>
           ) : null}
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>{t.mealSheet.mealMoment}</Text>
-            <Text style={styles.sectionHint}>{t.mealSheet.mealMomentHint}</Text>
             <View style={styles.typeRow}>
               {MEAL_TYPES.map((type) => {
                 const active = meal.type === type;
@@ -207,9 +211,10 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
             </View>
           </View>
 
+          {/* One food has its own amount above; less/more is for a whole meal. */}
+          {included.length > 1 ? (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>{t.mealSheet.correctPortion}</Text>
-            <Text style={styles.sectionHint}>{t.mealSheet.correctPortionHint}</Text>
             <View style={styles.portionSelector}>
               {([
                 { factor: 0.7 as PortionFactor, label: t.confirm.less, multiplier: `${formatNumber(0.7, locale)}×` },
@@ -234,6 +239,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
               })}
             </View>
           </View>
+          ) : null}
         </ScrollView>
 
         {confirmingDelete ? (

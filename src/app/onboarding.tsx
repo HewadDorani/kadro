@@ -73,8 +73,8 @@ function goalChoicesFor(t: Dict, teen: boolean, underweight: boolean): Choice[] 
       : teen
         ? { label: t.onboarding.goalLoseTeen, detail: t.onboarding.goalLoseTeenDetail, icon: 'leaf-outline' }
         : { label: t.onboarding.goalLose, detail: t.onboarding.goalLoseDetail, icon: 'trending-down' },
+    { label: t.onboarding.goalGain, detail: t.onboarding.goalGainDetail, icon: 'barbell-outline' },
     { label: t.onboarding.goalMaintain, detail: t.onboarding.goalMaintainDetail, icon: 'remove' },
-    { label: t.onboarding.goalGain, detail: t.onboarding.goalGainDetail, icon: 'trending-up' },
   ];
 }
 
@@ -563,7 +563,7 @@ export default function OnboardingScreen() {
 
           <View style={[styles.body, compactHeight && styles.bodyCompact]}>
             {step === 'goal' ? (
-              <ChoiceList choices={goalChoices} compact={compactHeight} onSelect={(value) => selectChoice(() => setGoal(value))} selected={underweight && goal === 'lose' ? 'maintain' : goal} values={['lose', 'maintain', 'gain'] as NutritionGoal[]} />
+              <ChoiceList choices={goalChoices} compact={compactHeight} onSelect={(value) => selectChoice(() => setGoal(value))} selected={underweight && goal === 'lose' ? 'maintain' : goal} values={['lose', 'gain', 'maintain'] as NutritionGoal[]} />
             ) : null}
 
             {step === 'why' ? (

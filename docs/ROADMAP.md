@@ -9,6 +9,18 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-11-02 – Schneller eintragen
+
+Eigentümer-Rückmeldung aus der eigenen Nutzung (Muskelaufbau): 100-g-Werte statt Stücke, kein Serien-Scan, zu viel Text nach dem Scan, Einträge „verschwinden“.
+
+- [x] Stücke überall: Der Mengen-Dialog zählt Scheiben, Stück oder EL, Gramm bleibt eine Ansicht davon. Reihenfolge: selbst gesetztes Gewicht, Quelle, typisches Stück (mit „~“ als Schätzung). „Gewicht ändern“ merkt sich den Wert pro Produkt auf dem Gerät (`pieceWeights`).
+- [x] Gateway: rechnet aus der Packungsangabe ein Stück aus („400 g (16 Scheiben)“, „6 x 50 g“); nur Division, keine Schätzung.
+- [x] Serien-Scan: Ab der zweiten Mahlzeit bleibt die Kamera offen. Jedes Produkt wird beim Hinzufügen sofort gespeichert; die Leiste zeigt Summe, Rückgängig und Fertig. Die erste Mahlzeit behält Bestätigen und Ergebnis.
+- [x] Ergebnis passt auf einen Bildschirm: Zutatenliste als eine Zeile, Tageskarte, Ideen, „Noch etwas hinzufügen“. Stern und Teilen oben, Hochzählen bleibt.
+- [x] Eintrags-Blatt ohne Erklärsätze; „Weniger/Mehr“ nur noch bei mehreren Zutaten.
+- [x] Tag-Bugs: Heute springt beim Zurückkommen und bei Tageswechsel wieder auf den aktuellen Tag; `meals` ist jetzt immer aus dem aktuellen Tag gefiltert, und ein Cloud-Abgleich liest die Liste neu von der Platte, statt eine während des Abgleichs gespeicherte Mahlzeit zu überschreiben.
+- [x] Ziele: Abnehmen und Muskeln aufbauen stehen vorn, Halten als drittes.
+
 ## 2026-11-01 – Aktivierung und Bindung (1.0.7)
 
 Auswertung vom 01.11.: 27 von 40 Personen hinter der harten Paywall haben die KI nie probiert, niemand hat an mehr als 4 Tagen eingetragen, 3 von 5 Trials wurden binnen 2 Minuten gekündigt.

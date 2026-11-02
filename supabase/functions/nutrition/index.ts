@@ -1,7 +1,7 @@
 import { runSearchAssistance } from '../_shared/search-assistance.mjs';
 import { referenceCache } from '../_shared/reference-cache.mjs';
 import { isSearchQuery, compatibleSearchIdentity, SEARCH_VERSION } from '../_shared/search-policy.mjs';
-import { offMassNutrition, offMassPortions, OFF_PRODUCT_FIELDS, offBarcodeCandidates, offBrand, offPackageGrams } from '../_shared/off-product.mjs';
+import { offMassNutrition, offMassPortions, offPiecePortion, OFF_PRODUCT_FIELDS, offBarcodeCandidates, offBrand, offPackageGrams } from '../_shared/off-product.mjs';
 import { labelPrompt, labelSchema, normalizeLabelRead, validateLabelRead } from '../_shared/label-facts.mjs';
 import { requestStructured, requestStructuredWithRetry, resolveFallbackModel, ModelError, GEMINI_MODEL, GEMINI_CONSENT_VERSION, GEMINI_RELEASE_APPROVED } from '../_shared/model-adapter.mjs';
 import { applyDescriptionAmountsTolerant } from '../_shared/description-amounts.mjs';
@@ -1174,7 +1174,7 @@ function barcodeResult(barcode: string, product: any, language: string): Result 
       per100g,
       // The pack's own serving, so "2 servings" is a tap rather than a
       // multiplication the user does in their head.
-      portions: servingPortion(product),
+      portions: servingPortion(product, language),
       source: { provider: 'open-food-facts', referenceId: barcode, label: `Open Food Facts ${barcode}` },
     },
   };
@@ -1405,8 +1405,11 @@ async function readProductIndex(admin: any, barcode: string, market: ProductMark
 
 /** An Open Food Facts serving size, when it is a weight anyone would trust. */
 // deno-lint-ignore no-explicit-any
-function servingPortion(product: any): { label: string; grams: number }[] {
-  return offMassPortions(product);
+function servingPortion(product: any, language = 'de'): { label: string; grams: number }[] {
+  const serving = offMassPortions(product);
+  const piece = offPiecePortion(product, language);
+  // The pack's own count first: it says what one piece weighs.
+  return piece ? [piece, ...serving.filter((portion: { grams: number }) => Math.abs(portion.grams - piece.grams) > 0.5)] : serving;
 }
 
 /** Strips the /functions/v1/nutrition prefix so routes read the same as locally. */

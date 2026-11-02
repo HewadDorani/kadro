@@ -14,7 +14,7 @@ import { errorHaptic, selectionHaptic, successHaptic } from '@/services/haptics'
  * not an unlabelled icon. It stores the current meal exactly as it is saved
  * (items and grams); on Confirm the save fulfils it.
  */
-export function FavoriteToggle({ onToast }: { onToast: (message: string) => void }) {
+export function FavoriteToggle({ compact = false, onToast }: { compact?: boolean; onToast: (message: string) => void }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { t } = useLanguage();
@@ -37,6 +37,23 @@ export function FavoriteToggle({ onToast }: { onToast: (message: string) => void
     }
   };
 
+  if (compact) {
+    return (
+      <Pressable
+        accessibilityHint={t.favorites.addHint}
+        accessibilityLabel={t.favorites.add}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: scanFavorite, disabled: busy }}
+        disabled={busy}
+        hitSlop={4}
+        onPress={() => void toggle()}
+        style={({ pressed }) => [styles.compact, scanFavorite && styles.compactOn, pressed && styles.rowPressed]}
+      >
+        <Ionicons color={scanFavorite ? colors.onAccent : colors.text} name={scanFavorite ? 'star' : 'star-outline'} size={20} />
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       accessibilityHint={t.favorites.addHint}
@@ -52,7 +69,6 @@ export function FavoriteToggle({ onToast }: { onToast: (message: string) => void
       </View>
       <View style={styles.copy}>
         <Text style={styles.label}>{scanFavorite ? t.favorites.added : t.favorites.add}</Text>
-        <Text style={styles.hint}>{t.favorites.addHint}</Text>
       </View>
       <Ionicons color={scanFavorite ? colors.accentText : colors.muted} name={scanFavorite ? 'checkmark-circle' : 'add-circle-outline'} size={22} />
     </Pressable>
@@ -60,6 +76,8 @@ export function FavoriteToggle({ onToast }: { onToast: (message: string) => void
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  compact: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  compactOn: { backgroundColor: colors.accent, borderColor: colors.accent },
   row: { minHeight: 64, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowOn: { borderColor: colors.accent },
   rowPressed: { backgroundColor: colors.neutralSoft },
@@ -67,5 +85,4 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   starOn: { backgroundColor: colors.accent },
   copy: { flex: 1, minWidth: 0, gap: 2 },
   label: { ...typeScale.label, color: colors.text, fontWeight: '700' },
-  hint: { ...typeScale.footnote, color: colors.muted },
 });

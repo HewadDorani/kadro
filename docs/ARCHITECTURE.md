@@ -302,6 +302,10 @@ Root stack routes sit above the tab navigator so camera analysis, confirmation, 
 
 ## State and calculations
 
+`meals` from `AppContext` is always today's list, filtered by the current day on every render. Screens must not rely on an effect to drop an old day. After a cloud refresh the lists are re-read from local storage, which also holds anything saved while the request was running. `Today` resets its day offset on focus and on day change, unless the person started logging for that earlier day.
+
+Amounts: `PortionSheet` asks `piecePortions` (`src/services/pieceWeights.ts`) what to offer. Order: the weight the person set (device only, key `@kandro/piece-weights:v1`, cleared with the other local data), then source portions, then `guessPiece` (`src/utils/pieceGuess.ts`), always flagged `estimated`. Barcodes after the first meal skip Analyzing, Confirm and Result: `lookupBarcodeFood`, the sheet over the camera, `logFoodsDirect(entries, 'barcode')`, one saved entry per product. Unknown products fall back to the full route, which explains the problem and offers the label photo.
+
 `useLocalDay` refreshes the local date on foreground entry and every 30 seconds.
 AppContext synchronously filters hydrated meal history when the day changes;
 Progress uses the same date signal for its window and streak calculations.

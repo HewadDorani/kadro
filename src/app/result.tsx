@@ -21,7 +21,8 @@ import { trackEvent } from '@/services/telemetry';
 import { successHaptic } from '@/services/haptics';
 import { nextMealSlot } from '@/services/shareDay';
 import { formatDayLabel, formatNumber } from '@/utils/format';
-import { formatItemAmount } from '@/utils/portions';
+import { portionName } from '@/services/pieceWeights';
+import { formatItemAmount, initialSelection } from '@/utils/portions';
 import { draftConfidence } from '@/utils/confidence';
 import { useLocalDay } from '@/hooks/useLocalDay';
 
@@ -32,7 +33,7 @@ export default function ResultScreen() {
   const { fontScale, width } = useWindowDimensions();
   const largeText = fontScale > 1.3;
   const calorieSize = largeText ? Math.min(width - 40, Math.ceil(122 * fontScale)) : 122;
-  const { autoMatchedItemIds, logScannedMeal, mealHistory, meals, photoUri, portionEstimated, profile, scanMode, scannedMeal, scanTarget, targets } = useApp();
+  const { autoMatchedItemIds, logScannedMeal, mealHistory, meals, photoUri, portionEstimated, profile, resetScan, scanMode, scannedMeal, scanTarget, targets } = useApp();
   const today = useLocalDay();
   // A meal logged for an earlier day changes that day's numbers, not today's.
   const pastDay = scanMode !== 'demo' && scanTarget.date !== today ? scanTarget.date : null;
@@ -202,15 +203,27 @@ export default function ResultScreen() {
     router.dismissTo('/(tabs)/today');
   };
 
+  // Logging goes on from here: back to the capture screen, nothing to retype.
+  const addMore = async () => {
+    if (!await saveCurrentMeal()) return;
+    trackEvent('result continued', { next_destination: 'today' });
+    const mode = scanMode === 'barcode' || scanMode === 'search' || scanMode === 'description' ? scanMode : null;
+    resetScan();
+    router.dismissTo(mode ? `/(tabs)/scan?mode=${mode}` : '/(tabs)/scan');
+  };
+
   // The day card is about today; a back-dated meal or the example meal has
   // no real day to share.
   const canShareDay = !pastDay && !demo;
 
-  const ingredientEditAction = (
-    <Pressable accessibilityRole="button" onPress={() => router.replace('/confirm')}>
-      <Text style={styles.edit}>{t.result.edit}</Text>
-    </Pressable>
-  );
+  const includedItems = scannedMeal.items.filter((item) => item.included);
+  // "3 × Scheibe · 111 g" where the amount is whole pieces, otherwise plain grams.
+  const amountLabel = (item: (typeof includedItems)[number]) => {
+    const selection = initialSelection(item.amountG, item.portions, { chosen: true });
+    const portion = selection.unitIndex >= 0 ? item.portions![selection.unitIndex] : null;
+    if (!portion || portion.unitOnly) return formatItemAmount(item, locale);
+    return `${formatNumber(Number(selection.amount), locale)} × ${portionName(portion.label)} · ${formatNumber(item.amountG, locale)} g`;
+  };
 
   return (
     <Screen overlay={toast}>
@@ -219,11 +232,14 @@ export default function ResultScreen() {
           <Ionicons color={colors.text} name="arrow-back" size={22} />
         </Pressable>
         <Text style={styles.topTitle}>{t.result.title}</Text>
-        {canShareDay ? (
-          <Pressable accessibilityHint={t.shareDay.openHint} accessibilityLabel={t.result.shareDay} accessibilityRole="button" hitSlop={8} onPress={() => setSharing(true)} style={styles.iconButton}>
-            <Ionicons color={colors.text} name="share-outline" size={22} />
-          </Pressable>
-        ) : <View style={styles.iconSpacer} />}
+        <View style={styles.topActions}>
+          {demo ? null : <FavoriteToggle compact onToast={showToast} />}
+          {canShareDay ? (
+            <Pressable accessibilityHint={t.shareDay.openHint} accessibilityLabel={t.result.shareDay} accessibilityRole="button" hitSlop={8} onPress={() => setSharing(true)} style={styles.iconButton}>
+              <Ionicons color={colors.text} name="share-outline" size={22} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       {saveStatus === 'failed' ? <Card style={{ gap: 12 }}>
@@ -234,7 +250,7 @@ export default function ResultScreen() {
         : saveStatus === 'saving' ? <Text accessibilityLiveRegion="polite" style={{ ...typeScale.footnote, color: colors.muted }}>{t.common.saving}</Text> : null}
 
       {/* A photo is worth showing; a typed sentence is already the title below. */}
-      {photoUri ? <MealPhoto height={270} placeholder={mealPhotoPlaceholder(scanMode)} uri={photoUri} /> : null}
+      {photoUri ? <MealPhoto height={170} placeholder={mealPhotoPlaceholder(scanMode)} uri={photoUri} /> : null}
 
       <View style={styles.resultHeading}>
         <View style={[styles.titleRow, largeText && styles.titleRowLarge]}>
@@ -259,42 +275,14 @@ export default function ResultScreen() {
         <MacroResult label={t.common.fiber} value={scannedMeal.fiber ?? 0} unit="g" />
       </View>
 
-      {/* One tap keeps this meal as logged (items and grams) for "Nochmal essen". */}
-      {demo ? null : <FavoriteToggle onToast={showToast} />}
-
-      <View style={styles.section}>
-        <SectionTitle action={largeText ? undefined : ingredientEditAction}>{t.result.ingredients}</SectionTitle>
-        {largeText ? ingredientEditAction : null}
-        <Card style={styles.ingredientsCard}>
-          {scannedMeal.items.filter((item) => item.included).map((item, index, list) => (
-            <View key={item.id}>
-              <View style={styles.ingredientRow}>
-                <View style={styles.ingredientCheck}><Ionicons color={colors.success} name="checkmark" size={15} /></View>
-                <Text style={styles.ingredientName}>{item.name}</Text>
-                <View style={styles.ingredientMeta}>
-                  <Text style={styles.ingredientAmount}>{formatItemAmount(item, locale)}</Text>
-                  <Text numberOfLines={1} style={styles.ingredientSource}>{friendlySource(item.source.label)?.replace(/^(Quelle|Source): /, '') ?? ''}</Text>
-                </View>
-              </View>
-              {index < list.length - 1 ? <View style={styles.divider} /> : null}
-            </View>
-          ))}
-        </Card>
-      </View>
+      {/* What was logged in one line; the amounts live one tap away, not on this screen. */}
+      <Pressable accessibilityHint={t.result.edit} accessibilityRole="button" onPress={() => router.replace('/confirm')} style={({ pressed }) => [styles.itemsRow, pressed && { opacity: 0.6 }]}>
+        <Text numberOfLines={1} style={styles.itemsText}>{includedItems.length === 1 ? amountLabel(includedItems[0]) : `${t.result.ingredientCount(includedItems.length)} · ${includedItems.map((item) => item.name).join(', ')}`}</Text>
+        <Text style={styles.edit}>{t.result.edit}</Text>
+      </Pressable>
 
       <Card style={styles.dayCard}>
-        <View style={styles.dayHeader}>
-          <View style={styles.dayIcon}><Ionicons color={colors.onAccent} name="sunny-outline" size={23} /></View>
-          <View style={styles.dayHeading}>
-            <Eyebrow>{pastDay ? formatDayLabel(pastDay, today, t.today, locale) : t.result.dayAfter}</Eyebrow>
-            <Text style={styles.onTrack}>{pastDay ? (overBudget ? t.today.pastDayOver : t.today.pastDayLogged) : overBudget ? t.result.overToday : t.result.stillOnTrack}</Text>
-          </View>
-          <Ionicons
-            color={overBudget ? colors.attentionText : colors.success}
-            name={overBudget ? 'alert-circle' : 'checkmark-circle'}
-            size={25}
-          />
-        </View>
+        <Eyebrow>{pastDay ? `${formatDayLabel(pastDay, today, t.today, locale)} · ${overBudget ? t.today.pastDayOver : t.today.pastDayLogged}` : overBudget ? t.result.overToday : t.result.dayAfter}</Eyebrow>
         <View style={styles.remainingRow}>
           <View>
             <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.remainingValue}>{formatNumber(overBudget ? overBy : displayedRemaining, locale)}</Text>
@@ -308,48 +296,20 @@ export default function ResultScreen() {
         </View>
       </Card>
 
-      <Animated.View
-        style={{
-          opacity: recommendationReveal,
-          transform: [{ translateY: recommendationReveal.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-        }}
-      >
       {/* The next-meal plan is about today; a back-dated meal skips it. */}
-      {pastDay ? null : dayIsDone ? (
-        <Card style={styles.nextCard}>
-          <Text style={styles.nextTitle}>{overBudget ? t.today.dayOver : t.today.dayComplete}</Text>
-          <Text style={styles.reminderText}>{overBudget ? t.today.dayOverText : t.today.dayCompleteText}</Text>
-          <PrimaryButton icon="arrow-forward" label={t.plan.smallIdeas} onPress={showOptions} variant="secondary" />
-        </Card>
-      ) : <Card style={styles.nextCard}>
-        <View style={styles.nextTop}>
-          <View style={styles.nextBadge}><Ionicons color={colors.onAccent} name="navigate" size={20} /></View>
-          <View style={styles.nextCopy}>
-            <Eyebrow>{t.result.nextMeal}</Eyebrow>
-            <Text style={styles.nextTitle}>{t.result.nextStep(formatNumber(projected.calories, locale), t.shareDay.ideasFor(nextSlot))}</Text>
-          </View>
-        </View>
-        <View style={styles.aimRow}>
-          <View style={styles.aimBlock}>
-            <Text style={styles.aimValue}>{calorieLow === calorieHigh ? calorieLow : `${calorieLow}–${calorieHigh}`}</Text>
-            <Text style={styles.aimLabel}>{t.onboarding.kilocalories}</Text>
-          </View>
-          <View style={styles.aimBlock}>
-            <Text style={styles.aimValue}>{proteinLow === proteinHigh ? proteinLow : `${proteinLow}–${proteinHigh}`} g</Text>
-            <Text style={styles.aimLabel}>{t.common.protein}</Text>
-          </View>
-          <View style={styles.aimBlock}>
-            <Text style={styles.aimValue}>{t.result.light}</Text>
-            <Text style={styles.aimLabel}>{t.result.lightOnFat}</Text>
-          </View>
-        </View>
-        <PrimaryButton haptic icon="arrow-forward" label={t.result.showOptions} onPress={showOptions} />
-      </Card>}
-      </Animated.View>
+      {pastDay ? null : (
+        <Animated.View
+          style={{
+            opacity: recommendationReveal,
+            transform: [{ translateY: recommendationReveal.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+          }}
+        >
+          <PrimaryButton haptic icon="arrow-forward" label={dayIsDone ? t.plan.smallIdeas : t.shareDay.ideasFor(nextSlot)} onPress={showOptions} />
+        </Animated.View>
+      )}
 
-      <PrimaryButton haptic icon="checkmark" label={t.result.toToday} onPress={saveForLater} variant="secondary" />
-      {canShareDay ? <PrimaryButton haptic icon="share-outline" label={t.result.shareDay} onPress={() => setSharing(true)} variant="ghost" /> : null}
-      <Text style={styles.estimateNote}>{t.common.estimateNote}</Text>
+      {demo ? null : <PrimaryButton haptic icon="add" label={t.result.addMore} onPress={addMore} variant="secondary" />}
+      <PrimaryButton haptic label={t.result.toToday} onPress={saveForLater} variant="ghost" />
       {canShareDay ? (
         <ShareDayModal
           input={{
@@ -410,7 +370,9 @@ function MacroResult({ label, unit, value }: { label: string; unit: string; valu
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  iconSpacer: { width: 44, height: 44 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemsRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  itemsText: { ...typeScale.footnote, flex: 1, minWidth: 0, color: colors.text, fontWeight: '600' },
   topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   resultHeading: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },

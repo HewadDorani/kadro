@@ -18,6 +18,7 @@ import { formatNumber } from '@/utils/format';
 import { formatItemAmount, initialSelection, itemNutritionPer100g, servingOnlyAmount } from '@/utils/portions';
 import { canSaveMealDraft, needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { foodByBlsCode } from '@/services/foodSuggest';
+import { pieceKey, portionName } from '@/services/pieceWeights';
 import { FoodSearchResult, searchIngredientReplacement } from '@/services/mealAnalysis';
 import { milkCorrectionQuery } from '@/utils/foodCorrectionQuery';
 import { MealItem } from '@/types/nutrition';
@@ -180,30 +181,7 @@ export default function ConfirmScreen() {
       ) : null}
 
 
-      {singleItem && !needsIngredientCorrection(singleItem) ? (
-        <Card style={styles.portionCard}>
-          <View style={styles.portionHeading}>
-            <View>
-              <Text style={styles.portionTitle}>{t.confirm.amountQuestion}</Text>
-              <Text style={styles.portionSubtitle}>{singleItem.name}</Text>
-            </View>
-            <Ionicons color={colors.accentText} name="resize-outline" size={22} />
-          </View>
-          <Pressable
-            accessibilityLabel={t.confirm.amountQuestion}
-            accessibilityRole="button"
-            onPress={() => setAmountFor(singleItem.id)}
-            style={styles.amountField}
-          >
-            <Text style={styles.amountFieldValue}>{(() => {
-              const selection = initialSelection(singleItem.amountG, singleItem.portions, { chosen: true });
-              if (servingOnlyAmount(singleItem)) return formatItemAmount(singleItem, locale);
-              return selection.unitIndex >= 0 ? `${formatNumber(Number(selection.amount), locale)} × ${singleItem.portions![selection.unitIndex].label}` : `${formatNumber(singleItem.amountG, locale)} g`;
-            })()}</Text>
-            <Ionicons color={colors.muted} name="create-outline" size={20} />
-          </Pressable>
-        </Card>
-      ) : !singleItem ? (
+      {!singleItem ? (
       <Card style={styles.portionCard}>
         <View style={styles.portionHeading}>
           <View>
@@ -248,7 +226,7 @@ export default function ConfirmScreen() {
         const amount = servingOnly
           ? formatItemAmount(item, locale)
           : unit && unit !== t.scan.portionServing
-          ? `${count === 1 ? unit : `${formatNumber(count, locale)} × ${unit}`} · ${formatNumber(item.amountG, locale)} g`
+          ? `${formatNumber(count, locale)} × ${portionName(unit)} · ${formatNumber(item.amountG, locale)} g`
           : `${formatNumber(item.amountG, locale)} g`;
         return (
           <Card key={`ingredient-${item.id}`} style={styles.ingredientCard}>
@@ -307,6 +285,7 @@ export default function ConfirmScreen() {
             preferGrams,
             portions: item.portions,
             sourceLabel: item.source.label,
+            pieceKey: pieceKey(item.name, item.source.referenceId),
           };
         })()}
         visible={amountFor !== null}
@@ -420,7 +399,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   ingredientMain: { flex: 1, minWidth: 0, gap: 4, minHeight: 44, justifyContent: 'center' },
   ingredientName: { ...typeScale.label, color: colors.text, fontWeight: '700' },
   ingredientMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ingredientMeta: { ...typeScale.subhead, color: colors.muted, fontVariant: ['tabular-nums'] },
+  ingredientMeta: { ...typeScale.subhead, flexShrink: 1, color: colors.muted, fontVariant: ['tabular-nums'] },
   iconAction: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   removeRow: { marginTop: 4 },
   analysisWarning: { borderRadius: 15, backgroundColor: colors.neutralSoft, paddingHorizontal: 13, paddingVertical: 10, gap: 6 },

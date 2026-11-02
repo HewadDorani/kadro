@@ -4,8 +4,8 @@ import { usePresentationBlock } from '@/services/presentation';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { MealSyncStatus } from '@/components/MealSyncStatus';
@@ -53,6 +53,15 @@ export default function TodayScreen() {
   const isToday = dayOffset === 0;
   const viewDay = isToday ? day : shiftDateKey(day, -dayOffset);
   const showDay = (offset: number) => setDayOffset(Math.min(MAX_BACKDATE_DAYS, Math.max(0, offset)));
+  // A swipe or an old day must not outlive the visit: a screen left on Friday
+  // looked like Friday's food on Monday, and a new meal seemed to vanish because
+  // it went to today behind the old day. Logging for that day keeps it open.
+  const keepDay = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (keepDay.current) keepDay.current = false;
+    else setDayOffset(0);
+  }, []));
+  useEffect(() => { setDayOffset(0); }, [day]);
   // A horizontal swipe over the day header moves between days; vertical
   // scrolling and the "Nochmal essen" carousel keep their own gestures.
   const offsetRef = useRef(dayOffset);
@@ -113,7 +122,7 @@ export default function TodayScreen() {
     // resetScan clears any previous choice, so the slot is set after it.
     if (slot) setPlannedMealType(slot);
     // Logging while looking at an earlier day files the meal on that day.
-    if (!isToday) setPlannedMealDate(viewDay);
+    if (!isToday) { setPlannedMealDate(viewDay); keepDay.current = true; }
     router.navigate('/(tabs)/scan');
   };
 
@@ -523,7 +532,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   mealMetaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
   mealType: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
   mealTime: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
-  mealName: { ...typeScale.caption, color: colors.muted },
+  mealName: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
   mealNumbers: { alignItems: 'flex-end' },
   mealCalories: { ...typeScale.label, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   mealUnit: { ...typeScale.caption, color: colors.muted },
