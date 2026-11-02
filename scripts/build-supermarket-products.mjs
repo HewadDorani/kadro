@@ -27,7 +27,7 @@
  *   from the brand.
  * - At most one request per second, identified as Kandro.
  *
- * Usage: node scripts/build-supermarket-products.mjs [--market de|gb|us] [--cache <dir>] [--date YYYY-MM-DD]
+ * Usage: node scripts/build-supermarket-products.mjs [--market de|gb|us|eu] [--cache <dir>] [--date YYYY-MM-DD]
  * Raw responses are cached (default: $TMPDIR/kandro-off-cache) so a rerun
  * after a network hiccup does not hit Open Food Facts again.
  */

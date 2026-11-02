@@ -112,7 +112,9 @@ export function productsForCountry(products: readonly SupermarketProduct[], coun
   const local = products
     .filter((product) => !product.countries || product.countries.includes(country))
     .map((product) => ({ ...product, stores: storesIn(product, country) }));
-  if (local.length >= LOCAL_MINIMUM || !STORE_COUNTRIES.lidl.includes(country)) return local;
+  if (local.length >= LOCAL_MINIMUM) return local;
+  // Loose fruit alone is no shopping basket.
+  if (!STORE_COUNTRIES.lidl.includes(country)) return [];
   const known = new Set(local.map((product) => product.id));
   return [...local, ...products.filter((product) => !known.has(product.id) && product.stores.includes('lidl')).map((product) => ({ ...product, stores: ['lidl'] }))];
 }

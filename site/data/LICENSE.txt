@@ -2,7 +2,8 @@ Kandro – Supermarkt-Produktdatenauszug / supermarket product extract
 ====================================================================
 
 supermarket-products.json (Germany), supermarket-products.gb.json (United
-Kingdom) and supermarket-products.us.json (United States) are derivative
+Kingdom), supermarket-products.us.json (United States) and
+supermarket-products.eu.json (rest of Europe) are derivative
 databases of Open Food Facts
 (https://world.openfoodfacts.org), made available under the
 Open Database License (ODbL) v1.0: https://opendatacommons.org/licenses/odbl/1-0/

@@ -840,7 +840,7 @@ export const de = {
     ctxHomeDetail: "Mit Zutaten und Rezept",
     ctxMarket: 'Supermarkt',
     // Store names are proper nouns: the same in both languages, chosen by the shopping region.
-    ctxMarketStores: { de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: 'Lidl, Aldi, Carrefour' },
+    ctxMarketStores: { de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: 'Dein Supermarkt' },
     ctxOut: 'Unterwegs',
     ctxOutDetail: 'Imbiss, Bäcker, Kantine',
     chainMealTitle: (chain: string, main: string) => (main ? `${chain}: ${main}` : chain),

@@ -213,7 +213,7 @@ for (const market of Object.keys(MARKETS)) validateMarket(market);
   const stores = (country) => new Set(productsForCountry(all, country).flatMap((product) => product.stores));
   assert.ok(!stores('DK').has('carrefour') && !stores('DK').has('leclerc'), 'Denmark has no Carrefour or Leclerc');
   assert.ok(stores('FR').has('carrefour') && !stores('FR').has('mercadona'), 'France shops at Carrefour, not Mercadona');
-  assert.ok(productsForCountry(all, 'NO').every((product) => !product.stores.length), 'Norway has neither Lidl nor data: no store is named');
+  assert.equal(productsForCountry(all, 'NO').length, 0, 'Norway has neither Lidl nor data');
   assert.ok(productsForCountry(all, 'DK').length >= 80, 'Denmark widens to Lidl');
   assert.equal(productsForCountry(all, null).length, all.length, 'a device without a country keeps the whole set');
   const remaining = { calories: 640, protein: 45, carbs: 60, fat: 20 };
@@ -252,7 +252,7 @@ for (const brand of ['great-value', 'kirkland-signature', 'tesco-finest', 'taste
 }
 const plan = read('src/app/(tabs)/plan.tsx');
 assert.match(plan, /t\.plan\.marketAttribution\(/, 'Plan renders the product data attribution');
-assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, marketData\.products, excluded\)/, 'Plan uses the dataset of the shopping region');
+assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, productsForCountry\(marketData\.products, deviceCountry\(\)\), excluded\)/, 'Plan uses the dataset of the shopping region');
 assert.match(plan, /startPlannedDraft\(comboSearchEntries\(/, '"Das hole ich mir" prefills the confirm screen');
 assert.match(plan, /router\.push\('\/confirm'\)/);
 const notices = read('THIRD_PARTY_NOTICES.md');

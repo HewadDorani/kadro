@@ -158,17 +158,17 @@ await test('requests carry the region; Du offers the setting; Plan follows the r
     for (const key of ['marketRegion:', 'marketRegionDetail:', 'marketRegionAuto:', 'marketRegionAutoDetail:', 'marketRegionNames:', 'ctxMarketStores:']) {
       assert.ok(dictionary.includes(key), `${language}: ${key}`);
     }
-    assert.match(dictionary, /ctxMarketStores: \{ de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: 'Lidl, Aldi, Carrefour' \}/);
+    assert.match(dictionary, /ctxMarketStores: \{ de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: '[^']+' \}/);
   }
   assert.match(read('src/i18n/de.ts'), /marketRegion: 'Land für Vorschläge'/);
   assert.match(read('src/i18n/de.ts'), /marketRegionAuto: 'Automatisch'/);
   const plan = read('src/app/(tabs)/plan.tsx');
   assert.match(plan, /const region = useMarketRegion\(\);/);
   assert.match(plan, /detail: t\.plan\.ctxMarketStores\[region\]/);
-  assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, marketData\.products, excluded\)/);
+  assert.match(plan, /supermarketCombos\(remaining, profile\.preferences, productsForCountry\(marketData\.products, deviceCountry\(\)\), excluded\)/);
   assert.match(plan, /t\.plan\.marketAttribution\(formatDataDate\(marketData\.fetchedAt, locale\)\)/);
   const service = read('src/services/region.ts');
-  assert.match(service, /export type MarketRegion = 'de' \| 'gb' \| 'us';/);
+  assert.match(service, /export type MarketRegion = 'de' \| 'gb' \| 'us' \| 'eu';/);
   assert.match(service, /export function useMarketRegion\(\): MarketRegion/);
   assert.match(service, /export function getMarketRegion\(\): MarketRegion/);
 });
