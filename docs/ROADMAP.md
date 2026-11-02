@@ -20,6 +20,8 @@ Eigentümer-Rückmeldung aus der eigenen Nutzung (Muskelaufbau): 100-g-Werte sta
 - [x] Eintrags-Blatt ohne Erklärsätze; „Weniger/Mehr“ nur noch bei mehreren Zutaten.
 - [x] Tag-Bugs: Heute springt beim Zurückkommen und bei Tageswechsel wieder auf den aktuellen Tag; `meals` ist jetzt immer aus dem aktuellen Tag gefiltert, und ein Cloud-Abgleich liest die Liste neu von der Platte, statt eine während des Abgleichs gespeicherte Mahlzeit zu überschreiben.
 - [x] Ziele: Abnehmen und Muskeln aufbauen stehen vorn, Halten als drittes.
+- [x] Absturz im ersten Lauf behoben (KANDRO-IOS-B, -C, -4): Der Route Guard entfernte den Navigator, statt ihn abzudecken, und `/first-scan` und `/` wechselten alle 3 ms, bis React abbrach. Die Abdeckung liegt jetzt über dem Navigator; Bildschirme, die beim Ankommen speichern oder analysieren, warten über `useRouteGate`.
+- [x] Stückgewichte reisen mit den gespeicherten Mahlzeiten auf andere Geräte; eine kleine Packung eines Stück-Produkts zählt als ein echtes Stück.
 
 ## 2026-11-01 – Aktivierung und Bindung (1.0.7)
 

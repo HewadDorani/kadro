@@ -261,7 +261,8 @@ export default function PaywallScreen() {
         ? selectedPlan.trialDays === 7 && selectedPlan.hasFreeTrial && !testStore
           ? t.access.trialThen(selectedPlan.price)
           : `${selectedPlan.billing}${testStore ? t.paywall.testStoreNote : ''}`
-        : t.paywall.billingMissing;
+        // Still loading is not a failure: the line said "could not load" for the first seconds.
+        : status === 'loading' ? t.paywall.ctaLoading : t.paywall.billingMissing;
 
   // App Store Review guideline 3.1.2 requires length, price and the renewal
   // terms to be visible before the purchase, not only in the store listing.
