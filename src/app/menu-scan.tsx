@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Card, PrimaryButton } from '@/components/ui';
@@ -129,8 +129,12 @@ export default function MenuScanScreen() {
             </View>
           ) : (
             <View style={styles.center}>
-              <Text style={styles.darkText}>{t.scan.permissionBody}</Text>
-              <PrimaryButton icon="camera-outline" label={t.scan.allowCamera} onPress={() => void requestPermission()} />
+              {permission && !permission.canAskAgain ? <Text style={styles.darkText}>{t.scan.permissionBody}</Text> : null}
+              <PrimaryButton
+                icon="camera-outline"
+                label={permission && !permission.canAskAgain ? t.scan.openSettings : t.scan.allowCamera}
+                onPress={() => void (permission && !permission.canAskAgain ? Linking.openSettings() : requestPermission())}
+              />
             </View>
           )}
         </SafeAreaView>

@@ -317,7 +317,7 @@ export default function PlanScreen() {
           ) : null}
 
           <View style={styles.resultsHeading}>
-            <View>
+            <View style={styles.resultsCopy}>
               <Text style={styles.resultsTitle}>{availableCalories > 0 ? t.plan.fitsTitle(formatNumber(availableCalories, locale)) : t.plan.optionsTitle}</Text>
               <Text style={styles.resultsMeta}>{t.plan.optionsMeta(range('calories'), range('protein'))}</Text>
             </View>
@@ -556,7 +556,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   dayDoneTitle: { color: colors.text, fontSize: 19, lineHeight: 24, fontWeight: '700' },
   dayDoneText: { ...typeScale.subhead, color: colors.muted, textAlign: 'center' },
   results: { gap: 14 },
-  resultsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
+  resultsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 },
+  resultsCopy: { flex: 1, minWidth: 0 },
   resultsTitle: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
   resultsMeta: { ...typeScale.caption, color: colors.muted, marginTop: 4 },
   refresh: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },

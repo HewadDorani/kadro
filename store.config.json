@@ -28,7 +28,7 @@
           "kcal",
           "gym"
         ],
-        "releaseNotes": "Faster logging and a more stable start:\n\n• Count in pieces: slices, pieces or tablespoons instead of 100 g. Kandro remembers the weight for each product\n• Scan several barcodes in a row, the camera stays open\n• A shorter result screen with what matters\n• Today always opens on today\n• Fixed a crash right after setup",
+        "releaseNotes": "Faster logging and meals that fit anywhere:\n\n• New: photograph a menu and see the three dishes that fit your day\n• Count in pieces: slices or pieces instead of 100 g, and Kandro remembers the weight\n• Scan several barcodes in a row, the camera stays open\n• New for Europe: supermarket ideas from Lidl, Carrefour and more\n• Fixed a crash right after setup, plus a shorter result screen",
         "promoText": "782 kcal left and no idea what to eat? Kandro tells you what fits next: three dishes for the rest of your day – at home, from the supermarket or on the go.",
         "marketingUrl": "https://getkandro.com/en/",
         "supportUrl": "https://getkandro.com/en/support",
@@ -54,7 +54,7 @@
           "tagebuch",
           "kcal"
         ],
-        "releaseNotes": "Schneller eintragen und ein stabiler Start:\n\n• In Stücken zählen: Scheiben, Stück oder EL statt 100 g. Kandro merkt sich das Gewicht pro Produkt\n• Mehrere Barcodes hintereinander scannen, die Kamera bleibt offen\n• Kürzeres Ergebnis mit dem, was zählt\n• Heute öffnet immer den aktuellen Tag\n• Absturz direkt nach der Einrichtung behoben",
+        "releaseNotes": "Schneller eintragen und passende Ideen überall:\n\n• Neu: Speisekarte fotografieren und die drei passendsten Gerichte sehen\n• In Stücken zählen: Scheiben oder Stück statt 100 g, Kandro merkt sich das Gewicht\n• Mehrere Barcodes hintereinander scannen, die Kamera bleibt offen\n• Neu für Europa: Supermarkt-Ideen von Lidl, Carrefour und mehr\n• Absturz nach der Einrichtung behoben, kürzeres Ergebnis",
         "promoText": "782 kcal übrig und keine Idee? Kandro sagt dir, was als Nächstes passt: drei Gerichte für deinen restlichen Tag – zu Hause, aus dem Supermarkt oder unterwegs.",
         "marketingUrl": "https://getkandro.com/",
         "supportUrl": "https://getkandro.com/support",
