@@ -318,7 +318,7 @@ export default function PlanScreen() {
 
           <View style={styles.resultsHeading}>
             <View>
-              <Text style={styles.resultsTitle}>{t.plan.optionsTitle}</Text>
+              <Text style={styles.resultsTitle}>{availableCalories > 0 ? t.plan.fitsTitle(formatNumber(availableCalories, locale)) : t.plan.optionsTitle}</Text>
               <Text style={styles.resultsMeta}>{t.plan.optionsMeta(range('calories'), range('protein'))}</Text>
             </View>
             <Pressable accessibilityRole="button" hitSlop={6} onPress={refreshIdeas} style={styles.refresh}>
@@ -357,6 +357,17 @@ export default function PlanScreen() {
             <Text style={styles.adaptedText}>{preferenceSummary}</Text>
             <Text style={styles.adaptedEdit}>{t.plan.adaptedEdit}</Text>
           </Pressable>
+
+          {selected === 'eating-out' ? (
+            <Pressable accessibilityHint={t.plan.menu.openHint} accessibilityRole="button" onPress={() => { void selectionHaptic(); router.push('/menu-scan' as never); }} style={styles.menuRow}>
+              <View style={styles.menuIcon}><Ionicons color={colors.onAccent} name="camera-outline" size={20} /></View>
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuTitle}>{t.plan.menu.open}</Text>
+                <Text style={styles.menuDetail}>{t.plan.menu.openHint}</Text>
+              </View>
+              <Ionicons color={colors.muted} name="chevron-forward" size={18} />
+            </Pressable>
+          ) : null}
 
           {chainMode ? orders.map((order, index) => (
             <ChainComboCard
@@ -518,6 +529,11 @@ function formatDataDate(isoDate: string, locale: string) {
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  menuRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radii.card, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  menuIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  menuCopy: { flex: 1, minWidth: 0, gap: 2 },
+  menuTitle: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
+  menuDetail: { ...typeScale.footnote, color: colors.muted },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   headerCopy: { flex: 1, gap: 8 },
   subtitle: { ...typeScale.callout, color: colors.muted },

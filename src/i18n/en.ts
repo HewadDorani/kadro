@@ -839,6 +839,15 @@ export const en: typeof de = {
     ctxHomeDetail: "With ingredients and a recipe",
     ctxMarket: 'Shop',
     // Store names are proper nouns: the same in both languages, chosen by the shopping region.
+    menu: {
+      open: 'Photograph a menu', openHint: 'For any restaurant: Kandro names the three dishes that fit best.',
+      hint: 'Keep the whole menu in the frame', shutter: 'Photograph the menu', reading: 'Kandro is reading the menu …',
+      title: (kcal: string) => `What fits your ${kcal} kcal`, found: (count: number) => count === 1 ? '1 dish found' : `${count} dishes found`,
+      leaves: (kcal: string) => `Leaves you ${kcal} kcal`, over: (kcal: string) => `${kcal} kcal over what is left`,
+      take: 'I’ll have this', again: 'Photograph another menu', serving: '1 portion', errorTitle: 'That did not work',
+      estimate: 'Estimated values. Restaurants portion differently, and you can change everything.', noDiet: 'No dish matches your preferences.',
+    },
+    fitsTitle: (kcal: string) => `What fits your ${kcal} kcal`,
     ctxMarketStores: { de: 'Rewe, Lidl, Aldi', gb: 'Tesco, Sainsbury’s, Aldi', us: 'Walmart, Trader Joe’s, Target', eu: 'Your supermarket' },
     ctxOut: 'Out and about',
     ctxOutDetail: 'Takeout, bakery, canteen',
@@ -1038,6 +1047,7 @@ export const en: typeof de = {
   },
   errors: {
     gatewayTimeout: "The service took too long. Your input is preserved. Try this request again later.",
+    menuUnreadable: 'Kandro could not read any dishes in this photo. Your analysis was not used.',
     gatewayInvalidResponse: "The service returned an incomplete or invalid result. Nothing was saved.",
     gatewayRateLimited: "Too many requests. Please wait before trying again.",
     gatewayRefused: "This input could not be processed. Please adjust it or use food search.",

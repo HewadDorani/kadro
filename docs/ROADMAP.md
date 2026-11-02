@@ -17,6 +17,8 @@ Downloads 03.10.–01.11.2026: 125 gesamt, 44 DACH, 17 UK, 12 USA, 52 verteilt a
 - [x] 418 geprüfte Open-Food-Facts-Produkte mit Verkaufsländern (Lidl 90, Carrefour 83, Leclerc 46, Auchan 42). Frankreich 329, Spanien 99, Belgien 63, Portugal 50, Dänemark 4, Norwegen 0.
 - [x] `productsForCountry`: nur Geschäfte, die es im Land gibt; unter 80 Produkten kommen Lidl-Produkte dazu. Ohne drei Körbe (Norwegen) antwortet der Gerichte-Katalog.
 - [x] Unterwegs: keine europäischen Kettendaten, weil Ketten je Land veröffentlichen. Der Gerichte-Katalog antwortet, bis es das Speisekarten-Foto gibt.
+- [x] Speisekarten-Foto (`/v1/menu`, `menu-scan`): Für jedes Restaurant. Liest gedruckte Gerichte, schätzt eine Portion, `menuPicks` wählt die drei passendsten. Kostet eine Analyse, bei unlesbarer Karte erstattet; das Foto wird nicht gespeichert.
+- [x] Überschrift im Plan: „Das passt in deine 640 kcal“.
 - [ ] Eigener Produktindex `eu` in Supabase. Bis dahin nutzt die Suche den UK-Index (`productIndexRegion`); Barcodes werden in allen Märkten gefunden.
 
 ## 2026-11-02 – Schneller eintragen

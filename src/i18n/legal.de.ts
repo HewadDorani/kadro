@@ -41,7 +41,7 @@ function contact() {
 }
 
 export const legalDe: LegalCopySet = {
-  version: '2.7 · Stand 1. November 2026',
+  version: '2.8 · Stand 2. November 2026',
   privacy: {
     title: 'Datenschutzhinweise',
     intro: 'Diese Hinweise erklären in klarer Sprache, welche Daten Kandro verarbeitet, warum, und wie du sie jederzeit wieder löschen kannst.',
@@ -74,6 +74,7 @@ export const legalDe: LegalCopySet = {
         paragraphs: [
           'Ein Foto wird auf dem Gerät verkleinert. Das Original wird danach verworfen. Die Arbeitskopie oder deine bewusst eingegebene Mahlzeitenbeschreibung wird an OpenRouter in den USA und von dort ausschließlich an Microsoft Azure übermittelt; dort läuft das OpenAI-Modell GPT-4.1 mini zur Erkennung von Lebensmitteln und Portionen. USDA FoodData Central wird anschließend nur mit Textsuchbegriffen abgefragt. Bei einem Barcode wird die Nummer über den Kandro-Analysezugang bei Open Food Facts nachgeschlagen. Für Produktsuche und Barcode übermittelt die App zusätzlich nur das Land für Vorschläge (Deutschland/Österreich/Schweiz, Vereinigtes Königreich oder USA), damit passende Produkte erscheinen; es wird aus den Regionseinstellungen deines Geräts abgeleitet oder von dir unter „Du“ gewählt und nur auf deinem Gerät gespeichert.',
           'Bestätigte Mahlzeiten enthalten kein Foto. Die lokale Fehlerwarteschlange wird auf drei Scans begrenzt und nach erfolgreicher Analyse entfernt.',
+          'Fotografierst du eine Speisekarte, wird das Foto wie ein Mahlzeitenfoto auf dem Gerät verkleinert, nur zum Lesen der Gerichte an dieselben Empfänger übertragen und danach verworfen; Kandro speichert das Foto nicht. Gespeichert bleibt nur, dass eine Analyse genutzt wurde.',
           'Fotografierst du eine Nährwerttabelle (optional zusätzlich die Vorderseite der Packung), werden diese Fotos wie ein Mahlzeitenfoto auf dem Gerät verkleinert, nur zum Ablesen der Werte an dieselben Empfänger übertragen und danach verworfen; Kandro speichert sie nicht. Gespeichert werden nur die Werte, die du bestätigst. Öffentliche Produktdaten von Open Food Facts hält Kandro bis zu 30 Tage in einem gemeinsamen Zwischenspeicher, der keinen Bezug zu deinem Account hat.',
         ],
       },

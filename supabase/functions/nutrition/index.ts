@@ -3,6 +3,7 @@ import { referenceCache } from '../_shared/reference-cache.mjs';
 import { isSearchQuery, compatibleSearchIdentity, SEARCH_VERSION } from '../_shared/search-policy.mjs';
 import { offMassNutrition, offMassPortions, offPiecePortion, OFF_PRODUCT_FIELDS, offBarcodeCandidates, offBrand, offPackageGrams } from '../_shared/off-product.mjs';
 import { labelPrompt, labelSchema, normalizeLabelRead, validateLabelRead } from '../_shared/label-facts.mjs';
+import { menuPrompt, menuSchema, normalizeMenuRead, validateMenuRead } from '../_shared/menu-read.mjs';
 import { requestStructured, requestStructuredWithRetry, resolveFallbackModel, ModelError, GEMINI_MODEL, GEMINI_CONSENT_VERSION, GEMINI_RELEASE_APPROVED } from '../_shared/model-adapter.mjs';
 import { applyDescriptionAmountsTolerant } from '../_shared/description-amounts.mjs';
 import { withSupabase } from 'npm:@supabase/server@1.5.1';
@@ -691,6 +692,21 @@ async function analyzeLabel(input: any, signal?: AbortSignal): Promise<Result> {
       ...(label.missing.length ? { correctionRequired: true } : {}),
     },
   };
+}
+
+/** Reads a photographed menu: one analysis, refunded when no dish can be read. */
+// deno-lint-ignore no-explicit-any
+async function analyzeMenu(input: any, signal?: AbortSignal): Promise<Result> {
+  const content: unknown[] = [
+    { type: 'input_text', text: menuPrompt(requestedLanguage(input)) },
+    { type: 'input_image', image_url: `data:image/jpeg;base64,${input.imageBase64}`, detail: imageDetail },
+  ];
+  const read = await requestStructured({
+    apiKey: aiApiKey, content, model: visionModel, provider: aiProvider,
+    schema: menuSchema, name: 'kandro_menu_read', validate: validateMenuRead, signal,
+  });
+  const menu = normalizeMenuRead(read);
+  return 'code' in menu ? { status: 422, body: { code: menu.code } } : { status: 200, body: { dishes: menu.dishes } };
 }
 
 /**
@@ -1637,7 +1653,7 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
       });
     }
   }
-  if (route !== '/v1/analyze' && route !== '/v1/describe' && route !== '/v1/label') {
+  if (route !== '/v1/analyze' && route !== '/v1/describe' && route !== '/v1/label' && route !== '/v1/menu') {
     return reply({ status: 404, body: { code: 'not_found', message: 'Route nicht gefunden.' } });
   }
 
@@ -1657,7 +1673,7 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
     if (payload.barcode !== undefined && payload.barcode !== null && !(typeof payload.barcode === 'string' && /^\d{7,14}$/.test(payload.barcode))) {
       return reply({ status: 400, body: { code: 'invalid_barcode', message: 'Ungültiger Barcode.' } });
     }
-  } else if (route === '/v1/analyze') {
+  } else if (route === '/v1/analyze' || route === '/v1/menu') {
     if (!validateAnalysisInput(payload)) {
       return reply({ status: 400, body: { code: 'invalid_input', message: 'Ungültiges Fotoformat.' } });
     }
@@ -1672,7 +1688,7 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
   }
 
   // A label read always uses the disclosed default model.
-  const candidate = route !== '/v1/label' && payload?.analysisProvider === GEMINI_MODEL;
+  const candidate = route !== '/v1/label' && route !== '/v1/menu' && payload?.analysisProvider === GEMINI_MODEL;
   if (candidate && !GEMINI_RELEASE_APPROVED) throw new ModelError('ai_route_not_approved',503);
   if (candidate && !await candidateConsent('analysis')) return reply({status:403,body:{code:'consent_required'}});
 
@@ -1800,6 +1816,8 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
   try {
     result = route === '/v1/label'
       ? await analyzeLabel(payload, request.signal)
+      : route === '/v1/menu'
+      ? await analyzeMenu(payload, request.signal)
       : route === '/v1/analyze'
       ? await analyzePhoto(payload, context.supabaseAdmin, claimAnalysisUsda, candidate, request.signal, analysisHooks)
       : await analyzeDescription(payload, context.supabaseAdmin, claimAnalysisUsda, candidate, request.signal, analysisHooks);

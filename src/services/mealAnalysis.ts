@@ -15,6 +15,7 @@ import { getDictionary, getLanguage, getLocale } from '@/i18n/active';
 import { needsIngredientCorrection } from '@/utils/ingredientCorrection';
 import { customFoodResult, findCustomFoodByBarcode } from '@/services/customFoods';
 import { loadMarketRegion, productIndexRegion } from '@/services/region';
+import type { MenuDish } from '@/services/menuPicks';
 
 /**
  * Optional local override for development. When it is unset the app talks to
@@ -89,6 +90,7 @@ function gatewayMessage(code: string | undefined, _fallback: string | undefined)
     provider_rate_limited: t.gatewayRateLimited,
     provider_timeout: t.gatewayTimeout,
     provider_response_invalid: t.gatewayInvalidResponse,
+    menu_unreadable: t.menuUnreadable,
     model_truncated: t.gatewayInvalidResponse,
     model_refused: t.gatewayRefused,
     ai_route_not_approved: t.analysisNotConfigured,
@@ -455,6 +457,23 @@ export async function readNutritionLabel(table: MealAnalysisInput, requestId: st
     throw new MealAnalysisError('invalid-response', getDictionary().errors.gatewayInvalidResponse);
   }
   return { label, correctionRequired: payload?.correctionRequired === true };
+}
+
+/**
+ * Reads a photographed menu through the gateway. Costs one AI analysis like a
+ * meal photo, refunded when no dish can be read. Nothing is stored.
+ */
+export async function readMenu(photo: MealAnalysisInput, requestId: string): Promise<MenuDish[]> {
+  const response = await gatewayFetch('/v1/menu', {
+    method: 'POST',
+    body: { imageBase64: photo.imageBase64, mimeType: photo.mimeType, language: getLanguage(), locale: getLocale(), requestId, captureProtocol: 2 },
+  });
+  const payload = (await response.json().catch(() => null)) as { dishes?: MenuDish[]; code?: string; message?: string } | null;
+  if (!response.ok) throw gatewayError(response, payload?.code, payload?.message);
+  if (!Array.isArray(payload?.dishes) || !payload.dishes.length || !payload.dishes.every((dish) => typeof dish?.name === 'string' && Number.isFinite(dish.calories) && Number.isFinite(dish.grams) && dish.grams > 0)) {
+    throw new MealAnalysisError('invalid-response', getDictionary().errors.gatewayInvalidResponse);
+  }
+  return payload.dishes;
 }
 
 /** The optional pack-front photo only needs to show the name: sent small. */

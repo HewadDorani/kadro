@@ -23,7 +23,7 @@ function contact() {
 }
 
 export const legalEn: LegalCopySet = {
-  version: '2.7 · Last updated 1 November 2026',
+  version: '2.8 · Last updated 2 November 2026',
   privacy: {
     title: 'Privacy notice',
     intro: 'This notice explains in plain language which data Kandro processes, why, and how you can delete it again at any time.',
@@ -56,6 +56,7 @@ export const legalEn: LegalCopySet = {
         paragraphs: [
           'A photo is downscaled on your device. The original is discarded afterwards. The working copy, or a meal description you deliberately typed, is transferred to OpenRouter in the United States and from there exclusively to Microsoft Azure, where the OpenAI GPT-4.1 mini model identifies foods and portions. USDA FoodData Central is then queried with text search terms only. For a barcode, the number is looked up at Open Food Facts through the Kandro analysis gateway. For product search and barcodes, the app also sends only the country for suggestions (Germany/Austria/Switzerland, United Kingdom or United States) so that matching products appear; it is derived from your device’s region settings or chosen by you under “You” and stored only on your device.',
           'Confirmed meals contain no photo. The local failure queue is capped at three scans and is cleared once an analysis succeeds.',
+          'If you photograph a menu, the photo is reduced on your device like a meal photo, sent to the same recipients only to read the dishes, and then discarded; Kandro does not store it. Only the fact that an analysis was used is kept.',
           'When you photograph a nutrition label (optionally also the front of the pack), these photos are downscaled on your device like a meal photo, transferred to the same recipients only to read the values, and discarded afterwards; Kandro does not store them. Only the values you confirm are saved. Kandro keeps public Open Food Facts product data for up to 30 days in a shared cache that is not linked to your account.',
         ],
       },

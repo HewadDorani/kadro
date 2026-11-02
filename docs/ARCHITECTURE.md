@@ -347,6 +347,8 @@ Screens must not maintain separate copies of these totals.
 
 ## Integration seams
 
+Menu photo: `POST /v1/menu` shares auth, consent, paywall, quota and refund with the label route. `_shared/menu-read.mjs` holds schema, prompt and the plausibility filter; ranking (`src/services/menuPicks.ts`) runs on the device, so a change of budget never costs another call. The values are estimates and enter a meal through the confirm screen.
+
 The typed interfaces already live in `src/services/contracts.ts` and are the boundary for the next backend implementation:
 
 ```ts

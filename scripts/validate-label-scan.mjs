@@ -274,3 +274,30 @@ await test('quick add: kcal 1–5000, protein optional and never more energy tha
 
 globalThis.fetch = originalFetch;
 console.log(JSON.stringify({ passed, scope: 'label plausibility, form defaults, RLS migration, deletion cascade, real Edge /v1/label path, own products, quick add; zero external HTTP' }));
+
+// --- Menu photo: only plausible dishes reach the app, ranked by what is left ---
+{
+  const { normalizeMenuRead, plausibleDish, validateMenuRead } = await import(new URL('../supabase/functions/_shared/menu-read.mjs', import.meta.url));
+  const dish = (name, calories, protein, carbs, fat, grams = 400) => ({ name, grams, calories, protein, carbs, fat, vegetarian: false, vegan: false });
+  const fine = dish('Hähnchen mit Reis', 620, 45, 60, 22);
+  assert.equal(plausibleDish(fine), true);
+  assert.equal(plausibleDish(dish('Falsch', 900, 5, 5, 5)), false, 'energy must match the macros');
+  assert.equal(plausibleDish(dish('Winzig', 500, 20, 50, 24, 20)), false, 'a dish has a real size');
+  assert.deepEqual(normalizeMenuRead({ readable: false, dishes: [] }), { code: 'menu_unreadable' });
+  assert.deepEqual(normalizeMenuRead({ readable: true, dishes: [dish('Falsch', 900, 5, 5, 5)] }), { code: 'menu_unreadable' }, 'nothing plausible is refunded');
+  assert.equal(normalizeMenuRead({ readable: true, dishes: [fine, { ...fine, name: 'hähnchen mit reis' }] }).dishes.length, 1, 'a dish printed twice shows once');
+  assert.throws(() => validateMenuRead({ readable: true, dishes: [{ name: 'x' }] }));
+  const ts = (await import('typescript')).default;
+  const source = read('src/services/menuPicks.ts');
+  const { menuPicks } = await import(`data:text/javascript;charset=utf-8,${encodeURIComponent(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText)}`);
+  const menu = [dish('Pizza', 1100, 40, 130, 45), dish('Lachs', 640, 48, 40, 30), dish('Salat', 180, 6, 20, 8, 300), dish('Pasta', 700, 25, 95, 24), { ...dish('Bowl', 520, 18, 70, 18), vegetarian: true, vegan: true }];
+  const picks = menuPicks(menu, { calories: 720, protein: 60 });
+  assert.equal(picks.length, 3);
+  assert.equal(picks[0].name, 'Lachs', 'the fitting dish with the most protein leads');
+  assert.ok(picks.every((pick) => pick.fits), 'dishes over the budget wait behind those that fit');
+  assert.deepEqual(menuPicks(menu, { calories: 720, protein: 60 }, ['vegan']).map((pick) => pick.name), ['Bowl'], 'a diet is honoured even with one option');
+  const over = menuPicks(menu, { calories: 100, protein: 20 });
+  assert.equal(over[0].name, 'Salat', 'nothing fits: the smallest first');
+  assert.equal(over[0].fits, false);
+}
+console.log('Menu photo: plausibility, refund and ranking checked.');
