@@ -18,10 +18,10 @@ const personalization=load('src/services/personalization.ts',{'@/i18n/active':{g
 const base={...personalization.DEFAULT_PROFILE,age:29,goal:'lose',heightCm:178,weightKg:78,unitSystem:'metric',completedAt:null};
 const checks=[];
 async function test(name,run){await run();checks.push(name);console.log('PASS',name)}
-await test('first run: every step, the wish only for adults with a weight goal; plan editing keeps target/preferences; strict calendar and optional fields',()=>{
- const full=['goal','why','obstacle','about','body','activity','target','potential','preferences','rhythm','plan'];
- for(const [age,goal] of [[29,'lose'],[29,'gain']])assert.deepEqual(goals.onboardingSteps(age,goal),full);
- for(const [age,goal] of [[16,'lose'],[17,'gain'],[29,'maintain']])assert.deepEqual(goals.onboardingSteps(age,goal),full.filter(step=>step!=='target'),'no target weight below 18 or for maintain');
+await test('first run: the five short steps; plan editing keeps target/preferences; strict calendar and optional fields',()=>{
+ // Owner decision 07.11.2026: the short 1.0.6 first run; wish and preferences stay under Du → Plan anpassen.
+ const short=['goal','about','body','activity','plan'];
+ for(const [age,goal] of [[29,'lose'],[29,'gain'],[16,'lose'],[17,'gain'],[29,'maintain']])assert.deepEqual(goals.onboardingSteps(age,goal),short);
  assert.deepEqual(goals.onboardingSteps(29,'lose',true),['goal','about','body','activity','target','preferences','plan'],'editing reaches every step');
  for(const [age,goal] of [[14,'lose'],[17,'gain'],[29,'maintain']]){const steps=goals.onboardingSteps(age,goal,true);assert.equal(steps.length,6);assert.ok(!steps.includes('target'));assert.ok(steps.includes('preferences'))}
  for(const [date,valid] of [['2028-02-29',true],['2027-02-29',false],['2026-04-31',false],['2026-00-10',false],['2026-10-00',false],['2026-10-04',true],['04.10.2026',false],['2026-1-04',false],['2026-10-04T12:00:00Z',false]]) assert.equal(goals.isPersonalGoalDate(date),valid,date);
@@ -97,9 +97,9 @@ await test('real screen: explicit birth year, manual next, five steps, defaults 
  const c=await controller();assert.equal(c.step(),'goal');c.find('ChoiceList').onSelect('gain');c.render();assert.equal(c.step(),'goal','selection does not navigate');await c.next();assert.equal(c.step(),'about');
  assert.equal(c.find('PrimaryButton',p=>p.icon==='arrow-forward').disabled,true);await c.next();assert.equal(c.step(),'about','direct handler cannot bypass age');
  assert.equal(c.find('BirthYearPicker').value,null,'no year is preselected');assert.ok(!c.has('Pressable',p=>p.accessibilityRole==='checkbox'),'the old "I am 29" checkbox is gone');
- await through(c,['about','body','activity','target','potential','preferences','rhythm']);assert.equal(c.step(),'plan');await c.next();assert.equal(c.saved.length,0,'needs wellness consent');
+ await through(c,['about','body','activity']);assert.equal(c.step(),'plan');await c.next();assert.equal(c.saved.length,0,'needs wellness consent');
  c.find('PrimaryButton',p=>p.label==='consentAccept').onPress();await c.flush();assert.equal(c.saved.length,1);
- const saved=c.saved[0];assert.equal(saved.age,29);assert.equal(saved.goal,'gain');assert.equal(saved.weeklyRateKg,0.25,'calm pace by default');assert.deepEqual(saved.preferences,['high-protein'],'"Proteinreich" by default');assert.equal(saved.targetWeightKg,81,'the suggested wish is kept unless removed');assert.equal(saved.targetDate,'2026-12-27','its pace date comes with it');
+ const saved=c.saved[0];assert.equal(saved.age,29);assert.equal(saved.goal,'gain');assert.equal(saved.weeklyRateKg,0.25,'calm pace by default');assert.deepEqual(saved.preferences,['high-protein'],'"Proteinreich" by default');assert.equal(saved.targetWeightKg,null,'no target weight in the first run');assert.equal(saved.targetDate,null);
  assert.deepEqual(c.enrolled,[true]);assert.deepEqual(c.stages,['hard-wall','scan'],'a fresh install joins the hard wall, then the first scan comes next');assert.deepEqual(c.routes,['/(tabs)/today']);assert.deepEqual(c.analytics,[],'analytics stay off unless chosen');
 });
 await test('real screen: plan editing keeps tap-only goal entry, date chips, validation, back retention, unit conversion',async()=>{

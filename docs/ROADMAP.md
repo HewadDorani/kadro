@@ -9,6 +9,12 @@
 - **Canned tuna:** label values are per drained fish; whole cans without a labelled serving count ~72 % of the net weight, marked as estimate.
 - **Rollout order:** custom-foods migration and `nutrition` deploy are live (2026-10-10). The hard-paywall migration (`20261010120000`) is applied only after 1.0.4 is live in the App Store.
 
+## 2026-11-07 – Kurzes Onboarding, Verpackungsfoto (1.0.9)
+
+- [x] Erster Start wieder mit den 5 Schritten aus 1.0.6 (Ziel, Über dich, Körper, Aktivität, Plan); Eigentümerentscheidung 07.11.2026. Wunschziel und Vorlieben bleiben unter Du → Plan anpassen, die Erinnerungsfrage kommt wieder nach der Paywall. Die 1.0.7-Schritte Warum, Hindernis, Potenzial und Rhythmus sind implementiert, aber aus.
+- [x] Foto einer Verpackung: Das Modell setzt `packagedProduct`, das Gateway antwortet weiter mit `unclear_image` plus `packaged: true` und bucht als `packaged_product` zurück. Die App zeigt „Das ist eine Verpackung“ mit „Barcode scannen“. Server live seit 07.11.2026.
+- [ ] Nach zwei Wochen vergleichen: Paywall-Sichtungen, „testen“-Tipps und Trials je Version (kurz 1.0.6/1.0.9 gegen lang 1.0.7/1.0.8), dazu Downloads pro Konto aus App Store Connect.
+
 ## 2026-11-02 – Europa-Markt (1.0.9)
 
 Downloads 03.10.–01.11.2026: 125 gesamt, 44 DACH, 17 UK, 12 USA, 52 verteilt auf rund 30 Länder (Dänemark 7, Norwegen 5). Für einzelne Länder reicht weder die Menge noch die Datenlage, deshalb ein gemeinsamer Markt.

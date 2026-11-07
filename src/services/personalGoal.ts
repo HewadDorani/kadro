@@ -5,17 +5,17 @@ export const ONBOARDING_STEPS = ['goal', 'about', 'body', 'activity', 'target', 
 export type FirstRunOnlyStep = 'why' | 'obstacle' | 'potential' | 'rhythm';
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number] | FirstRunOnlyStep;
 /**
- * First run walks the whole way on purpose (owner decision 01.11.2026): every
- * answer shapes the plan someone is about to get, the rhythm step fixes when
- * meals get logged, and the potential step shows where this leads and what
- * gets them there. The longest path has 11 steps; 16 and 17 year olds and
- * "maintain" skip the wish, and their potential step has no weight curve.
+ * First run is the shortest path to a plan and a first scan (owner decision
+ * 07.11.2026, back to the 1.0.6 flow): the wish (target/pace) and food
+ * preferences use calm defaults and stay editable under "Du → Plan anpassen",
+ * which reuses this screen with every step. The reminder question follows the
+ * paywall again (services/firstRun.ts). The 1.0.7 steps why, obstacle,
+ * potential and rhythm stay implemented in onboarding.tsx but are off.
  */
-export const FIRST_RUN_STEPS = ['goal', 'why', 'obstacle', 'about', 'body', 'activity', 'target', 'potential', 'preferences', 'rhythm', 'plan'] as const satisfies readonly OnboardingStep[];
+export const FIRST_RUN_STEPS = ['goal', 'about', 'body', 'activity', 'plan'] as const satisfies readonly OnboardingStep[];
 export function onboardingSteps(age: number, goal: NutritionGoal, editing = false): readonly OnboardingStep[] {
-  const planned = age >= 18 && goal !== 'maintain';
-  if (!editing) return planned ? FIRST_RUN_STEPS : FIRST_RUN_STEPS.filter(step => step !== 'target');
-  return planned ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter(step => step !== 'target');
+  if (!editing) return FIRST_RUN_STEPS;
+  return age >= 18 && goal !== 'maintain' ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter(step => step !== 'target');
 }
 
 /** Kandro is 16+. Younger people see a friendly block, never a consent flow. */

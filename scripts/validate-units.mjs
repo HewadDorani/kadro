@@ -191,7 +191,8 @@ assert.ok(onboarding.includes('UnitToggle'), 'onboarding must let the user pick 
 // step, where the unit was just chosen. Editing can open it directly, so there
 // it keeps one.
 const firstRun = (await read('src/services/personalGoal.ts')).match(/FIRST_RUN_STEPS = \[([^\]]+)\]/)?.[1] ?? '';
-assert.ok(firstRun.indexOf("'body'") >= 0 && firstRun.indexOf("'body'") < firstRun.indexOf("'target'"), 'the unit must be chosen before the first-run wish step');
+// The short first run (07.11.2026) has no wish step; if it returns, it must follow body.
+assert.ok(firstRun.indexOf("'body'") >= 0 && (!firstRun.includes("'target'") || firstRun.indexOf("'body'") < firstRun.indexOf("'target'")), 'the unit must be chosen before the first-run wish step');
 const unitSteps = [["target", "{step === 'target' && editing ?"], ["body", "{step === 'body' ?"]];
 for (const [step, marker] of unitSteps) {
   const start = onboarding.indexOf(marker);
