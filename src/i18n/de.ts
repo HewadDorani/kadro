@@ -364,7 +364,7 @@ export const de = {
       allowanceLeft: (left: number, total: number) => `Zählt als eine deiner kostenlosen KI-Analysen (noch ${left} von ${total}).`,
       allowanceUsed: 'Deine kostenlosen KI-Analysen sind schon genutzt. Suche und Barcode bleiben kostenlos.',
       trialScan: 'Deine kostenlose Probe-Analyse. Danach geht es mit Kandro Pro weiter.',
-      later: 'Erst ein Beispiel ansehen',
+      later: 'Ohne Probe weiter',
       sampleScan: 'Beispiel scannen',
       sampleFound: 'Kandro erkennt die Mahlzeit',
       sampleFoot: 'Nur ein Beispiel. Nichts wird gespeichert.',

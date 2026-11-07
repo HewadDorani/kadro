@@ -120,7 +120,7 @@ function guardFixture(state) {
   assert.deepEqual(buttons.slice(0, 3).map(b => b.props.accessibilityLabel), ['photo', 'speak', 'type']);
   assert.ok(all(tree).some(n => n.type === 'Text' && n.props.children === 'allowanceFirst:3'), 'the first scan honestly counts as analysis 1 of 3');
   buttons[0].props.onPress(); assert.deepEqual(routes.at(-1), { pathname: '/(tabs)/scan', params: { mode: 'photo' } });
-  all(tree).filter(n => n.type === 'Primary').at(-1).props.onPress(); await ticks(); assert.deepEqual(stages, [], 'the example spends nothing by itself'); assert.equal(routes.at(-1), '/first-sample', 'no skip to the offer: the example is the way past the first scan');
+  buttons.at(-1).props.onPress(); await ticks(); assert.deepEqual(stages, ['used', 'paywall'], '"Ohne Probe weiter" ends the free scope before the offer'); assert.equal(routes.at(-1), '/paywall', '"Ohne Probe weiter" goes on to the offer (1.0.6 flow, 07.11.2026)');
   stage = null; assert.equal(Screen().type, 'Redirect', 'outside the first run the prompt is not reachable');
 }
 // Onboarding starts the run; the paywall ends it once viewed.

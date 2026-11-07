@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { KandroMark } from '@/components/KandroMark';
-import { PrimaryButton, Screen } from '@/components/ui';
+import { Screen } from '@/components/ui';
 import { FREE_SCAN_ALLOWANCE } from '@/constants/product';
 import type { ThemeColors } from '@/constants/theme';
 import { radii, typeScale } from '@/constants/theme';
@@ -15,6 +15,8 @@ import { useFreeScanAllowance } from '@/hooks/useHardWall';
 import { useLanguage } from '@/i18n/LanguageProvider';
 import { useAccess } from '@/context/AccessContext';
 import { firstRunLost } from '@/services/accessPolicy';
+import { setFirstRunStage } from '@/services/firstRun';
+import { markHardWallUsed } from '@/services/hardWall';
 import { selectionHaptic } from '@/services/haptics';
 
 type Option = { mode: 'photo' | 'description' | 'search'; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string };
@@ -26,8 +28,9 @@ type Option = { mode: 'photo' | 'description' | 'search'; icon: keyof typeof Ion
  * it honestly counts as one of the free analyses.
  *
  * Behind the hard wall (new installs, 10/2026) this scan is the one free
- * "Probe-Analyse". Someone with no meal to hand sees the example instead
- * (first-sample.tsx); that replaced a skip straight to the paywall.
+ * "Probe-Analyse"; the quiet "Ohne Probe weiter" skips it and goes straight to
+ * the hard paywall, as in 1.0.6 (owner decision 07.11.2026). The 1.0.7
+ * example (first-sample.tsx) stays implemented but is no longer linked.
  */
 export default function FirstScanScreen() {
   const { colors } = useTheme();
@@ -60,11 +63,14 @@ export default function FirstScanScreen() {
     void selectionHaptic();
     router.replace({ pathname: '/(tabs)/scan', params: mode === 'search' ? { mode, first: '1' } : { mode } });
   };
-  // No way past the first value: without a meal to hand, the example shows it.
-  const seeExample = () => {
+  const later = async () => {
     if (leaving.current) return;
+    leaving.current = true;
     void selectionHaptic();
-    router.push('/first-sample' as never);
+    // Skipping the free scan ends the free scope of a hard-wall install.
+    await markHardWallUsed();
+    await setFirstRunStage('paywall');
+    router.replace('/paywall');
   };
 
   return (
@@ -96,7 +102,9 @@ export default function FirstScanScreen() {
           <Ionicons color={colors.accentText} name="sparkles-outline" size={16} />
           <Text style={styles.allowanceText}>{allowance}</Text>
         </View>
-        <PrimaryButton label={copy.later} onPress={seeExample} variant="secondary" />
+        <Pressable accessibilityLabel={copy.later} accessibilityRole="button" hitSlop={8} onPress={() => void later()} style={styles.later}>
+          <Text style={styles.laterText}>{copy.later}</Text>
+        </Pressable>
       </View>
     </Screen>
   );
@@ -116,4 +124,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   optionDetail: { ...typeScale.footnote, color: colors.muted },
   allowance: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 4, paddingHorizontal: 4 },
   allowanceText: { ...typeScale.footnote, flex: 1, color: colors.muted },
+  // Deliberately quiet: skipping the sample means meeting the paywall without having seen a result.
+  later: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 10 },
+  laterText: { ...typeScale.footnote, color: colors.muted, fontWeight: '400' },
 });

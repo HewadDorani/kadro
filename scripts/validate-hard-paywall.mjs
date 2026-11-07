@@ -163,7 +163,7 @@ assert.equal(de.paywall.ctaStart, 'Kandro Pro starten');
 assert.doesNotMatch(read('src/app/paywall.tsx'), /49,99|4,17|59\.00/, 'prices come from RevenueCat, never hard-coded');
 check('paywall: hard variant without close/swipe/back, store prices, trial CTA or "Start Kandro Pro", restore/legal/help, no free-scope card; legacy soft');
 
-// 4. First-scan screen: sample-analysis copy; no meal to hand leads to the example, not to the paywall.
+// 4. First-scan screen: sample-analysis copy; "Ohne Probe weiter" goes straight to the hard paywall (1.0.6 flow, 07.11.2026).
 {
   const routes = [], calls = []; const jsx = (type, props) => ({ type, props }); let wall = true;
   const Screen = compile('src/app/first-scan.tsx', {
@@ -174,16 +174,18 @@ check('paywall: hard variant without close/swipe/back, store prices, trial CTA o
     '@/context/ThemeContext': { useTheme: () => ({ colors: {} }), useThemedStyles: () => ({}) }, '@/hooks/useFirstRun': { useFirstRun: () => 'scan' },
     '@/hooks/useHardWall': { useFreeScanAllowance: () => ({ hardWall: wall, allowance: wall ? 1 : 3 }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ t: de }) }, '@/services/haptics': { selectionHaptic() {} },
+    '@/services/firstRun': { setFirstRunStage: async stage => { calls.push(stage); } }, '@/services/hardWall': { markHardWallUsed: async () => { calls.push('used'); } },
   }).default;
   const tree = Screen(); const allTexts = texts(tree);
   assert.ok(allTexts.includes(de.onboarding.firstScan.trialScan) && de.onboarding.firstScan.trialScan.startsWith('Deine kostenlose Probe-Analyse'), 'sample-analysis copy');
   assert.ok(!allTexts.some(text => /1\. von|von 3/.test(text)), 'no more "1. von 3" behind the hard wall');
-  nodes(tree).filter(n => n.type === 'Primary').at(-1).props.onPress(); await ticks();
-  assert.deepEqual(calls, [], 'the example spends nothing by itself');
-  assert.equal(routes.at(-1), '/first-sample', 'there is no skip to the paywall: the way past the first scan is the example');
+  nodes(tree).filter(n => n.type === 'Pressable').at(-1).props.onPress(); await ticks();
+  assert.deepEqual(calls, ['used', 'paywall'], '"Ohne Probe weiter" spends the free scope (no scan) and ends the run at the offer');
+  assert.equal(routes.at(-1), '/paywall');
+  assert.equal(de.onboarding.firstScan.later, 'Ohne Probe weiter');
   wall = false; assert.ok(texts(Screen()).some(text => text.includes('noch 1 von 3')), 'legacy first run keeps its x-of-3 line');
 }
-check('first-scan: "Deine kostenlose Probe-Analyse", example → hard paywall, legacy line unchanged');
+check('first-scan: "Deine kostenlose Probe-Analyse", Ohne Probe weiter → hard paywall, legacy line unchanged');
 
 // 5. Route guard: after the first meal everything but paywall/help/legal/data goes to the paywall; the result reveal stays.
 {
@@ -246,13 +248,13 @@ console.log(`PASS ${passed.length} hard-paywall checks.`);
   const assertOk = (cond, msg) => { if (!cond) { console.error('FAIL ' + msg); process.exit(1); } };
   assertOk(/mode: 'search', icon: 'search-outline'/.test(firstScan), 'first-scan offers food search');
   assertOk(/mode === 'search' \? \{ mode, first: '1' \}/.test(firstScan), 'first-run search is marked for the result reveal');
-  assertOk(/router\.push\('\/first-sample'/.test(firstScan) && !/router\.replace\('\/paywall'\)/.test(firstScan), 'the first scan has no direct way to the paywall');
+  assertOk(/laterText: \{ \.\.\.typeScale\.footnote/.test(firstScan) && !/textDecorationLine: 'underline'/.test(firstScan) && !/first-sample'/.test(firstScan.replace(/\/\*[\s\S]*?\*\//g, '')), 'skip link is quiet and the 1.0.7 example is unlinked');
   const guard = read('src/components/AppRouteGuard.tsx');
   assertOk(/recent\.length >= REDIRECT_LIMIT/.test(guard) && (guard.match(/router\.replace/g) ?? []).length === 1, 'every guard redirect passes the loop limit');
   assertOk(/!firstRunLost\(access, mealHistory\.length\)/.test(firstScan) && /firstRunLost\(access, mealHistory\.length\)/.test(guard), 'guard and first scan share one rule for a lost first run, or they bounce between each other');
   const sample = read('src/app/first-sample.tsx');
   assertOk(/markHardWallUsed\(\)/.test(sample) && /setFirstRunStage\('paywall'\)/.test(sample) && !/saveSyncedMeal|logScannedMeal|analyze/.test(sample), 'the example ends the free scope but analyses and saves nothing');
-  assertOk(/later: 'Erst ein Beispiel ansehen'/.test(de), 'the way past the first scan says it shows an example');
+  assertOk(/later: 'Ohne Probe weiter'/.test(de), 'skip copy says what it means');
   assertOk(/if \(firstRunSearch && !added\.length\) \{[\s\S]*?applySearchResult\(withPieces\(pendingFood\), grams\);[\s\S]*?confirmAfterSearchDismiss\.current = true;/.test(scanScreen), 'first pick goes through confirm and result');
   console.log('PASS first-run search: free search option, confirm → result before the paywall, quiet skip');
 }

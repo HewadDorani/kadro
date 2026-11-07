@@ -363,7 +363,7 @@ export const en: typeof de = {
       allowanceLeft: (left: number, total: number) => `Counts as one of your free AI analyses (${left} of ${total} remaining).`,
       allowanceUsed: 'Your free AI analyses are already used. Search and barcode stay free.',
       trialScan: 'Your free sample analysis. After that, you continue with Kandro Pro.',
-      later: 'See an example first',
+      later: 'Continue without trying',
       sampleScan: 'Scan the example',
       sampleFound: 'Kandro recognises the meal',
       sampleFoot: 'Just an example. Nothing is saved.',
