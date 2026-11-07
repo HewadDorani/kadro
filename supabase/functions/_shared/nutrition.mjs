@@ -82,6 +82,18 @@ export function classifyDetection(detection, source = 'photo') {
   // blurred photo or a second plate still yields the recognised foods: the
   // person can untick what they did not eat instead of taking a new photo.
   if (!detection || !Array.isArray(detection.items) || detection.items.length === 0) {
+    // A pack has exact values on its barcode; the code stays unclear_image so
+    // older apps keep their handling, and `packaged` lets new ones offer the scan.
+    if (fromPhoto && detection?.packagedProduct === true) {
+      return {
+        status: 422,
+        body: {
+          code: 'unclear_image',
+          packaged: true,
+          message: 'Das sieht nach einer Verpackung aus. Scanne den Barcode, dann stimmen die Werte genau.',
+        },
+      };
+    }
     return {
       status: 422,
       body: {

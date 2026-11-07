@@ -16,7 +16,7 @@ import {
   requestStructuredWithRetry, resolveFallbackModel,
 } from '../supabase/functions/_shared/model-adapter.mjs';
 import { detectionSchema, descriptionDetectionPrompt, photoDetectionPrompt, validateDetection } from '../supabase/functions/_shared/detection.mjs';
-import { mapBounded } from '../supabase/functions/_shared/nutrition.mjs';
+import { classifyDetection, mapBounded } from '../supabase/functions/_shared/nutrition.mjs';
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = async () => { throw new Error('TEST_EXTERNAL_HTTP_BLOCKED'); };
@@ -168,7 +168,7 @@ await test('bounded parallel lookups keep order, respect the limit and stop on f
 });
 
 await test('output schema stays stable; prompts carry portion, German dish, confidence and brand guidance', () => {
-  assert.deepEqual(detectionSchema.required, ['title', 'clarity', 'dishCount', 'confidence', 'items']);
+  assert.deepEqual(detectionSchema.required, ['title', 'clarity', 'dishCount', 'confidence', 'packagedProduct', 'items']);
   assert.deepEqual(detectionSchema.properties.items.items.required, [
     'name', 'searchTermEn', 'referenceKey', 'estimatedGrams', 'estimatedGramsLow', 'estimatedGramsHigh', 'preparation',
     'hiddenCaloriesRisk', 'confidence', 'optional', 'pieceCount', 'pieceLabel', 'estimatedPer100g',
@@ -317,6 +317,16 @@ await test('client photo: 1024 px long edge, ~0.8 quality, ~600 KB target, crop 
   assert.match(screen, /photoCapture && analysisError !== 'not-configured' \? \([\s\S]{0,300}label=\{t\.analyzing\.retryPhoto\} onPress=\{retry\}/, 'any other photo failure offers a one-tap retry');
   assert.match(screen, /analysisError === 'invalid-input' && photoCapture \? \([\s\S]{0,300}t\.analyzing\.retryPhoto/);
   assert.match(screen, /const LONGER_AFTER_MS = 8_000;/);
+  // A retail pack: old apps still see unclear_image, new ones get the barcode as the way forward.
+  const pack = classifyDetection({ items: [], packagedProduct: true }, 'photo');
+  assert.equal(pack.body.code, 'unclear_image');
+  assert.equal(pack.body.packaged, true);
+  assert.equal(classifyDetection({ items: [], packagedProduct: false }, 'photo').body.packaged, undefined);
+  assert.equal(classifyDetection({ items: [], packagedProduct: true }, 'text').body.packaged, undefined, 'a description is never a pack');
+  assert.ok(detectionSchema.required.includes('packagedProduct') && validateDetection({ title: 'x', clarity: 'unclear', dishCount: 0, confidence: 'medium', items: [] }), 'older responses without the flag stay valid');
+  assert.match(photoDetectionPrompt('de'), /packagedProduct=true only when the photo mainly shows a retail package/);
+  assert.match(read('src/services/mealAnalysis.ts'), /payload\?\.code === 'unclear_image' && payload\.packaged === true \? 'packaged_product'/);
+  assert.match(screen, /analysisError === 'packaged-product' \? \([\s\S]{0,300}scanBarcodeInstead\} onPress=\{\(\) => changeInput\('\/\(tabs\)\/scan\?mode=barcode'\)\}/);
   for (const dictionary of ['src/i18n/de.ts', 'src/i18n/en.ts']) {
     const text = read(dictionary);
     for (const key of ['longerTitle', 'longerText', 'retryPhoto']) assert.match(text, new RegExp(`    ${key}: '`), `${dictionary}: ${key}`);

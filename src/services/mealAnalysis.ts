@@ -108,6 +108,7 @@ function gatewayMessage(code: string | undefined, _fallback: string | undefined)
     entitlement_rate_limited: t.gatewayProviderError,
     consent_required: t.gatewayConsentRequired,
     unclear_image: t.noClearMeal,
+    packaged_product: t.packagedProduct,
     multiple_dishes: t.gatewayMultipleDishes,
     server_not_configured: t.analysisNotConfigured,
     // Routing faults a user should never reach; the raw German would be worse.
@@ -121,7 +122,7 @@ function gatewayMessage(code: string | undefined, _fallback: string | undefined)
 
 function gatewayError(response: GatewayResponse, code?: string, message?: string) {
   const kinds: Record<string, AnalysisErrorKind> = {
-    unclear_image:'unclear-image',multiple_dishes:'multiple-dishes',server_not_configured:'not-configured',
+    unclear_image:'unclear-image',packaged_product:'packaged-product',multiple_dishes:'multiple-dishes',server_not_configured:'not-configured',
     ai_route_not_approved:'not-configured',ai_key_missing:'not-configured',ai_provider_invalid:'not-configured',
     consent_required:'consent-required',unauthorized:'session-required',subscription_required:'subscription-required',
     daily_limit_reached:'daily-limit',request_completed:'request-expired',invalid_input:'invalid-input',invalid_request:'invalid-input',
@@ -302,9 +303,10 @@ export async function analyzePreparedPhoto(input: MealAnalysisInput, requestId: 
 }
 
 async function readAnalysisResponse(response: GatewayResponse): Promise<MealAnalysisResult> {
-  const payload = (await response.json().catch(() => null)) as (MealAnalysisResult & { code?: string; message?: string }) | null;
+  const payload = (await response.json().catch(() => null)) as (MealAnalysisResult & { code?: string; message?: string; packaged?: boolean }) | null;
   if (!response.ok) {
-    throw gatewayError(response, payload?.code, payload?.message);
+    // A retail pack comes back as unclear_image with `packaged`, so older apps keep their handling.
+    throw gatewayError(response, payload?.code === 'unclear_image' && payload.packaged === true ? 'packaged_product' : payload?.code, payload?.message);
   }
   if (!payload || !Array.isArray(payload.items) || !payload.items.length || payload.items.length > 12
     || typeof payload.title !== 'string' || !payload.title.trim() || payload.title.length > 160

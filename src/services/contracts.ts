@@ -21,7 +21,7 @@ export type MealAnalysisResult = {
   warnings: string[];
 };
 
-export type AnalysisErrorKind = 'not-configured' | 'consent-required' | 'subscription-required' | 'daily-limit' | 'invalid-input' | 'request-expired' | 'offline' | 'unclear-image' | 'multiple-dishes' | 'product-not-found' | 'provider-error' | 'timeout' | 'rate-limited' | 'session-required' | 'invalid-response' | 'model-refused';
+export type AnalysisErrorKind = 'not-configured' | 'consent-required' | 'subscription-required' | 'daily-limit' | 'invalid-input' | 'request-expired' | 'offline' | 'unclear-image' | 'packaged-product' | 'multiple-dishes' | 'product-not-found' | 'provider-error' | 'timeout' | 'rate-limited' | 'session-required' | 'invalid-response' | 'model-refused';
 
 export type PendingAnalysis = MealAnalysisInput & {
   id: string;

@@ -1830,12 +1830,14 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
     logAnalysisTiming(timing, String(failed.body.code ?? 'provider_error'));
     return reply(failed);
   }
-  logAnalysisTiming(timing, result.status === 200 ? (result.body.correctionRequired === true ? 'correction_required' : 'ok') : String(result.body.code ?? 'http_' + result.status));
+  // A pack photo is counted apart from a really unclear one, so the barcode hint can be measured.
+  const failureCode = result.body.packaged === true ? 'packaged_product' : String(result.body.code ?? 'http_' + result.status);
+  logAnalysisTiming(timing, result.status === 200 ? (result.body.correctionRequired === true ? 'correction_required' : 'ok') : failureCode);
   if (!await rememberCapture(result)) return reply({status:503,body:{code:'access_unavailable'}});
   // A failed lookup still refunds the user's allowance. The new app can repair
   // its draft for free; provider rate limits still account for the real calls.
   if (result.status !== 200 || result.body.correctionRequired === true) {
-    await refundAnalysis(context.supabaseAdmin, data.user.id, requestId, result.status === 200 ? 'correction_required' : String(result.body.code ?? 'http_' + result.status));
+    await refundAnalysis(context.supabaseAdmin, data.user.id, requestId, result.status === 200 ? 'correction_required' : failureCode);
     return reply(result);
   }
 

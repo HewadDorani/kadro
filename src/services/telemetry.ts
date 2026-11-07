@@ -139,7 +139,7 @@ const propertyValues: Record<string, readonly unknown[]> = {
   warning_present: [true, false], queued_for_retry: [true, false], correction_applied: [true, false], active: [true, false],
   result_count: ['0', '1-15', '16-30', '31+'], rank: [1, 2, 3, '1-3', '4-15', '16+'],
   duration: ['under_1s', '1_3s', '3_10s', '10_30s', 'over_30s'],
-  failure_reason: ['not-configured', 'consent-required', 'subscription-required', 'daily-limit', 'invalid-input', 'request-expired', 'offline', 'unclear-image', 'multiple-dishes', 'product-not-found', 'provider-error', 'timeout', 'rate-limited', 'session-required', 'invalid-response', 'model-refused', 'local_storage', 'not_ready', 'capture_failed'],
+  failure_reason: ['not-configured', 'consent-required', 'subscription-required', 'daily-limit', 'invalid-input', 'request-expired', 'offline', 'unclear-image', 'packaged-product', 'multiple-dishes', 'product-not-found', 'provider-error', 'timeout', 'rate-limited', 'session-required', 'invalid-response', 'model-refused', 'local_storage', 'not_ready', 'capture_failed'],
   outcome: ['created', 'updated', 'unchanged', 'active', 'cancelled', 'failed', 'pending', 'interrupted', 'none', 'synced', 'local_only'],
   operation: ['save', 'delete', 'hydrate'], next_destination: ['today', 'recommendations'],
   meal_context: ['home', 'supermarket', 'eating-out'],

@@ -75,6 +75,7 @@ export default function AnalyzingScreen() {
     'unclear-image': scanMode === 'description'
       ? { title: t.analyzing.errDescriptionTitle, detail: t.analyzing.errDescriptionBody }
       : { title: t.analyzing.errUnclearTitle, detail: t.analyzing.errUnclearBody },
+    'packaged-product': { title: t.analyzing.errPackagedTitle, detail: t.analyzing.errPackagedBody },
     'multiple-dishes': { title: t.analyzing.errMultipleTitle, detail: t.analyzing.errMultipleBody },
     'product-not-found': { title: t.analyzing.errProductTitle, detail: t.analyzing.errProductBody },
     'timeout': {title:t.analyzing.errProviderTitle,detail:t.errors.gatewayTimeout},
@@ -133,7 +134,7 @@ export default function AnalyzingScreen() {
     router.replace(barcode ? { pathname: '/label-scan', params: { barcode } } : '/label-scan');
   };
 
-  const changeInput = (path: '/(tabs)/scan' | '/(tabs)/scan?mode=description' = '/(tabs)/scan') => {
+  const changeInput = (path: '/(tabs)/scan' | '/(tabs)/scan?mode=description' | '/(tabs)/scan?mode=barcode' = '/(tabs)/scan') => {
     if (scanMode === 'description') {
       router.dismissTo('/(tabs)/scan?mode=description');
     } else {
@@ -220,6 +221,12 @@ export default function AnalyzingScreen() {
                 <>
                   <PrimaryButton icon="refresh" label={t.analyzing.retry} onPress={retry} />
                   <PrimaryButton label={t.analyzing.changeInput} onPress={() => changeInput()} variant="ghost" />
+                </>
+              ) : analysisError === 'packaged-product' ? (
+                <>
+                  {/* A pack has exact values on its barcode: that is the way forward. */}
+                  <PrimaryButton icon="barcode-outline" label={t.analyzing.scanBarcodeInstead} onPress={() => changeInput('/(tabs)/scan?mode=barcode')} />
+                  <PrimaryButton label={t.analyzing.retakePhoto} onPress={() => changeInput()} variant="ghost" />
                 </>
               ) : analysisError === 'unclear-image' && scanMode !== 'description' ? (
                 <>
