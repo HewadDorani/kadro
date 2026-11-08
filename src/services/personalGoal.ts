@@ -5,14 +5,16 @@ export const ONBOARDING_STEPS = ['goal', 'about', 'body', 'activity', 'target', 
 export type FirstRunOnlyStep = 'why' | 'obstacle' | 'potential' | 'rhythm';
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number] | FirstRunOnlyStep;
 /**
- * First run is the shortest path to a plan and a first scan (owner decision
- * 07.11.2026, back to the 1.0.6 flow): the wish (target/pace) and food
- * preferences use calm defaults and stay editable under "Du → Plan anpassen",
- * which reuses this screen with every step. The reminder question follows the
- * paywall again (services/firstRun.ts). The 1.0.7 steps why, obstacle,
+ * First run is the short 1.0.6 path to a plan and a first scan (owner
+ * decision 07.11.2026) plus the food preferences (08.11.2026): vegetarian,
+ * vegan, pork-free and lactose-free filter the three ideas, so a wrong default
+ * would make the first suggestion wrong. The step can be skipped. The wish
+ * (target/pace) keeps its calm default and stays editable under "Du → Plan
+ * anpassen", which reuses this screen with every step. The reminder question
+ * follows the paywall (services/firstRun.ts). The 1.0.7 steps why, obstacle,
  * potential and rhythm stay implemented in onboarding.tsx but are off.
  */
-export const FIRST_RUN_STEPS = ['goal', 'about', 'body', 'activity', 'plan'] as const satisfies readonly OnboardingStep[];
+export const FIRST_RUN_STEPS = ['goal', 'about', 'body', 'activity', 'preferences', 'plan'] as const satisfies readonly OnboardingStep[];
 export function onboardingSteps(age: number, goal: NutritionGoal, editing = false): readonly OnboardingStep[] {
   if (!editing) return FIRST_RUN_STEPS;
   return age >= 18 && goal !== 'maintain' ? ONBOARDING_STEPS : ONBOARDING_STEPS.filter(step => step !== 'target');

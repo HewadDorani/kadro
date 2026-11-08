@@ -60,8 +60,8 @@ if (!/if \(editing\) \{\s*await saveEdits\(\);\s*return;/.test(saveBlock)) {
 // The wish (target weight, pace) and food preferences left first-run
 // onboarding; plan editing is where they live now.
 const goals = read('src/services/personalGoal.ts');
-if (!/if \(!editing\) return FIRST_RUN_STEPS;/.test(goals) || !/FIRST_RUN_STEPS = \['goal', 'about', 'body', 'activity', 'plan'\]/.test(goals)) {
-  problems.push('personalGoal: first run must skip target and preferences (short flow, 07.11.2026)');
+if (!/if \(!editing\) return FIRST_RUN_STEPS;/.test(goals) || !/FIRST_RUN_STEPS = \['goal', 'about', 'body', 'activity', 'preferences', 'plan'\]/.test(goals)) {
+  problems.push('personalGoal: first run skips the target but asks preferences (short flow, 08.11.2026)');
 }
 if (!/ONBOARDING_STEPS = \['goal', 'about', 'body', 'activity', 'target', 'preferences', 'plan'\]/.test(goals) || !onboarding.includes('onboardingSteps(age, planGoal, editing)')) {
   problems.push('onboarding: plan editing no longer reaches the target and preference steps');

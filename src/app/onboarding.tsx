@@ -141,7 +141,7 @@ function tourFeatures(t: Dict, obstacle: Obstacle | null): TourFeature[] {
   return [...features.filter(feature => feature.answers === obstacle), ...features.filter(feature => feature.answers !== obstacle)];
 }
 
-/** Steps the user may leave without answering (plan editing only). */
+/** Steps the user may leave without answering (preferences also in the first run). */
 const skippableSteps = new Set<StepId>(['preferences', 'rhythm']);
 
 /*
