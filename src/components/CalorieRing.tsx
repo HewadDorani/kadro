@@ -46,7 +46,7 @@ export function CalorieRing({
   // narrowest phones. It now shrinks with the viewport instead.
   // Side figures (eaten · goal) only when the phone is wide enough for both.
   const showSides = width >= 360;
-  const size = Math.round(Math.min(showSides ? 188 : MAX_SIZE, Math.max(MIN_SIZE - (showSides ? 18 : 0), width - HORIZONTAL_CHROME - (showSides ? 150 : 0))));
+  const size = Math.round(Math.min(showSides ? 176 : MAX_SIZE, Math.max(MIN_SIZE - (showSides ? 18 : 0), width - HORIZONTAL_CHROME - (showSides ? 150 : 0))));
   const stroke = Math.round(size * 0.077);
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -54,10 +54,8 @@ export function CalorieRing({
   const remaining = Math.max(0, total - consumed);
   const over = Math.max(0, consumed - total);
   const consumedRatio = Math.min(1, Math.max(0, consumed / safeTotal));
-  const level = overBudgetLevel(consumed, total);
   // Warm amber at most; the ring never turns into a red warning.
   const ringColor = over > 0 ? colors.attention : colors.accentText;
-  const statusColor = over > 0 ? colors.attentionText : colors.success;
   const celebrating = proteinReached && over === 0;
   // Every logged meal visibly fills the ring: the moment of progress is felt.
   const reduceMotion = useReducedMotion();
@@ -113,19 +111,19 @@ export function CalorieRing({
             adjustsFontSizeToFit
             maxFontSizeMultiplier={HERO_MAX_FONT_SCALE}
             numberOfLines={1}
-            style={[styles.value, { fontSize: Math.round(size * 0.223), lineHeight: Math.round(size * 0.245) }]}
+            style={[styles.value, { fontSize: Math.round(size * 0.2), lineHeight: Math.round(size * 0.23) }]}
           >
             {formatNumber(over > 0 ? over : remaining, locale)}
           </Text>
           <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.label}>{over > 0 ? t.ring.over : t.ring.left}</Text>
-          <View style={styles.statusRow}>
-            {celebrating
-              ? <Ionicons color={statusColor} name="checkmark-circle" size={13} />
-              : <View style={[styles.statusDot, { backgroundColor: statusColor }]} />}
-            <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.status, { color: statusColor }]}>
-              {over > 0 ? (level === 'over' ? t.ring.aboveTarget : t.ring.slightlyOver) : celebrating ? t.ring.proteinDone : t.ring.inPlan}
-            </Text>
-          </View>
+          {/* Only the protein win sits in the ring; "im Plan" and "drüber" are the card's heading, so the
+              centre stays the number alone (08.11.2026). */}
+          {celebrating ? (
+            <View style={styles.statusRow}>
+              <Ionicons color={colors.success} name="checkmark-circle" size={13} />
+              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.status, { color: colors.success }]}>{t.ring.proteinDone}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
       {showSides ? side(total, t.ring.goal) : null}
@@ -169,8 +167,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   value: {
     color: colors.text,
-    fontWeight: '700',
-    letterSpacing: -1.8,
+    fontWeight: '600',
+    letterSpacing: -1,
     fontVariant: ['tabular-nums'],
   },
   label: {
@@ -189,11 +187,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.neutralSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
-  },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
   },
   status: {
     ...typeScale.caption,

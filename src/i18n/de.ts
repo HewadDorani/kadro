@@ -1470,10 +1470,7 @@ export const de = {
     goal: 'Ziel',
     left: 'kcal übrig',
     over: 'kcal drüber',
-    inPlan: 'Im Plan',
-    slightlyOver: 'Leicht drüber',
     proteinDone: 'Protein geschafft',
-    aboveTarget: 'Über deinem Ziel',
     tomorrowNew: 'Morgen stellt sich der Tag neu auf.',
   },
 };

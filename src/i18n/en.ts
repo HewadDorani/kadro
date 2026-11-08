@@ -1463,10 +1463,7 @@ export const en: typeof de = {
     goal: 'goal',
     left: 'kcal left',
     over: 'kcal over',
-    inPlan: 'On track',
-    slightlyOver: 'Slightly over',
     proteinDone: 'Protein done',
-    aboveTarget: 'Above your target',
     tomorrowNew: 'Tomorrow the day re-plans itself.',
   },
 };
