@@ -1,5 +1,6 @@
 import { Milestones } from '@/components/Milestones';
 import { TrialActivationCard } from '@/components/TrialActivationCard';
+import { PhotoUpgradeCard } from '@/components/PhotoUpgradeCard';
 import { usePresentationBlock } from '@/services/presentation';
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
@@ -264,6 +265,8 @@ export default function TodayScreen() {
           <MacroBar current={consumed.fat} label={t.common.fat} target={targets.fat} tint={colors.macroFat} />
         </View>
       </Card>
+
+      {isToday ? <PhotoUpgradeCard /> : null}
 
       {/* Keep the target status visible; small meal ideas remain optional and
           disclose their projected overage before the user records a meal.

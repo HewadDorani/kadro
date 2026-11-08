@@ -1268,6 +1268,16 @@ export const de = {
     nameEmpty: 'Gib einen Namen ein.',
     logAgainLabel: (title: string) => `${title} eintragen`,
   },
+  photoUpgrade: {
+    title: 'Neu: noch genauere Fotoerkennung',
+    body: 'Kandro erkennt jetzt auch Gerichte wie Kabuli Palau, Pelmeni oder Syrniki und unterscheidet Quark von Frischkäse.',
+    privacy: 'Dafür analysiert Amazon Web Services (Amazon Bedrock) deine Fotos mit Claude Sonnet 5.5 von Anthropic. Fotos werden nicht gespeichert und nicht zum Training genutzt.',
+    activate: 'Aktivieren',
+    later: 'Später',
+    details: 'Datenschutz',
+    done: 'Aktiviert. Dein nächstes Foto nutzt die neue Erkennung.',
+    failed: 'Das hat gerade nicht geklappt. Bitte versuche es gleich noch einmal.',
+  },
   mealSlot: {
     photo: 'Foto', describe: 'Beschreiben', search: 'Suchen', barcode: 'Barcode',
     done: 'Fertig',

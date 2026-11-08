@@ -19,6 +19,28 @@ export const PRIVACY_VERSION = '2026-11-08-ai-v4';
 /** Older versions that still count as consent, each for the recipients it named. */
 const ACCEPTED_PRIVACY_VERSIONS: readonly string[] = [PRIVACY_VERSION, '2026-10-09-ai-v3'];
 const CONSENT_KEY = '@kandro/wellness-consent:v1';
+/** The consent that did not yet name Amazon Bedrock for photos. */
+const PRE_BEDROCK_VERSION = '2026-10-09-ai-v3';
+const PHOTO_UPGRADE_DISMISSED_KEY = '@kandro/photo-upgrade-dismissed:v1';
+
+/**
+ * True when this person consented before Amazon Bedrock was named and has not
+ * declined the offer. Only they see the optional "better photo recognition"
+ * card; agreeing records the current consent version, nothing else changes.
+ */
+export async function offersPhotoUpgrade(): Promise<boolean> {
+  try {
+    const [stored, dismissed] = await Promise.all([AsyncStorage.getItem(CONSENT_KEY), AsyncStorage.getItem(PHOTO_UPGRADE_DISMISSED_KEY)]);
+    if (!stored || dismissed) return false;
+    return (JSON.parse(stored) as Partial<StoredConsent>).version === PRE_BEDROCK_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+export async function dismissPhotoUpgrade() {
+  try { await AsyncStorage.setItem(PHOTO_UPGRADE_DISMISSED_KEY, new Date().toISOString()); } catch { /* shown again next time */ }
+}
 
 type StoredConsent = {
   version: string;

@@ -1261,6 +1261,16 @@ export const en: typeof de = {
     nameEmpty: 'Enter a name.',
     logAgainLabel: (title: string) => `Log ${title}`,
   },
+  photoUpgrade: {
+    title: 'New: even more accurate photo recognition',
+    body: 'Kandro now also recognizes dishes like Kabuli Palau, pelmeni or syrniki and tells quark from cream cheese.',
+    privacy: 'For this, Amazon Web Services (Amazon Bedrock) analyzes your photos with Anthropic’s Claude Sonnet 5.5. Photos are not stored and not used for training.',
+    activate: 'Turn on',
+    later: 'Later',
+    details: 'Privacy',
+    done: 'Turned on. Your next photo uses the new recognition.',
+    failed: 'That didn’t work just now. Please try again in a moment.',
+  },
   mealSlot: {
     photo: 'Photo', describe: 'Describe', search: 'Search', barcode: 'Barcode',
     done: 'Done',
