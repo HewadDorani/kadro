@@ -565,6 +565,12 @@ export default function OnboardingScreen() {
             {step === 'goal' ? (
               <ChoiceList choices={goalChoices} compact={compactHeight} onSelect={(value) => selectChoice(() => setGoal(value))} selected={underweight && goal === 'lose' ? 'maintain' : goal} values={['lose', 'gain', 'maintain'] as NutritionGoal[]} />
             ) : null}
+            {step === 'goal' && !editing ? (
+              // A new phone: load the existing account instead of setting up a second one.
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => router.push('/account-help?signin=1' as never)} style={styles.haveAccount}>
+                <Text style={styles.haveAccountText}>{t.onboarding.haveAccount}</Text>
+              </Pressable>
+            ) : null}
 
             {step === 'why' ? (
               <ChoiceList
@@ -1384,6 +1390,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bodyCompact: { justifyContent: 'flex-start', paddingVertical: 12 },
   footer: { gap: 12, paddingTop: 8, backgroundColor: colors.background },
   choiceList: { gap: 12 },
+  haveAccount: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, marginTop: 8 },
+  haveAccountText: { ...typeScale.footnote, color: colors.muted, fontWeight: '600' },
   wishStep: { gap: 18 },
   wishHero: { alignItems: 'center', gap: 8, paddingVertical: 12, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   wishRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },

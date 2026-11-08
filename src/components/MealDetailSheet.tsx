@@ -26,6 +26,13 @@ import { favoriteKey } from '@/services/repeatMeals';
  * Without this a mis-scan or a stray tap stayed in the day permanently, which
  * contradicted the promise the result screen makes about staying in control.
  */
+/** "2 × Scheibe" for a counted amount, "250 g" otherwise; also used by the slot page. */
+export function loggedAmountLabel(item: Meal['items'][number], locale: string) {
+  const selection = initialSelection(item.amountG, item.portions, { chosen: true });
+  const portion = selection.unitIndex >= 0 ? item.portions![selection.unitIndex] : null;
+  return !portion || portion.unitOnly ? formatItemAmount(item, locale) : `${formatNumber(Number(selection.amount), locale)} × ${portionName(portion.label)}`;
+}
+
 export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose: () => void }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -97,11 +104,7 @@ export function MealDetailSheet({ meal, onClose }: { meal: Meal | null; onClose:
   };
 
   const included = meal.items.filter((item) => item.included);
-  const amountLabel = (item: (typeof included)[number]) => {
-    const selection = initialSelection(item.amountG, item.portions, { chosen: true });
-    const portion = selection.unitIndex >= 0 ? item.portions![selection.unitIndex] : null;
-    return !portion || portion.unitOnly ? formatItemAmount(item, locale) : `${formatNumber(Number(selection.amount), locale)} × ${portionName(portion.label)}`;
-  };
+  const amountLabel = (item: (typeof included)[number]) => loggedAmountLabel(item, locale);
   const editing = included.find((item) => item.id === editingItem) ?? null;
 
   const removeItem = (id: string, name: string) => {

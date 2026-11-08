@@ -294,6 +294,8 @@ Expo Router uses `src/app` as the route root.
 - `src/app/paywall.tsx`: transparent annual/monthly choice backed by RevenueCat Offering prices, purchase, and user-triggered restore.
 - `src/app/privacy.tsx` and `src/app/terms.tsx`: in-app bilingual legal copy generated identically on the public website.
 - `src/app/account-deletion.tsx`: explicit irreversible deletion confirmation and subscription-separation warning.
+- `src/app/meal-slot.tsx`: one meal of the day (Frühstück, Mittag, Abend, Snacks) against its share of the day (`src/utils/mealSlots.ts`), its foods with amount, time and removal, and photo/describe/search/barcode filed into that slot and day. Heute shows only the four slot rows.
+- `src/app/settings.tsx`: one settings group per page (account and devices, reminders, language/country/units, appearance, privacy, help and legal); Du lists the six groups.
 - `src/app/(tabs)/progress.tsx`: real locally persisted weight history and meal-derived progress instead of fixture achievements.
 - `src/components/AccountLinkCard.tsx`: anonymous account upgrade, email verification, password setup, and existing-account recovery from Profile.
 - `src/components/AppRouteGuard.tsx`: keeps processing routes behind current consent while leaving consent, legal copy and deletion reachable.

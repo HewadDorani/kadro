@@ -15,6 +15,7 @@ import {
   enableNewCloudAccount,
   appleCredential,
   getAccountLinkState,
+  getAccountLinkStateForSignIn,
   isAppleCancel,
   isAppleIdentityTaken,
   linkAppleAccount,
@@ -30,13 +31,14 @@ type ViewMode = 'upgrade' | 'sign-in';
 // Only one card may mutate authentication at a time, including the Apple sheet.
 let accountActionInFlight = false;
 
-export function AccountLinkCard() {
+/** `startInSignIn`: opened from "Schon ein Konto?" on a fresh install, so loading an account comes first. */
+export function AccountLinkCard({ startInSignIn = false }: { startInSignIn?: boolean } = {}) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { loadAppleAccount, loadExistingAccount, refreshCloudState, userName } = useApp();
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [account, setAccount] = useState<AccountLinkState | null>(null);
-  const [mode, setMode] = useState<ViewMode>('upgrade');
+  const [mode, setMode] = useState<ViewMode>(startInSignIn ? 'sign-in' : 'upgrade');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -144,7 +146,7 @@ export function AccountLinkCard() {
 
   useEffect(() => {
     let active = true;
-    void getAccountLinkState()
+    void (startInSignIn ? getAccountLinkStateForSignIn() : getAccountLinkState())
       .then((next) => {
         if (!active) return;
         setAccount(next);
@@ -156,7 +158,7 @@ export function AccountLinkCard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [startInSignIn]);
 
   const run = async (action: () => Promise<AccountLinkState>, success: string, refresh = false) => {
     if (!beginAction()) return;

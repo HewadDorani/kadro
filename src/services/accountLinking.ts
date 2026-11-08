@@ -80,6 +80,19 @@ export async function getAccountLinkState(): Promise<AccountLinkState> {
   return state;
 }
 
+/**
+ * A fresh install that wants its existing account ("Schon ein Konto?") has no
+ * session before setup: consent creates it. An empty guest session lets the
+ * normal account switch load the Apple or email account; nothing is stored
+ * under the guest.
+ */
+export async function getAccountLinkStateForSignIn(): Promise<AccountLinkState> {
+  const state = await getAccountLinkState();
+  if (state.status !== 'unavailable' || !supabase || !isSupabaseConfigured) return state;
+  await ensureSupabaseUser();
+  return getAccountLinkState();
+}
+
 export function enableNewCloudAccount(): Promise<AccountLinkState> {
   return runAccountOperation(() => enableNewCloudAccountUnlocked());
 }

@@ -12,7 +12,6 @@ import { MealSyncStatus } from '@/components/MealSyncStatus';
 import { BillingIssueBanner } from '@/components/BillingIssueBanner';
 import { TrialEndingCard } from '@/components/TrialEndingCard';
 import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
-import { MealDetailSheet } from '@/components/MealDetailSheet';
 import { FavoriteLogSheet } from '@/components/FavoriteLogSheet';
 import { useToast } from '@/components/Toast';
 import { Card, Eyebrow, IconCircle, MacroCard, PressableScale, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
@@ -22,13 +21,14 @@ import { useApp } from '@/context/AppContext';
 import { recommendationPreview } from '@/services/recommendations';
 import { Meal } from '@/types/nutrition';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { firstName, displayClockTime, formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
+import { firstName, formatDateParts, formatDayLabel, formatNumber, mealTypeIcon, mealTypeLabel } from '@/utils/format';
 import { greetingForHour, mealTypeForHour } from '@/utils/daypart';
 import { availableRepeats, RepeatCandidate, withFavorites, yesterdayBreakfast } from '@/services/repeatMeals';
 import { useLocalDay } from '@/hooks/useLocalDay';
 import { sumMeals } from '@/services/mockNutrition';
 import { MAX_BACKDATE_DAYS, shiftDateKey } from '@/utils/mealDay';
 import { latestMainSlot, nextMealSlot } from '@/services/shareDay';
+import { MEAL_SLOTS, slotTarget } from '@/utils/mealSlots';
 
 const REPEAT_CARD_WIDTH = 152;
 const REPEAT_GAP = 10;
@@ -42,10 +42,9 @@ export default function TodayScreen() {
   const [choosing, setChoosing] = useState<{ candidate: RepeatCandidate; slot: Meal['type'] } | null>(null);
   const repeating = choosing?.candidate.key ?? null;
   const { toast, show: showToast } = useToast();
-  const [openMeal, setOpenMeal] = useState<Meal | null>(null);
   const [sharing, setSharing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  usePresentationBlock(Boolean(openMeal || repeating));
+  usePresentationBlock(Boolean(repeating));
   const { language, locale, t } = useLanguage();
   const day = useLocalDay();
   // Days back from today, not a date: a screen left on "Heute" follows midnight.
@@ -126,6 +125,12 @@ export default function TodayScreen() {
     router.navigate('/(tabs)/scan');
   };
 
+  const openSlot = (slot: Meal['type']) => {
+    // The slot page logs into the day shown, so that day stays open on return.
+    if (!isToday) keepDay.current = true;
+    router.push({ pathname: '/meal-slot', params: { type: slot, date: viewDay } } as never);
+  };
+
   /**
    * Four slots, always all four, in the order a day happens.
    *
@@ -133,7 +138,7 @@ export default function TodayScreen() {
    * app guess from the clock which meal it was: a late breakfast filed as
    * lunch, and no way to say otherwise before logging.
    */
-  const slots = useMemo(() => (['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const).map((type) => {
+  const slots = useMemo(() => MEAL_SLOTS.map((type) => {
     const entries = dayMeals.filter((meal) => meal.type === type);
     return { type, entries, calories: entries.reduce((total, meal) => total + meal.calories, 0) };
   }), [dayMeals]);
@@ -373,67 +378,50 @@ export default function TodayScreen() {
 
       <View style={styles.sectionBlock}>
         <SectionTitle>{isToday ? t.today.heading : t.today.pastHeading}</SectionTitle>
-        {slots.map((slot) => (
-          <Card key={slot.type} style={styles.slotCard}>
-            <View style={styles.slotHeader}>
-              <View style={styles.mealIcon}>
-                <Ionicons color={colors.text} name={mealTypeIcon(slot.type)} size={20} />
+        {/* Four rows, one per meal: the foods live on the slot page, so the day stays one short screen. */}
+        <Card style={styles.slotCard}>
+          {slots.map((slot, index) => {
+            const label = mealTypeLabel(slot.type, t.common);
+            const target = slotTarget(slot.type, targets).calories;
+            const share = target > 0 ? Math.min(1, slot.calories / target) : 0;
+            return (
+              <View key={slot.type}>
+                {index ? <View style={styles.rowDivider} /> : null}
+                <View style={styles.slotRow}>
+                  <Pressable
+                    accessibilityLabel={t.mealSlot.rowLabel(label, formatNumber(slot.calories, locale), formatNumber(target, locale))}
+                    accessibilityRole="button"
+                    onPress={() => openSlot(slot.type)}
+                    style={({ pressed }) => [styles.slotMain, pressed && styles.mealRowPressed]}
+                  >
+                    <View style={styles.mealIcon}>
+                      <Ionicons color={colors.text} name={mealTypeIcon(slot.type)} size={20} />
+                    </View>
+                    <View style={styles.slotCopy}>
+                      <View style={styles.slotTitleRow}>
+                        <Text numberOfLines={1} style={styles.slotTitle}>{label}</Text>
+                        <Ionicons color={colors.muted} name="chevron-forward" size={15} />
+                      </View>
+                      <Text style={styles.slotCalories}>{formatNumber(slot.calories, locale)} / {formatNumber(target, locale)} kcal</Text>
+                      <View style={styles.slotTrack}>
+                        <View style={[styles.slotFill, { width: `${Math.round(share * 100)}%` }]} />
+                      </View>
+                    </View>
+                  </Pressable>
+                  <PressableScale
+                    accessibilityLabel={t.today.addTo(label)}
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    onPress={() => startScan(slot.type)}
+                    style={styles.slotAdd}
+                  >
+                    <Ionicons color={colors.text} name="add" size={24} />
+                  </PressableScale>
+                </View>
               </View>
-              <Text style={styles.slotTitle}>{mealTypeLabel(slot.type, t.common)}</Text>
-              <Text style={styles.slotCalories}>
-                {slot.calories ? `${formatNumber(slot.calories, locale)} kcal` : ''}
-              </Text>
-              <PressableScale
-                accessibilityLabel={t.today.addTo(mealTypeLabel(slot.type, t.common))}
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => startScan(slot.type)}
-                style={styles.slotAdd}
-              >
-                <Ionicons color={colors.text} name="add" size={20} />
-              </PressableScale>
-            </View>
-            {/* An empty slot says what goes there and opens the camera for it. */}
-            {!slot.entries.length ? (
-              <View>
-                <View style={styles.rowDivider} />
-                <Pressable
-                  accessibilityHint={t.today.addTo(mealTypeLabel(slot.type, t.common))}
-                  accessibilityLabel={t.today.logSlot(mealTypeLabel(slot.type, t.common))}
-                  accessibilityRole="button"
-                  onPress={() => startScan(slot.type)}
-                  style={({ pressed }) => [styles.addMealRow, pressed && styles.mealRowPressed]}
-                >
-                  <View style={styles.addIcon}><Ionicons color={colors.muted} name="camera-outline" size={18} /></View>
-                  <Text style={styles.addMealText}>{t.today.logSlot(mealTypeLabel(slot.type, t.common))}</Text>
-                  <Ionicons color={colors.muted} name="chevron-forward" size={16} />
-                </Pressable>
-              </View>
-            ) : null}
-            {slot.entries.map((meal) => (
-              <View key={meal.id}>
-                <View style={styles.rowDivider} />
-                <Pressable
-                  accessibilityHint={t.common.mealHint}
-                  accessibilityLabel={t.common.mealLabel(mealTypeLabel(meal.type, t.common), meal.title, meal.calories)}
-                  accessibilityRole="button"
-                  onPress={() => setOpenMeal(meal)}
-                  style={({ pressed }) => [styles.mealRow, pressed && styles.mealRowPressed]}
-                >
-                  <View style={styles.mealInfo}>
-                    <Text numberOfLines={1} style={styles.mealName}>{meal.title}</Text>
-                    <Text style={styles.mealTime}>{displayClockTime(meal.time, locale)}</Text>
-                  </View>
-                  <View style={styles.mealNumbers}>
-                    <Text style={styles.mealCalories}>~{formatNumber(meal.calories, locale)}</Text>
-                    <Text style={styles.mealUnit}>kcal</Text>
-                  </View>
-                  <Ionicons color={colors.muted} name="chevron-forward" size={16} />
-                </Pressable>
-              </View>
-            ))}
-          </Card>
-        ))}
+            );
+          })}
+        </Card>
       </View>
 
       {eveningReady && isToday ? (
@@ -447,7 +435,6 @@ export default function TodayScreen() {
         </Pressable>
       ) : null}
 
-      <MealDetailSheet meal={openMeal} onClose={() => setOpenMeal(null)} />
       <FavoriteLogSheet
         candidate={choosing?.candidate ?? null}
         date={repeatDate}
@@ -519,27 +506,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   // 32 pt above a section header (20 pt screen gap + 12), 12 pt below it.
   sectionBlock: { gap: 12, marginTop: 12 },
   slotCard: { padding: 6, gap: 0 },
-  slotHeader: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 8 },
-  slotTitle: { ...typeScale.callout, flex: 1, color: colors.text, fontWeight: '700' },
+  slotAdd: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8 },
+  slotMain: { flex: 1, minHeight: 76, borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 8 },
+  slotCopy: { flex: 1, minWidth: 0, gap: 3 },
+  slotTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  slotTitle: { ...typeScale.callout, flexShrink: 1, color: colors.text, fontWeight: '700' },
   slotCalories: { ...typeScale.footnote, color: colors.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  slotAdd: { width: 44, height: 44, borderRadius: 17, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
+  slotTrack: { height: 5, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden', marginTop: 3 },
+  slotFill: { height: 5, borderRadius: 3, backgroundColor: colors.accent },
   timelineCard: { padding: 8 },
-  mealRow: { minHeight: 72, borderRadius: 14, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 12 },
   mealRowPressed: { backgroundColor: colors.background },
   mealIcon: { width: 44, height: 44, borderRadius: 16, backgroundColor: colors.attentionSoft, alignItems: 'center', justifyContent: 'center' },
-  mealIconLunch: { backgroundColor: colors.neutralSoft },
-  mealInfo: { flex: 1, gap: 3 },
   mealMetaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7 },
   mealType: { ...typeScale.callout, color: colors.text, fontWeight: '700' },
-  mealTime: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },
-  mealName: { ...typeScale.subhead, color: colors.text, fontWeight: '600' },
-  mealNumbers: { alignItems: 'flex-end' },
-  mealCalories: { ...typeScale.label, color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  mealUnit: { ...typeScale.caption, color: colors.muted },
   rowDivider: { height: 1, backgroundColor: colors.border, marginLeft: 64 },
-  addMealRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 12 },
-  addIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
-  addMealText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   repeatScroll: { marginHorizontal: -20 },
   repeatRow: { paddingHorizontal: 20, gap: REPEAT_GAP },
   repeatCard: { width: REPEAT_CARD_WIDTH, minHeight: 112, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 13, justifyContent: 'space-between' },

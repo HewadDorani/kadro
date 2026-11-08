@@ -19,7 +19,9 @@ const dictionaries = {
   en: readFileSync(new URL('../src/i18n/en.ts', import.meta.url), 'utf8'),
 };
 
-if (!/\['Breakfast', 'Lunch', 'Dinner', 'Snack'\] as const/.test(today)) {
+const slotUtil = readFileSync(new URL('../src/utils/mealSlots.ts', import.meta.url), 'utf8');
+const slotPage = readFileSync(new URL('../src/app/meal-slot.tsx', import.meta.url), 'utf8');
+if (!/MEAL_SLOTS = \['Breakfast', 'Lunch', 'Dinner', 'Snack'\] as const/.test(slotUtil) || !/MEAL_SLOTS\.map\(\(type\) =>/.test(today)) {
   problems.push('today.tsx: the four slots are no longer rendered as a fixed set');
 }
 if (!/onPress=\{\(\) => startScan\(slot\.type\)\}/.test(today)) {
@@ -122,9 +124,17 @@ for (const label of ['logScannedMeal', 'logRepeatMeal', 'logFoodsDirect']) {
 if (!/const dayMeals = useMemo\(\(\) => isToday \? meals : mealHistory\.filter\(\(meal\) => meal\.date === viewDay\)/.test(today)) {
   problems.push('today.tsx: the day switcher does not show the chosen day\'s meals');
 }
-if (!/t\.today\.logSlot\(mealTypeLabel\(slot\.type, t\.common\)\)/.test(today) || (today.match(/onPress=\{\(\) => startScan\(slot\.type\)\}/g) ?? []).length < 2) {
-  problems.push('today.tsx: an empty slot has no "eintragen" row that opens the scan for it');
+// Heute: every slot row opens its page and has its own +; the page offers all four ways in, filed to that slot and day.
+if (!/onPress=\{\(\) => openSlot\(slot\.type\)\}/.test(today) || !/onPress=\{\(\) => startScan\(slot\.type\)\}/.test(today) || !/pathname: '\/meal-slot', params: \{ type: slot, date: viewDay \}/.test(today)) {
+  problems.push('today.tsx: a slot row must open its page and keep its own add button');
 }
+for (const mode of ['photo', 'description', 'search', 'barcode']) {
+  if (!slotPage.includes(`{ mode: '${mode}',`)) problems.push(`meal-slot.tsx: the "${mode}" way to add is missing`);
+}
+if (!/resetScan\(\);[\s\S]{0,160}setPlannedMealType\(type\);\s*if \(!isToday\) setPlannedMealDate\(date\);/.test(slotPage)) {
+  problems.push('meal-slot.tsx: adding from the page must file into that slot and day');
+}
+if (!/removeLoggedItem\(meal\.id, itemId\)/.test(slotPage)) problems.push('meal-slot.tsx: a food cannot be removed from the slot page');
 
 // One food can leave a saved meal without taking the others with it.
 const detailSheet = readFileSync(new URL('../src/components/MealDetailSheet.tsx', import.meta.url), 'utf8');

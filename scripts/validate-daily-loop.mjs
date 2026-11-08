@@ -108,7 +108,9 @@ if (!cloudRepo.includes('export async function deleteCloudMeal')) failures.push(
 if (!appContext.includes('deleteLoggedMeal') || !appContext.includes('adjustLoggedMealPortion')) {
   failures.push('the app exposes no way to remove or rescale a logged meal');
 }
-if (!today.includes('setOpenMeal') || !today.includes('MealDetailSheet')) {
+// Heute lists slots; the meals and their correction live on the slot page.
+const slotPage = await read('src/app/meal-slot.tsx');
+if (!today.includes("pathname: '/meal-slot'") || !slotPage.includes('setOpenMeal') || !slotPage.includes('MealDetailSheet')) {
   failures.push('meals on Heute must be tappable, otherwise the correction is unreachable');
 }
 if (!detailSheet.includes('confirmingDelete')) failures.push('deleting a meal must ask once before it happens');
@@ -125,7 +127,7 @@ if (!appContext.includes('item.baseAmountG * factor')) {
 // 6. The timeline has to read as a chronology. The meal moment is guessed from
 //    the clock at logging time, so three meals caught up in one evening all
 //    became "Abendessen" with the same icon and no time shown.
-if (!today.includes('meal.time')) failures.push('the meal row must show when the meal was eaten');
+if (!slotPage.includes('displayClockTime(meal.time, locale)')) failures.push('the meal row must show when the meal was eaten');
 if (!today.includes('mealTypeIcon')) failures.push('every meal moment needs its own glyph');
 if (!detailSheet.includes('setLoggedMealType')) failures.push('a wrongly guessed meal moment must be correctable');
 

@@ -16,7 +16,7 @@ const [consent, context, routes, subscription, reminders, telemetry, gateway, lo
   read('src/app/onboarding.tsx'), read('src/services/guardianConsent.ts'), read('supabase/functions/guardian-consent/index.ts'), read('supabase/config.toml'),
   read('src/i18n/de.ts'), read('src/i18n/en.ts'), read('src/i18n/legal.de.ts'), read('src/i18n/legal.en.ts'),
   read('site/guardian-consent/index.html'), read('site/en/guardian-consent/index.html'), read('site/guardian-consent.js'),
-  read('src/app/(tabs)/profile.tsx'), read('src/services/personalization.ts'), read('src/services/syncRepository.ts'), read('src/services/localRepository.ts'), read('src/components/AccountLinkCard.tsx'), read('app.json'),
+  read('src/app/settings.tsx'), read('src/services/personalization.ts'), read('src/services/syncRepository.ts'), read('src/services/localRepository.ts'), read('src/components/AccountLinkCard.tsx'), read('app.json'),
   read('supabase/migrations/20260904120000_allow_teen_profiles_with_guardian_consent.sql'),
   read('supabase/migrations/20260904184701_add_waitlist_retention.sql'),
 ]);

@@ -13,6 +13,9 @@
 
 - [x] Erster Start wieder kurz wie in 1.0.6 (Ziel, Über dich, Körper, Aktivität, Plan; Eigentümerentscheidung 07.11.2026), dazu ab 08.11.2026 der überspringbare Schritt Vorlieben, weil vegetarisch/vegan/ohne Schwein/laktosefrei die drei Vorschläge filtern. Nach dem Plan wieder „Ohne Probe weiter“ direkt zur Paywall. Das Wunschziel bleibt unter Du → Plan anpassen, die Erinnerungsfrage kommt wieder nach der Paywall. Die 1.0.7-Schritte Warum, Hindernis, Potenzial und Rhythmus sind implementiert, aber aus.
 - [x] Foto einer Verpackung: Das Modell setzt `packagedProduct`, das Gateway antwortet weiter mit `unclear_image` plus `packaged: true` und bucht als `packaged_product` zurück. Die App zeigt „Das ist eine Verpackung“ mit „Barcode scannen“. Server live seit 07.11.2026.
+- [x] Heute wie eine Maske: vier Zeilen Frühstück, Mittag, Abend, Snacks mit „gegessen / Richtwert kcal“ (25/35/30/10 % des Tagesziels) und eigenem +; ein Tippen öffnet die Mahlzeit-Seite mit Kacheln, Lebensmitteln (Menge, Uhrzeit, löschen) und Foto/Beschreiben/Suchen/Barcode. Der große Ring bleibt (Eigentümerentscheidung 08.11.2026).
+- [x] Du in sechs Zeilen mit eigenen Seiten statt zehn Abschnitten; Plan-Karte in zwei Zeilen.
+- [x] „Schon ein Konto? Anmelden“ im ersten Onboarding-Schritt öffnet „Vorhandenes Konto laden“ (Apple oder E-Mail); eine leere Gast-Sitzung trägt den Kontowechsel. Der zweite-Gerät-Weg mit echter Apple-ID ist noch nicht auf einem Gerät getestet.
 - [ ] Nach zwei Wochen vergleichen: Paywall-Sichtungen, „testen“-Tipps und Trials je Version (kurz 1.0.6/1.0.9 gegen lang 1.0.7/1.0.8), dazu Downloads pro Konto aus App Store Connect.
 
 ## 2026-11-02 – Europa-Markt (1.0.9)

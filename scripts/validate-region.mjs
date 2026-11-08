@@ -146,7 +146,7 @@ await test('requests carry the region; Du offers the setting; Plan follows the r
   const scan = read('src/app/(tabs)/scan.tsx');
   assert.match(scan, /productSearchHint\(term, getMarketRegion\(\)\)/);
   assert.match(scan, /productsFirst\(typedQuery, searchResults\.length, productResults\.length, getMarketRegion\(\)\)/);
-  const profile = read('src/app/(tabs)/profile.tsx');
+  const profile = read('src/app/settings.tsx');
   assert.match(profile, /<SectionTitle>\{t\.profile\.marketRegion\}<\/SectionTitle>\s*<MarketRegionPreference \/>/);
   const row = read('src/components/MarketRegionPreference.tsx');
   assert.match(row, /accessibilityRole="radio"/);

@@ -70,6 +70,8 @@ function ThemedRootLayout() {
               <Stack.Screen name="account-help" />
               <Stack.Screen name="subscription-manage" />
               <Stack.Screen name="saved-meals" />
+              <Stack.Screen name="meal-slot" />
+              <Stack.Screen name="settings" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="analyzing" options={{ gestureEnabled: false }} />
               <Stack.Screen name="confirm" />
