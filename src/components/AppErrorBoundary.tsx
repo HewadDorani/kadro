@@ -50,7 +50,7 @@ export class AppErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: { width: '100%', maxWidth: 420, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 24, gap: 12 },
-  eyebrow: { ...typeScale.caption, color: colors.accentText, fontWeight: '800', letterSpacing: 1 },
+  eyebrow: { ...typeScale.caption, color: colors.accentText, fontWeight: '700', letterSpacing: 1 },
   title: { color: colors.text, fontSize: 24, lineHeight: 29, fontWeight: '700' },
   copy: { ...typeScale.subhead, color: colors.muted },
   button: { minHeight: 48, marginTop: 6, borderRadius: radii.pill, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },

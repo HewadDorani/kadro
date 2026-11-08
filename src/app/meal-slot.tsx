@@ -154,7 +154,7 @@ export default function MealSlotScreen() {
         {ADD_WAYS.map((way) => (
           <PressableScale accessibilityLabel={`${t.mealSlot[way.label]}: ${t.today.addTo(label)}`} accessibilityRole="button" key={way.mode} onPress={() => add(way.mode)} style={styles.way}>
             <View style={styles.wayIcon}><Ionicons color={colors.text} name={way.icon} size={22} /></View>
-            <Text numberOfLines={1} style={styles.wayLabel}>{t.mealSlot[way.label]}</Text>
+            <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.wayLabel}>{t.mealSlot[way.label]}</Text>
           </PressableScale>
         ))}
       </View>
@@ -191,7 +191,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   itemCalories: { ...typeScale.subhead, color: colors.text, fontWeight: '600', fontVariant: ['tabular-nums'] },
   trash: { width: 48, minHeight: 60, alignItems: 'center', justifyContent: 'center' },
   ways: { flexDirection: 'row', gap: 10 },
-  way: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  way: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 4, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   wayIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   wayLabel: { ...typeScale.footnote, color: colors.text, fontWeight: '600' },
 });

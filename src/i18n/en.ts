@@ -199,7 +199,7 @@ export const en: typeof de = {
     targetRange: 'TARGET RANGE',
     proteinLabel: 'PROTEIN',
     showIdeas: 'Show 3 ideas',
-    heading: 'Today',
+    heading: 'Meals',
     scanAnother: 'Scan another meal',
     scanFirst: 'Scan your first meal',
     eatAgain: 'Eat again',

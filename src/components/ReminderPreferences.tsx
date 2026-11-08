@@ -99,7 +99,7 @@ export function ReminderPreferences({ onDone, initialSetup = false }: { onDone?:
       <Ionicons color={colors.onAccent} name="notifications" size={26} />
     </View> : null}
     <View style={{ gap: initialSetup ? 14 : 6 }}>
-      <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 } : { ...typeScale.headline, color: colors.text, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
+      <Text accessibilityRole="header" style={initialSetup ? { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 } : { ...typeScale.headline, color: colors.text, fontWeight: '700' }}>{initialSetup ? copy.reminderAskTitle : copy.reminderTitle}</Text>
       <Text style={{ ...(initialSetup ? typeScale.body : typeScale.subhead), color: colors.muted }}>{singleSelection ? copy.reminderSingleText : copy.reminderText}</Text>
       {access.ready && !access.canUse && !onDone ? <Text style={{ ...(initialSetup ? typeScale.body : typeScale.subhead), color: colors.muted }}>{t.access.pausedReminder}</Text> : null}
     </View>

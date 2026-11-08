@@ -200,7 +200,7 @@ export const de = {
     targetRange: 'ZIELBEREICH',
     proteinLabel: 'PROTEIN',
     showIdeas: '3 Ideen zeigen',
-    heading: 'Heute',
+    heading: 'Mahlzeiten',
     scanAnother: 'Weitere Mahlzeit scannen',
     scanFirst: 'Erste Mahlzeit scannen',
     eatAgain: 'Nochmal essen',

@@ -59,5 +59,5 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   button: { minHeight: 44, maxWidth: '100%', borderRadius: radii.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', backgroundColor: 'rgba(17,19,15,0.58)', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   pressed: { backgroundColor: 'rgba(17,19,15,0.78)' },
   text: { ...typeScale.footnote, flexShrink: 1, color: colors.white, fontWeight: '700' },
-  count: { ...typeScale.caption, minWidth: 22, borderRadius: radii.pill, overflow: 'hidden', backgroundColor: colors.accent, color: colors.onAccent, fontWeight: '800', textAlign: 'center', paddingHorizontal: 6, fontVariant: ['tabular-nums'] },
+  count: { ...typeScale.caption, minWidth: 22, borderRadius: radii.pill, overflow: 'hidden', backgroundColor: colors.accent, color: colors.onAccent, fontWeight: '700', textAlign: 'center', paddingHorizontal: 6, fontVariant: ['tabular-nums'] },
 });

@@ -181,6 +181,6 @@ function BrandGate() {
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   gate: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 28, backgroundColor: colors.background },
-  title: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '800', textAlign: 'center' },
+  title: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '700', textAlign: 'center' },
   copy: { ...typeScale.subhead, maxWidth: 420, color: colors.muted, textAlign: 'center' },
 });

@@ -104,7 +104,7 @@ export default function ProfileScreen() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { ...typeScale.title2, color: colors.surface, fontWeight: '800' },
+  avatarText: { ...typeScale.title2, color: colors.surface, fontWeight: '700' },
   headerCopy: { flex: 1, gap: 4 },
   subtitle: { ...typeScale.subhead, color: colors.muted },
   proCard: { backgroundColor: colors.surface, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },

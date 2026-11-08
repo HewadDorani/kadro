@@ -229,7 +229,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   emptyTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   check: { gap: 12, paddingBottom: 4 },
   mealBox: { borderRadius: radii.card, backgroundColor: colors.neutralSoft, padding: 14, gap: 4 },
-  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '700', letterSpacing: 1 },
   portionRow: { flexDirection: 'row', gap: 8 },
   portion: { flex: 1, minHeight: 52, borderRadius: radii.input, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', gap: 2 },
   portionFactor: { ...typeScale.caption, color: colors.muted, fontVariant: ['tabular-nums'] },

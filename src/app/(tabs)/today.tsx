@@ -14,7 +14,7 @@ import { TrialEndingCard } from '@/components/TrialEndingCard';
 import { CalorieRing, overBudgetLevel } from '@/components/CalorieRing';
 import { FavoriteLogSheet } from '@/components/FavoriteLogSheet';
 import { useToast } from '@/components/Toast';
-import { Card, Eyebrow, IconCircle, MacroCard, PressableScale, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
+import { Card, Eyebrow, IconCircle, MacroBar, PressableScale, PrimaryButton, Screen, SectionTitle } from '@/components/ui';
 import { ShareDayModal } from '@/components/ShareDayModal';
 import { HERO_MAX_FONT_SCALE, radii, typeScale } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
@@ -265,13 +265,14 @@ export default function TodayScreen() {
         {overLevel !== 'none' ? <Text style={styles.consumed}>{t.ring.tomorrowNew}</Text> : null}
         {width < 360 ? <Text style={styles.consumed}>{formatNumber(consumed.calories, locale)} {t.today.eaten} · {formatNumber(targets.calories, locale)} {t.today.goal}</Text> : null}
         </View>
+        {/* The macros sit in the ring's card, so the day reads as one block and the meals move up. */}
+        <View style={styles.heroDivider} />
+        <View style={styles.macroRow}>
+          <MacroBar current={consumed.protein} label={t.common.protein} minimum target={targets.protein} tint={colors.macroProtein} />
+          <MacroBar current={consumed.carbs} label={t.common.carbs} target={targets.carbs} tint={colors.macroCarbs} />
+          <MacroBar current={consumed.fat} label={t.common.fat} target={targets.fat} tint={colors.macroFat} />
+        </View>
       </Card>
-
-      <View style={styles.macroRow}>
-        <MacroCard current={consumed.protein} icon="barbell-outline" label={t.common.protein} minimum target={targets.protein} tint={colors.macroProtein} />
-        <MacroCard current={consumed.carbs} icon="flash-outline" label={t.common.carbs} target={targets.carbs} tint={colors.macroCarbs} />
-        <MacroCard current={consumed.fat} icon="water-outline" label={t.common.fat} target={targets.fat} tint={colors.macroFat} />
-      </View>
 
       {/* Keep the target status visible; small meal ideas remain optional and
           disclose their projected overage before the user records a meal.
@@ -288,7 +289,7 @@ export default function TodayScreen() {
       ) : dayIsDone ? (
         <Card style={styles.nextCard}>
           <View style={styles.nextHeader}>
-            <IconCircle name={overBudget ? 'information-circle' : 'checkmark'} size={48} tone={overBudget ? 'neutral' : 'accent'} />
+            <IconCircle name={overBudget ? 'information-circle' : 'checkmark'} size={40} tone={overBudget ? 'neutral' : 'accent'} />
             <View style={styles.nextHeading}>
               <Eyebrow>{t.today.nextMove}</Eyebrow>
               <Text style={styles.mealMoment}>{overBudget ? t.today.dayOver : t.today.dayComplete}</Text>
@@ -306,7 +307,7 @@ export default function TodayScreen() {
             onPress={() => router.push('/(tabs)/plan')}
             style={styles.nextHeader}
           >
-            <IconCircle name="navigate" size={48} />
+            <IconCircle name="navigate" size={40} />
             <View style={styles.nextHeading}>
               <Eyebrow>{t.today.nextMove}</Eyebrow>
               <Text style={styles.mealMoment}>{hasLoggedScan ? t.today.nextMeal : t.today.firstMeal}</Text>
@@ -479,29 +480,30 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   sectionAction: { ...typeScale.footnote, color: colors.accentText, fontWeight: '700' },
   greeting: { ...typeScale.title1, color: colors.text, fontWeight: '700', marginTop: 5 },
   avatar: { width: 44, height: 44, flexShrink: 0, borderRadius: 22, backgroundColor: colors.text, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { ...typeScale.callout, color: colors.surface, fontWeight: '800' },
+  avatarText: { ...typeScale.callout, color: colors.surface, fontWeight: '700' },
   pendingBanner: { minHeight: 66, borderRadius: radii.card, backgroundColor: colors.attentionSoft, borderWidth: 1, borderColor: colors.attention, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   pendingIcon: { width: 38, height: 38, borderRadius: 14, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   pendingCopy: { flex: 1, gap: 2 },
   pendingTitle: { ...typeScale.footnote, color: colors.text, fontWeight: '700' },
   pendingText: { ...typeScale.caption, color: colors.muted },
-  heroCard: { gap: 18, paddingVertical: 22 },
+  heroCard: { gap: 16, paddingVertical: 18 },
   heroSwipe: { gap: 18 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   heroHeading: { flex: 1, minWidth: 0 },
-  onTrack: { color: colors.text, fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, marginTop: 4 },
+  onTrack: { color: colors.text, fontSize: 18, lineHeight: 24, fontWeight: '600', letterSpacing: -0.3, marginTop: 4 },
   shareButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   consumed: { ...typeScale.caption, color: colors.muted, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  macroRow: { flexDirection: 'row', gap: 8 },
+  macroRow: { flexDirection: 'row', gap: 14 },
+  heroDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   dayDoneText: { ...typeScale.subhead, color: colors.muted },
-  nextCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 16 },
+  nextCard: { backgroundColor: colors.accentSoft, borderColor: colors.accent, gap: 14 },
   nextHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   nextHeading: { flex: 1, gap: 2 },
-  mealMoment: { ...typeScale.title2, color: colors.text, fontWeight: '700' },
+  mealMoment: { ...typeScale.headline, color: colors.text, fontWeight: '600' },
   targetRow: { flexDirection: 'row', alignItems: 'center' },
   targetBlock: { flex: 1, gap: 4 },
   targetLabel: { ...typeScale.eyebrow, color: colors.muted },
-  targetValue: { color: colors.text, fontSize: 18, lineHeight: 23, fontWeight: '700', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
+  targetValue: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '600', letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
   targetDivider: { width: 1, alignSelf: 'stretch', backgroundColor: colors.accent, marginHorizontal: 16 },
   // 32 pt above a section header (20 pt screen gap + 12), 12 pt below it.
   sectionBlock: { gap: 12, marginTop: 12 },
@@ -529,7 +531,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   repeatIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.neutralSoft, alignItems: 'center', justifyContent: 'center' },
   repeatIconFavorite: { backgroundColor: colors.accent },
   repeatTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  repeatCount: { ...typeScale.caption, color: colors.muted, fontWeight: '700', fontVariant: ['tabular-nums'] },
   repeatYesterday: { ...typeScale.caption, color: colors.text, fontWeight: '700', marginTop: 6 },
   repeatTitle: { ...typeScale.footnote, color: colors.text, fontWeight: '600', marginTop: 6 },
   repeatMacros: { ...typeScale.caption, color: colors.muted, marginTop: 4, fontVariant: ['tabular-nums'] },

@@ -44,7 +44,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   topTitle: { ...typeScale.subhead, color: colors.text, fontWeight: '700' },
   heading: { gap: 9 },
-  title: { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.8 },
+  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.5 },
   version: { ...typeScale.caption, color: colors.muted },
   intro: { ...typeScale.callout, color: colors.text, marginTop: 5 },
   section: { borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 20, gap: 10 },

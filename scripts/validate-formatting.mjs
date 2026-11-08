@@ -80,7 +80,7 @@ assert.doesNotThrow(() => units.formatWeight(84, 'metric', 'not-a-locale!!'));
 
 // --- The progress bar must never emit NaN% ---------------------------------
 const ui = await read('src/components/ui.tsx');
-const bar = ui.slice(ui.indexOf('export function ProgressBar'), ui.indexOf('export function MacroCard'));
+const bar = ui.slice(ui.indexOf('export function ProgressBar'), ui.indexOf('export function MacroBar'));
 assert.match(bar, /Number\.isFinite\(value\)/, 'the progress bar must reject a non-finite ratio');
 const clamp = (value) => {
   const safe = Number.isFinite(value) ? value : (value > 0 ? 1 : 0);

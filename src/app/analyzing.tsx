@@ -300,7 +300,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   analyzingPill: { position: 'absolute', top: 14, left: 14, minHeight: 30, paddingVertical: 6, borderRadius: 15, backgroundColor: 'rgba(23,24,22,0.75)', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   warningDot: { backgroundColor: colors.attention },
-  analyzingPillText: { ...typeScale.caption, color: colors.white, fontWeight: '800', letterSpacing: 1 },
+  analyzingPillText: { ...typeScale.caption, color: colors.white, fontWeight: '700', letterSpacing: 1 },
   content: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 30, paddingTop: 28 },
   sparkleCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   warningCircle: { backgroundColor: colors.attentionSoft },

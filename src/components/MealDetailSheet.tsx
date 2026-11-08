@@ -330,7 +330,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   itemLine: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   itemRemove: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   section: { gap: 8, marginBottom: 18 },
-  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '700', letterSpacing: 1 },
   sectionHint: { ...typeScale.caption, color: colors.muted },
   itemRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
   itemCopy: { flex: 1, minWidth: 0 },

@@ -112,7 +112,8 @@ export function scanShadow(mode: 'light' | 'dark') {
 }
 
 /**
- * Text styles. Every step carries its own line height and tracking, so a
+ * Text styles (calmer since 08.11.2026: smaller headings, 800 retired).
+ * Every step carries its own line height and tracking, so a
  * paragraph never sits on a cramped default line box. Spread a step first
  * and override only colour, weight or alignment:
  *
@@ -123,9 +124,9 @@ export function scanShadow(mode: 'light' | 'dark') {
  * title. React Native scales fontSize and lineHeight together with Dynamic Type.
  */
 export const typeScale = {
-  display: { fontSize: 34, lineHeight: 40, letterSpacing: -0.6 },
-  title1: { fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
-  title2: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  display: { fontSize: 30, lineHeight: 36, letterSpacing: -0.5 },
+  title1: { fontSize: 25, lineHeight: 31, letterSpacing: -0.4 },
+  title2: { fontSize: 20, lineHeight: 26, letterSpacing: -0.3 },
   headline: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2, fontWeight: '600' },
   /** Row and button titles: one step under headline. */
   label: { fontSize: 16, lineHeight: 21, letterSpacing: -0.1, fontWeight: '600' },

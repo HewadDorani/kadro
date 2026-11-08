@@ -15,6 +15,7 @@
 - [x] Foto einer Verpackung: Das Modell setzt `packagedProduct`, das Gateway antwortet weiter mit `unclear_image` plus `packaged: true` und bucht als `packaged_product` zurück. Die App zeigt „Das ist eine Verpackung“ mit „Barcode scannen“. Server live seit 07.11.2026.
 - [x] Heute wie eine Maske: vier Zeilen Frühstück, Mittag, Abend, Snacks mit „gegessen / Richtwert kcal“ (25/35/30/10 % des Tagesziels) und eigenem +; ein Tippen öffnet die Mahlzeit-Seite mit Kacheln, Lebensmitteln (Menge, Uhrzeit, löschen) und Foto/Beschreiben/Suchen/Barcode. Der große Ring bleibt (Eigentümerentscheidung 08.11.2026).
 - [x] Du in sechs Zeilen mit eigenen Seiten statt zehn Abschnitten; Plan-Karte in zwei Zeilen.
+- [x] Ruhigere Typografie und Yazio-artige Tageskarte (08.11.2026): Protein, Kohlenhydrate und Fett als schmale Balken in der Ring-Karte; Titelstufen kleiner (display 30, title1 25, title2 20), Gewicht 800 entfällt, Karten 18 pt Innenabstand, „Dein nächster Zug“ leiser, Abschnitt „Mahlzeiten“.
 - [x] „Schon ein Konto? Anmelden“ im ersten Onboarding-Schritt öffnet „Vorhandenes Konto laden“ (Apple oder E-Mail); eine leere Gast-Sitzung trägt den Kontowechsel. Der zweite-Gerät-Weg mit echter Apple-ID ist noch nicht auf einem Gerät getestet.
 - [ ] Nach zwei Wochen vergleichen: Paywall-Sichtungen, „testen“-Tipps und Trials je Version (kurz 1.0.6/1.0.9 gegen lang 1.0.7/1.0.8), dazu Downloads pro Konto aus App Store Connect.
 

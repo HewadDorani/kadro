@@ -275,12 +275,15 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
   );
 }
 
-export function MacroCard({
+/**
+ * One macro as a slim bar under the calorie ring, Yazio-style: the day's
+ * numbers live in one card instead of four.
+ */
+export function MacroBar({
   label,
   current,
   target,
   unit = 'g',
-  icon,
   minimum = false,
   tint,
 }: {
@@ -290,28 +293,24 @@ export function MacroCard({
   unit?: string;
   /** Macro colour for the bar; defaults to the accent. */
   tint?: string;
-  icon: keyof typeof Ionicons.glyphMap;
   /** Protein is a minimum: more is fine. Carbs/fat are guides: far above is not "done". */
   minimum?: boolean;
 }) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
-  const { t } = useLanguage();
   // 10% tolerance, same as the weekly strip: 175 of 180 g is a day that went
   // fine, and calling it a miss is the kind of nagging this app avoids.
   const reached = target > 0 && current >= target * 0.9 && (minimum || current <= target * 1.1);
-  const over = !minimum && target > 0 && current > target * 1.1;
   return (
-    <Card style={styles.macroCard}>
-      <View style={[styles.macroIcon, reached && styles.macroIconReached]}>
-        <Ionicons color={reached ? colors.onAccent : colors.text} name={reached ? 'checkmark' : over ? 'information-circle-outline' : icon} size={16} />
+    <View style={styles.macroBar}>
+      <View style={styles.macroBarHead}>
+        <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.macroLabel}>{label}</Text>
+        {reached ? <Ionicons color={colors.accentText} name="checkmark-circle" size={14} /> : null}
       </View>
-      <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} numberOfLines={1} style={styles.macroLabel}>{label}</Text>
-      {/* Three equal cards on a 320pt phone: the figure shrinks a little
-          rather than cutting "/ 150 g" off. */}
-      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
       <ProgressBar color={tint} value={current / target} />
-    </Card>
+      {/* Three columns on a 320pt phone: the figure shrinks a little rather than cutting "/ 150 g" off. */}
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} minimumFontScale={0.8} numberOfLines={1} style={styles.macroValue}>{current}<Text style={styles.macroUnit}> / {target} {unit}</Text></Text>
+    </View>
   );
 }
 
@@ -482,7 +481,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 20,
+    padding: 18,
   },
   button: {
     minHeight: 56,
@@ -603,37 +602,26 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   listDividerFlush: {
     marginHorizontal: 12,
   },
-  macroCard: {
+  macroBar: {
     flex: 1,
     minWidth: 0,
-    padding: 14,
-    borderRadius: radii.card,
-    gap: 4,
-    justifyContent: 'space-between',
+    gap: 6,
   },
-  macroIconReached: {
-    backgroundColor: colors.accent,
-  },
-  macroIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.neutralSoft,
+  macroBarHead: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
+    gap: 4,
   },
   macroLabel: {
-    ...typeScale.caption,
+    ...typeScale.footnote,
     color: colors.muted,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   macroValue: {
-    ...typeScale.title2,
+    ...typeScale.subhead,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
-    marginBottom: 8,
   },
   macroUnit: {
     ...typeScale.footnote,
@@ -688,7 +676,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   demoBadgeText: {
     ...typeScale.caption,
     color: colors.white,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: 0.8,
   },
   iconCircle: {

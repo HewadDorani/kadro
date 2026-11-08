@@ -83,7 +83,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   heading: { gap: 9 },
   statusIcon: { width: 58, height: 58, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   statusIconPaused: { backgroundColor: colors.attentionSoft },
-  title: { color: colors.text, fontSize: 30, lineHeight: 36, fontWeight: '700', letterSpacing: -0.7 },
+  title: { color: colors.text, fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: -0.5 },
   stateTitle: { ...typeScale.headline, color: colors.text, fontWeight: '700' },
   copy: { ...typeScale.footnote, color: colors.muted },
   card: { gap: 8 },

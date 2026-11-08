@@ -126,6 +126,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   note: { ...typeScale.caption, color: colors.muted },
   stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   stepNumber: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  stepNumberText: { ...typeScale.caption, color: colors.onAccent, fontWeight: '800' },
+  stepNumberText: { ...typeScale.caption, color: colors.onAccent, fontWeight: '700' },
   stepText: { ...typeScale.subhead, flex: 1, color: colors.text, paddingTop: 3 },
 });

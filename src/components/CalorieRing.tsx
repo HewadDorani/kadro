@@ -169,7 +169,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   value: {
     color: colors.text,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -1.8,
     fontVariant: ['tabular-nums'],
   },

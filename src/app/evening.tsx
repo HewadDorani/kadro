@@ -177,7 +177,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   numberLabel: { ...typeScale.caption, color: 'rgba(255,255,255,0.54)' },
   verdict: { ...typeScale.subhead, color: 'rgba(255,255,255,0.82)' },
   mealsCard: { padding: 8, gap: 2 },
-  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
+  sectionLabel: { ...typeScale.caption, color: colors.muted, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 },
   mealRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10 },
   mealType: { ...typeScale.footnote, width: 92, color: colors.text, fontWeight: '600' },
   mealName: { ...typeScale.caption, flex: 1, minWidth: 0, color: colors.muted },

@@ -196,7 +196,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   caption: { ...typeScale.callout, color: colors.text, fontWeight: '600', textAlign: 'center', minHeight: 44, paddingHorizontal: 8 },
   dots: { flexDirection: 'row', gap: 8 },
   showcase: { alignSelf: 'stretch', gap: 10, marginTop: 6, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: 16 },
-  showcaseTitle: { ...typeScale.caption, color: colors.muted, fontWeight: '800', letterSpacing: 1 },
+  showcaseTitle: { ...typeScale.caption, color: colors.muted, fontWeight: '700', letterSpacing: 1 },
   showcaseRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   showcaseIcon: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' },
   showcaseText: { ...typeScale.callout, flex: 1, color: colors.text, fontWeight: '600' },

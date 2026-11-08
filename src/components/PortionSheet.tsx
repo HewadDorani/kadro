@@ -284,7 +284,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   pieceUnit: { ...typeScale.subhead, flex: 1, color: colors.muted, fontWeight: '600' },
   pieceApply: { minHeight: 44, borderRadius: radii.pill, backgroundColor: colors.accent, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
   pieceApplyOff: { opacity: 0.45 },
-  pieceApplyText: { ...typeScale.footnote, color: colors.onAccent, fontWeight: '800' },
+  pieceApplyText: { ...typeScale.footnote, color: colors.onAccent, fontWeight: '700' },
   quickRow: { gap: 8, paddingRight: 8 },
   quickChip: { minHeight: 44, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   quickChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },

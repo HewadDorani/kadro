@@ -113,7 +113,7 @@ export default function FirstScanScreen() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   content: { flexGrow: 1, gap: 14, paddingTop: 28 },
   mark: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  title: { color: colors.text, fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 },
+  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { ...typeScale.body, color: colors.muted },
   options: { gap: 12, marginTop: 10 },
   option: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 14 },
