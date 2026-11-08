@@ -257,4 +257,7 @@ console.log(`PASS ${passed.length} hard-paywall checks.`);
   assertOk(/later: 'Ohne Probe weiter'/.test(de), 'skip copy says what it means');
   assertOk(/if \(firstRunSearch && !added\.length\) \{[\s\S]*?applySearchResult\(withPieces\(pendingFood\), grams\);[\s\S]*?confirmAfterSearchDismiss\.current = true;/.test(scanScreen), 'first pick goes through confirm and result');
   console.log('PASS first-run search: free search option, confirm → result before the paywall, quiet skip');
+  // KANDRO-IOS-2: switching the mounted paywall between modal and card looped React when the lock lifted.
+  const paywallScreen = read('src/app/paywall.tsx');
+  assertOk(!/presentation:/.test(paywallScreen) && /<Stack\.Screen options=\{closable \? OPEN_SCREEN : LOCKED_SCREEN\} \/>/.test(paywallScreen), 'the paywall keeps one presentation and stable screen options');
 }

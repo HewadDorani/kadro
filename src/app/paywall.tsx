@@ -31,6 +31,16 @@ const CLOSE_DELAY_MS = 2500;
 
 type Plan = 'yearly' | 'monthly';
 
+/**
+ * Only the swipe follows the lock; the presentation stays the layout's modal.
+ * Switching modal ↔ card on a mounted screen (the lock lifts when a purchase
+ * completes, or settles while access loads) sent React into "Maximum update
+ * depth exceeded" on the paywall in 1.0.8 (Sentry KANDRO-IOS-2). Two constant
+ * objects also keep setOptions from running on every render.
+ */
+const OPEN_SCREEN = { gestureEnabled: true } as const;
+const LOCKED_SCREEN = { gestureEnabled: false } as const;
+
 export default function PaywallScreen() {
   usePresentationBlock(true);
   const { colors } = useTheme();
@@ -304,7 +314,7 @@ export default function PaywallScreen() {
 
   return (
     <SafeAreaView key={fontScale} edges={['top', 'left', 'right']} style={styles.safe}>
-      <Stack.Screen options={{ gestureEnabled: closable, presentation: closable ? 'modal' : 'card' }} />
+      <Stack.Screen options={closable ? OPEN_SCREEN : LOCKED_SCREEN} />
       <View style={styles.topBar}>
         {closable ? <Animated.View pointerEvents={closeVisible ? 'auto' : 'none'} style={{ opacity: closeOpacity }}>
           <Pressable accessibilityElementsHidden={!closeVisible} accessibilityLabel={t.paywall.close} accessibilityRole="button" disabled={!closeVisible} hitSlop={8} importantForAccessibility={closeVisible ? 'auto' : 'no-hide-descendants'} onPress={() => { void resume(); }} style={styles.closeButton}>
