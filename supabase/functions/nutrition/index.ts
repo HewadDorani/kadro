@@ -4,7 +4,7 @@ import { isSearchQuery, compatibleSearchIdentity, SEARCH_VERSION } from '../_sha
 import { offMassNutrition, offMassPortions, offPiecePortion, OFF_PRODUCT_FIELDS, offBarcodeCandidates, offBrand, offPackageGrams } from '../_shared/off-product.mjs';
 import { labelPrompt, labelSchema, normalizeLabelRead, validateLabelRead } from '../_shared/label-facts.mjs';
 import { menuPrompt, menuSchema, normalizeMenuRead, validateMenuRead } from '../_shared/menu-read.mjs';
-import { requestStructured, requestStructuredWithRetry, resolveFallbackModel, ModelError, GEMINI_MODEL, GEMINI_CONSENT_VERSION, GEMINI_RELEASE_APPROVED } from '../_shared/model-adapter.mjs';
+import { requestStructured, requestStructuredWithRetry, resolveFallbackModel, ModelError, GEMINI_MODEL, GEMINI_CONSENT_VERSION, GEMINI_RELEASE_APPROVED, CLAUDE_VISION_MODEL } from '../_shared/model-adapter.mjs';
 import { applyDescriptionAmountsTolerant } from '../_shared/description-amounts.mjs';
 import { withSupabase } from 'npm:@supabase/server@1.5.1';
 import { canonicalFoodQuery } from '../_shared/food-query.mjs';
@@ -40,6 +40,7 @@ import {
   detectionSchema,
   clarifyKind,
   photoDetectionPrompt,
+  photoNoteContext,
 } from '../_shared/detection.mjs';
 import {
   fetchRevenueCatEntitlement,
@@ -65,6 +66,15 @@ const imageDetail = ['low', 'high', 'auto'].includes(configuredImageDetail) ? co
 // any value outside the Azure/ZDR allowlist means the retry stays on the
 // primary model, just with a cheaper low-detail image.
 const fallbackVisionModel = resolveFallbackModel(Deno.env.get('VISION_FALLBACK_MODEL'));
+/**
+ * Premium photo model (Claude Sonnet 5.5 on Bedrock). `off` keeps every photo
+ * on the Azure model; `pilot` enables it for listed pilot and active QA
+ * accounts; `all` for everyone. Each person gets it for the first
+ * PREMIUM_VISION_DAILY analyses in 24 hours, then the Azure model again, so a
+ * very heavy user cannot multiply the cost.
+ */
+const premiumVisionMode = ['off', 'pilot', 'all'].includes(Deno.env.get('VISION_PREMIUM_MODE') ?? '') ? Deno.env.get('VISION_PREMIUM_MODE') as 'off' | 'pilot' | 'all' : 'off';
+const premiumVisionDaily = Math.max(0, Math.min(60, Number.parseInt(Deno.env.get('VISION_PREMIUM_DAILY') ?? '6', 10) || 6));
 /**
  * Model budgets per analysis. The first attempt gets most of it; one retry on
  * a transient failure gets the rest. Together they stay well inside the app's
@@ -103,12 +113,14 @@ const revenueCatIosProductResourceIds = (Deno.env.get('REVENUECAT_IOS_PRODUCT_RE
 const revenueCatSecretApiKey = Deno.env.get('REVENUECAT_SECRET_API_KEY') ?? '';
 const ENTITLEMENT_REFRESH_COOLDOWN_SECONDS = 20;
 const REQUIRED_PRIVACY_VERSION = '2026-10-09-ai-v3';
+/** Consent that names Amazon Bedrock; only this lets the premium photo model run outside the pilot. */
+const PREMIUM_PRIVACY_VERSION = '2026-11-08-ai-v4';
 // Builds up to 1.0.3 can only ever record the previous version: refusing it
 // would loop them between "consent required" and a re-consent that writes the
 // same value again. Its recipients and purposes (OpenRouter -> Azure) are
 // unchanged, so it stays accepted until those builds are retired; current
 // builds re-ask on their own because their local version differs.
-const ACCEPTED_PRIVACY_VERSIONS = new Set([REQUIRED_PRIVACY_VERSION, '2026-09-04-ai-v2']);
+const ACCEPTED_PRIVACY_VERSIONS = new Set([PREMIUM_PRIVACY_VERSION, REQUIRED_PRIVACY_VERSION, '2026-09-04-ai-v2']);
 const REQUIRED_GUARDIAN_VERSION = '2026-09-04-guardian-v1';
 
 /**
@@ -400,6 +412,7 @@ type AnalysisTiming = {
   retried: boolean;
   fallbackModel: boolean;
   firstFailure?: string;
+  premium?: boolean;
 };
 
 function newAnalysisTiming(route: 'photo' | 'text'): AnalysisTiming {
@@ -418,6 +431,7 @@ function logAnalysisTiming(timing: AnalysisTiming, outcome: string) {
     retried: timing.retried,
     fallback_model: timing.fallbackModel,
     first_failure: timing.firstFailure ? analysisFailureCode(timing.firstFailure) : null,
+    premium: timing.premium === true,
   }));
 }
 
@@ -425,6 +439,8 @@ type AnalysisHooks = {
   /** Claims the service-wide breaker for the extra provider call; false skips the retry. */
   beforeRetry?: () => Promise<boolean>;
   timing?: AnalysisTiming;
+  /** Photo content for the premium model; set only when this request may use it. */
+  premiumContent?: unknown[];
 };
 
 // deno-lint-ignore no-explicit-any
@@ -435,11 +451,18 @@ async function requestDetection(content: unknown[], candidate = false, signal?: 
   const timing = hooks.timing;
   const budget = MODEL_BUDGET[timing?.route ?? 'photo'];
   const started = Date.now();
+  // Premium photo: Sonnet first; a failure retries once on the Azure model with
+  // the full-detail photo, so a Bedrock outage never costs the person a scan.
+  const premium = hooks.premiumContent !== undefined;
+  if (timing && premium) timing.premium = true;
+  const primaryModel = premium ? CLAUDE_VISION_MODEL : visionModel;
   // One retry at most, inside this already-paid request: the user's allowance
   // was reserved once above and is never charged again for the second call.
   return requestStructuredWithRetry({
-    primary: { apiKey: aiApiKey, content, model: visionModel, provider: aiProvider, timeoutMs: budget.primaryMs },
-    retry: { apiKey: aiApiKey, content: retryContent, model: fallbackVisionModel ?? visionModel, provider: aiProvider, timeoutMs: budget.retryMs },
+    primary: { apiKey: aiApiKey, content: premium ? hooks.premiumContent : content, model: primaryModel, provider: aiProvider, timeoutMs: budget.primaryMs },
+    retry: premium
+      ? { apiKey: aiApiKey, content, model: visionModel, provider: aiProvider, timeoutMs: budget.retryMs }
+      : { apiKey: aiApiKey, content: retryContent, model: fallbackVisionModel ?? visionModel, provider: aiProvider, timeoutMs: budget.retryMs },
     beforeRetry: async () => {
       if (!hooks.beforeRetry) return false;
       return hooks.beforeRetry();
@@ -453,7 +476,7 @@ async function requestDetection(content: unknown[], candidate = false, signal?: 
       if (attempt === 1 && outcome !== 'ok') timing.firstFailure = outcome;
       if (attempt === 2) {
         timing.retried = true;
-        timing.fallbackModel = model !== visionModel;
+        timing.fallbackModel = model !== primaryModel;
       }
     },
   });
@@ -644,7 +667,18 @@ async function analyzePhoto(input: any, admin: any, claimUsda?: () => Promise<vo
   const image = { type: 'input_image', image_url: `data:${input.mimeType};base64,${input.imageBase64}` };
   // The retry is the cheaper, faster path: the same photo at low detail
   // (a fraction of the image tokens), on the fallback model when configured.
-  const detection = await requestDetection([prompt, { ...image, detail: imageDetail }], candidate, signal, hooks, [prompt, { ...image, detail: 'low' }]);
+  // The premium model gets the fixed instructions first (cacheable), then the
+  // photo, then the person's note; the same words, only the note moved last.
+  const note = photoNoteContext(input.note);
+  const premiumHooks = hooks.premiumContent !== undefined ? {
+    ...hooks,
+    premiumContent: [
+      { type: 'input_text', text: photoDetectionPrompt(requestedLanguage(input)) },
+      image,
+      ...(note ? [{ type: 'input_text', text: note.trim() }] : []),
+    ],
+  } : hooks;
+  const detection = await requestDetection([prompt, { ...image, detail: imageDetail }], candidate, signal, premiumHooks, [prompt, { ...image, detail: 'low' }]);
   const result = await timedLookup(hooks.timing, () => resolveDetection(forEstimateProtocol(detection, input), admin, 'photo', claimUsda, input.ingredientCorrection));
   const clarify = result.status === 200 ? clarifyKind(detection, input.note) : null;
   return clarify ? { ...result, body: { ...result.body, clarify } } : result;
@@ -1806,8 +1840,20 @@ const handler = withSupabase({ auth: 'user' }, async (request: Request, context)
   // The retry is a second provider call, so it counts against the
   // service-wide cost breaker like any other; it never touches the user's
   // allowance, which this request already reserved exactly once.
+  // Premium photo model: decided once per request from the owner-set mode,
+  // the pilot list and this person's analyses in the last 24 hours.
+  let premiumVision = false;
+  if (route === '/v1/analyze' && !candidate && premiumVisionMode !== 'off' && premiumVisionDaily > 0) {
+    const status = await accessRpc(context.supabaseAdmin, 'premium_vision_status', { p_user_id: data.user.id });
+    const recent = Number((status as { recent?: unknown } | null)?.recent);
+    const listed = (status as { pilot?: unknown } | null)?.pilot === true;
+    // Outside the pilot, only consent that names Amazon Bedrock allows it.
+    const consentNamesBedrock = consent?.privacy_version === PREMIUM_PRIVACY_VERSION;
+    premiumVision = Number.isFinite(recent) && recent <= premiumVisionDaily && (listed || (premiumVisionMode === 'all' && consentNamesBedrock));
+  }
   const analysisHooks: AnalysisHooks = {
     timing,
+    ...(premiumVision ? { premiumContent: [] } : {}),
     beforeRetry: async () => (await accessRpc(context.supabaseAdmin, 'consume_global_analysis_quota', {
       p_daily_limit: globalDailyLimit,
     }))?.status === 'allowed',

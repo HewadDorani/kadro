@@ -677,3 +677,11 @@ Deployment order is additive migration and server secrets, followed by `apple-ac
 A photo note travels with one analysis (`setCapturedPhoto(uri, note)` → `analyzePreparedPhoto` → `photoDetectionPrompt`). The gateway reduces it to one line of plain text and marks it as data about the meal.
 
 `clarifyKind` (gateway, pure) decides whether one photo gets a question: fried with a flagged risk and no fat listed, or a leaf salad with no dressing, and never after a note. The confirm screen adds the answer as a normal ingredient from fixed BLS codes through `answerClarify`, so the numbers come from the database and no second analysis runs.
+
+
+## Premium photo model (08.11.2026)
+
+- Photos may run on Claude Sonnet 5.5 via OpenRouter → Amazon Bedrock only (`CLAUDE_VISION_MODEL`, `CLAUDE_ROUTE` in `_shared/model-adapter.mjs`): ZDR, data collection denied, no provider fallback, chat-completions JSON schema. Descriptions, menus and labels stay on Azure GPT-4.1 mini.
+- The fixed photo instructions are the first, cache-marked text block; the image follows and a person's note comes last (`photoNoteContext`). Measured: 7,199 of 8,131 prompt tokens cached, about 0.7 ct instead of 2.1 ct per photo.
+- Selection per request in `nutrition/index.ts`: `VISION_PREMIUM_MODE` = `off` | `pilot` | `all` (secret, currently `pilot`). `public.premium_vision_status(user)` (service role only) returns whether the person is in `private.vision_pilot_accounts` or an active QA account, and their analyses in the last 24 hours. Premium applies to the first `VISION_PREMIUM_DAILY` (6) analyses; outside the pilot it additionally requires consent version `2026-11-08-ai-v4`, the first text that names Amazon Bedrock. v3 consent stays valid without re-asking and keeps the Azure route.
+- A failed Bedrock call retries once on Azure GPT-4.1 mini with the full-detail photo inside the same paid request. Timing logs carry `premium: true|false`.

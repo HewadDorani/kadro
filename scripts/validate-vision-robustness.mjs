@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 import { randomUUID, webcrypto } from 'node:crypto';
 import {
-  AZURE_OPENAI_MODELS, DETECTION_MAX_OUTPUT_TOKENS, GEMINI_MODEL, ModelError,
+  AZURE_OPENAI_MODELS, CLAUDE_VISION_MODEL, DETECTION_MAX_OUTPUT_TOKENS, GEMINI_MODEL, ModelError,
   isRetryableModelError, modelRequest, parseModelJson, parseStructuredResponse,
   requestStructuredWithRetry, resolveFallbackModel,
 } from '../supabase/functions/_shared/model-adapter.mjs';
@@ -195,12 +195,13 @@ const imports = {};
 for (const [, id] of source.matchAll(/from '([^']+)'/g)) {
   if (!id.startsWith('npm:')) imports[id] = await import(new URL('../supabase/functions/nutrition/' + id, import.meta.url));
 }
-function loadGateway(env, { globalAllowed = () => true } = {}) {
+function loadGateway(env, { globalAllowed = () => true, premium = { pilot: false, recent: 0 } } = {}) {
   const state = { rpc: [], provider: [], globalCalls: 0, timing: [] };
   const rpc = async (name) => {
     state.rpc.push(name);
     if (['record_paywall_prior_use_v1', 'resolve_paywall_access_v1'].includes(name)) return { data: { hard: false, access: 'free', variant: 'excluded' }, error: null };
     if (name === 'consume_analysis_quota') return { data: 1, error: null };
+    if (name === 'premium_vision_status') return { data: premium, error: null };
     if (name === 'lookup_capture_operation') return { data: { status: 'missing' }, error: null };
     if (name === 'consume_global_analysis_quota') { state.globalCalls++; return { data: { status: globalAllowed(state.globalCalls) ? 'allowed' : 'limit_reached' }, error: null }; }
     const statuses = { reserve_capture_operation: 'claimed', reserve_analysis_access: 'reserved', mark_analysis_request_started: 'started', finish_capture_operation: 'completed', complete_analysis_request: 'completed', refund_analysis_request: 'refunded' };
@@ -250,7 +251,7 @@ await test('handler: transient failure retried once in the same request, allowan
   const [label, json] = state.timing.at(-1);
   assert.equal(label, 'nutrition timing');
   const timing = JSON.parse(json);
-  assert.deepEqual(Object.keys(timing).sort(), ['access_ms', 'attempts', 'fallback_model', 'first_failure', 'lookup_ms', 'model_ms', 'outcome', 'retried', 'route', 'total_ms']);
+  assert.deepEqual(Object.keys(timing).sort(), ['access_ms', 'attempts', 'fallback_model', 'first_failure', 'lookup_ms', 'model_ms', 'outcome', 'premium', 'retried', 'route', 'total_ms']);
   assert.equal(timing.retried, true); assert.equal(timing.attempts, 2); assert.equal(timing.first_failure, 'provider_error'); assert.equal(timing.outcome, 'ok');
   assert.doesNotMatch(json, /Hafer|oat|synthetic|10000000/i, 'timing logs carry no content or identifiers');
 });
@@ -295,6 +296,62 @@ await test('handler: photo retry uses low detail and the configured fallback; in
   [, second] = modelCalls(state);
   assert.equal(second.body.model, 'openai/gpt-4.1-mini', 'Gemini is never enabled through the fallback secret');
   assert.ok(!modelCalls(state).some((call) => call.url.includes('chat/completions')));
+});
+
+await test('handler: premium photo model only for pilots under the daily cap, cached prompt, Azure fallback', async () => {
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(93), Buffer.from([0xff, 0xd9])]).toString('base64');
+  const photo = () => ({ imageBase64: jpeg, mimeType: 'image/jpeg', language: 'de', note: 'mit Wasser verdünnt', requestId: randomUUID(), ingredientCorrection: 1, captureProtocol: 2, estimates: 1 });
+  const chatOk = () => new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(meal) } }] }));
+  // Off by default: no status lookup, the Azure model as before.
+  let { state, post } = loadGateway(baseEnv, { premium: { pilot: true, recent: 1 } });
+  state.upstream.push(okResponse());
+  assert.equal((await post('/v1/analyze', photo())).status, 200);
+  assert.equal(countOf(state, 'premium_vision_status'), 0);
+  assert.equal(modelCalls(state)[0].body.model, 'openai/gpt-4.1-mini');
+  // Pilot mode, listed person under the cap: Sonnet on Bedrock with ZDR, cached instructions first, note last.
+  ({ state, post } = loadGateway({ ...baseEnv, VISION_PREMIUM_MODE: 'pilot' }, { premium: { pilot: true, recent: 2 } }));
+  state.upstream.push(chatOk());
+  let result = await post('/v1/analyze', photo());
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  let [call] = modelCalls(state);
+  assert.equal(call.body.model, CLAUDE_VISION_MODEL);
+  assert.ok(call.url.endsWith('/chat/completions'));
+  assert.deepEqual(call.body.provider, { data_collection: 'deny', only: ['amazon-bedrock'], allow_fallbacks: false, zdr: true });
+  const parts = call.body.messages[0].content;
+  assert.deepEqual(parts.map((part) => part.type), ['text', 'image_url', 'text']);
+  assert.deepEqual(parts[0].cache_control, { type: 'ephemeral' });
+  assert.equal(parts[0].text, photoDetectionPrompt('de'), 'the cached block is the note-free prompt, identical for every photo');
+  assert.match(parts[2].text, /mit Wasser verdünnt/);
+  assert.equal(JSON.parse(state.timing.at(-1)[1]).premium, true);
+  // Not listed, or over the daily cap: Azure model.
+  for (const premium of [{ pilot: false, recent: 0 }, { pilot: true, recent: 7 }]) {
+    ({ state, post } = loadGateway({ ...baseEnv, VISION_PREMIUM_MODE: 'pilot' }, { premium }));
+    state.upstream.push(okResponse());
+    assert.equal((await post('/v1/analyze', photo())).status, 200);
+    assert.equal(modelCalls(state)[0].body.model, 'openai/gpt-4.1-mini');
+  }
+  // Descriptions never use the premium model.
+  ({ state, post } = loadGateway({ ...baseEnv, VISION_PREMIUM_MODE: 'all' }, { premium: { pilot: false, recent: 0 } }));
+  state.upstream.push(okResponse());
+  assert.equal((await post('/v1/describe', describe())).status, 200);
+  assert.equal(modelCalls(state)[0].body.model, 'openai/gpt-4.1-mini');
+  // Mode all, but consent from before Bedrock was named (v3): stays on Azure.
+  ({ state, post } = loadGateway({ ...baseEnv, VISION_PREMIUM_MODE: 'all' }, { premium: { pilot: false, recent: 0 } }));
+  state.upstream.push(okResponse());
+  assert.equal((await post('/v1/analyze', photo())).status, 200);
+  assert.equal(modelCalls(state)[0].body.model, 'openai/gpt-4.1-mini', 'older consent never covers the new recipient');
+  // A Bedrock failure retries on Azure at full detail.
+  ({ state, post } = loadGateway({ ...baseEnv, VISION_PREMIUM_MODE: 'all' }, { premium: { pilot: true, recent: 0 } }));
+  state.upstream.push(new Response('{}', { status: 502 }), okResponse());
+  result = await post('/v1/analyze', photo());
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  const [first, second] = modelCalls(state);
+  assert.equal(first.body.model, CLAUDE_VISION_MODEL);
+  assert.equal(second.body.model, 'openai/gpt-4.1-mini');
+  assert.equal(second.body.input[0].content[1].detail, 'high');
+  assert.deepEqual(second.body.provider.only, ['azure']);
+  const timing = JSON.parse(state.timing.at(-1)[1]);
+  assert.equal(timing.premium, true); assert.equal(timing.fallback_model, true);
 });
 
 await test('client photo: 1024 px long edge, ~0.8 quality, ~600 KB target, crop and retry kept', () => {

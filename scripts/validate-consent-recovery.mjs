@@ -51,13 +51,17 @@ const gateway = await read('supabase/functions/nutrition/index.ts');
 const index = await read('src/app/index.tsx');
 const version = consent.match(/export const PRIVACY_VERSION = '([^']+)'/)?.[1];
 assert.ok(version, 'the consent version must be a literal the gateway can match');
-assert.match(consent, /return consent\.version === PRIVACY_VERSION && typeof consent\.acceptedAt === 'string';/,
-  'a stored consent with another version must not count as current');
+// 2026-11-08: v4 adds Amazon Bedrock for photos. v3 stays valid on purpose
+// (no forced re-consent); the gateway keeps v3 on the Azure route it named.
+assert.match(consent, /ACCEPTED_PRIVACY_VERSIONS\.includes\(consent\.version\) && typeof consent\.acceptedAt === 'string';/,
+  'a stored consent must be one of the explicitly accepted versions');
+assert.match(consent, /ACCEPTED_PRIVACY_VERSIONS: readonly string\[\] = \[PRIVACY_VERSION, '2026-10-09-ai-v3'\];/,
+  'only the current and the directly preceding version count; anything older re-asks');
 assert.match(context, /hasCurrentWellnessConsent\(\),[\s\S]{0,1500}setWellnessConsentGranted\(hasConsent\)/,
   'hydration must derive the consent state from the version check');
 assert.match(index, /if \(!wellnessConsentGranted\) \{\s*return <Redirect href=\{\(profile\.completedAt \? '\/data-consent' : '\/onboarding'\)/,
   'a returning user with an outdated consent must land on the consent screen');
-assert.ok(gateway.includes(`const REQUIRED_PRIVACY_VERSION = '${version}';`), 'the gateway must accept the version the app writes');
+assert.ok(gateway.includes(`const PREMIUM_PRIVACY_VERSION = '${version}';`) && gateway.includes('ACCEPTED_PRIVACY_VERSIONS = new Set([PREMIUM_PRIVACY_VERSION'), 'the gateway must accept the version the app writes');
 const accepted = gateway.match(/const ACCEPTED_PRIVACY_VERSIONS = new Set\(\[([^\]]+)\]\)/)?.[1] ?? '';
 assert.match(accepted, /REQUIRED_PRIVACY_VERSION/, 'the current version must be accepted');
 assert.match(gateway, /!ACCEPTED_PRIVACY_VERSIONS\.has\(consent\?\.privacy_version \?\? ''\)/, 'the gateway must check the accepted set');

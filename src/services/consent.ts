@@ -6,12 +6,18 @@ import { ensureSupabaseUser, isSupabaseConfigured, supabase } from '@/services/s
  * Bump this whenever the recipients or purposes in the explicit consent text
  * change. Older consent must not silently cover a newly disclosed transfer.
  *
+ * 2026-11-08-ai-v4: notice 2.9 adds Amazon Bedrock (Claude Sonnet 5.5) for
+ * photos. A v3 record stays valid (no forced re-consent); the server keeps
+ * those people on the Azure route they agreed to.
+ *
  * 2026-10-09-ai-v3: notice 2.5 (16+, third-country transfer safeguards,
  * aggregate server-side funnel, paused access test). A stored record with
  * any other version reads as "no consent", so the route guard sends the user
  * back to /data-consent and the new version is written server-first.
  */
-export const PRIVACY_VERSION = '2026-10-09-ai-v3';
+export const PRIVACY_VERSION = '2026-11-08-ai-v4';
+/** Older versions that still count as consent, each for the recipients it named. */
+const ACCEPTED_PRIVACY_VERSIONS: readonly string[] = [PRIVACY_VERSION, '2026-10-09-ai-v3'];
 const CONSENT_KEY = '@kandro/wellness-consent:v1';
 
 type StoredConsent = {
@@ -69,7 +75,7 @@ export async function hasCurrentWellnessConsent(): Promise<boolean> {
     const stored = await AsyncStorage.getItem(CONSENT_KEY);
     if (!stored) return false;
     const consent = JSON.parse(stored) as Partial<StoredConsent>;
-    return consent.version === PRIVACY_VERSION && typeof consent.acceptedAt === 'string';
+    return typeof consent.version === 'string' && ACCEPTED_PRIVACY_VERSIONS.includes(consent.version) && typeof consent.acceptedAt === 'string';
   } catch {
     return false;
   }

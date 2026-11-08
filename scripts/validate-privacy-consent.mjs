@@ -1,4 +1,4 @@
-import {modelRequest,GEMINI_MODEL,requestStructured} from '../supabase/functions/_shared/model-adapter.mjs';
+import {modelRequest,GEMINI_MODEL,CLAUDE_VISION_MODEL,requestStructured} from '../supabase/functions/_shared/model-adapter.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -28,7 +28,10 @@ assert.match(telemetry, /blockedAutomaticProperties = new Set\([\s\S]*?'goal'/, 
 assert.match(await read('src/app/data-consent.tsx'), /color=\{wellnessConsentGranted \? colors\.onAccent : colors\.attentionText\}/, 'paused consent icon must remain visible in dark mode and meet contrast on the pale amber');
 const version = consent.match(/PRIVACY_VERSION = '([^']+)'/)?.[1];
 assert.ok(version, 'the app must expose a versioned privacy consent');
-assert.ok(gateway.includes(`REQUIRED_PRIVACY_VERSION = '${version}'`), 'app and gateway consent versions must match');
+assert.ok(gateway.includes(`PREMIUM_PRIVACY_VERSION = '${version}'`), 'app and gateway consent versions must match');
+assert.match(gateway, /ACCEPTED_PRIVACY_VERSIONS = new Set\(\[PREMIUM_PRIVACY_VERSION, REQUIRED_PRIVACY_VERSION/, 'the gateway accepts the current consent and keeps v3 valid');
+assert.match(gateway, /premiumVisionMode === 'all' && consentNamesBedrock/, 'outside the pilot, only consent naming Amazon Bedrock may use the Bedrock route');
+assert.match(consent, /ACCEPTED_PRIVACY_VERSIONS: readonly string\[\] = \[PRIVACY_VERSION, '2026-10-09-ai-v3'\]/, 'v3 consent stays valid on the device, no forced re-consent');
 assert.match(gateway, /select\('age,privacy_version,wellness_consent_at,guardian_consent_at,guardian_consent_version'\)/, 'the gateway must verify consent and guardian approval server-side');
 assert.match(gateway, /code: 'consent_required'/, 'the gateway needs a stable consent error code');
 assert.match(context, /if \(!wellnessConsentGranted\)/, 'cloud hydration must stop without consent');
@@ -45,7 +48,7 @@ assert.match(telemetry, /await posthog\.optOut\(\)[\s\S]*posthog\.reset\(\[\]\)[
 assert.ok(routes.includes("'data-consent'"), 'privacy controls must stay reachable before consent');
 
 for (const [language, dictionary] of [['de', de], ['en', en]]) {
-  for (const recipient of ['OpenRouter', 'Microsoft Azure', 'OpenAI', 'GPT-4.1 mini']) {
+  for (const recipient of ['OpenRouter', 'Microsoft Azure', 'OpenAI', 'GPT-4.1 mini', 'Amazon Web Services', 'Amazon Bedrock', 'Claude Sonnet 5.5']) {
     assert.ok(dictionary.includes(recipient), `${language} explicit consent must name ${recipient}`);
   }
   assert.match(dictionary, /Zero Data Retention/, `${language} must disclose the configured retention protection`);
@@ -56,6 +59,7 @@ assert.ok(!gateway.includes("Deno.env.get('AI_PROVIDER')"), 'the production AI r
 assert.deepEqual(modelRequest({content:[]}).body.provider.only, ['azure'], 'the disclosed Azure processor must be pinned');
 assert.equal(modelRequest({content:[]}).body.provider.allow_fallbacks, false, 'provider fallback would invalidate the named-recipient disclosure');
 assert.equal(modelRequest({content:[]}).body.provider.zdr, true, 'Zero Data Retention must be enforced in code');
+assert.deepEqual(modelRequest({content:[],model:CLAUDE_VISION_MODEL}).body.provider, {data_collection:'deny',only:['amazon-bedrock'],allow_fallbacks:false,zdr:true}, 'the disclosed Bedrock processor must be pinned with ZDR and no fallback');
 assert.ok(!gateway.includes("Deno.env.get('OPENROUTER_ZDR')"), 'ZDR must not be disableable by production configuration');
 assert.ok(!gateway.includes('response.text()'), 'the hosted gateway must never read a provider error body into an exception');
 assert.ok(!localGateway.includes('response.text()'), 'the local gateway must never read a provider error body into an exception');

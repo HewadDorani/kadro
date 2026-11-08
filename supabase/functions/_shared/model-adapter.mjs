@@ -8,6 +8,15 @@ export const GEMINI_CONSENT_VERSION = '2026-10-01-gemini-candidate-v1';
 export const GEMINI_RELEASE_APPROVED = false;
 
 /**
+ * The premium photo model (owner decision 08.11.2026 after an 11-photo
+ * comparison): Claude Sonnet 5.5 on Amazon Bedrock only, ZDR, no data
+ * collection, no provider fallback. Photos only; a failure retries on the
+ * disclosed Azure model.
+ */
+export const CLAUDE_VISION_MODEL = 'anthropic/claude-sonnet-5.5';
+export const CLAUDE_ROUTE = 'amazon-bedrock';
+
+/**
  * OpenAI models that OpenRouter serves from Azure. Only these may run on the
  * disclosed path (Azure only, ZDR, no data collection, no provider fallback),
  * so a misconfigured secret can never route meal photos somewhere else.
@@ -39,11 +48,22 @@ export function resolveFallbackModel(value) {
 
 export function modelRequest({content, model='openai/gpt-4.1-mini', provider='openrouter', reasoning='low', schema=detectionSchema, name='kandro_meal_detection', maxOutputTokens=DETECTION_MAX_OUTPUT_TOKENS}) {
   const gemini=model===GEMINI_MODEL;
-  if (!['openrouter','openai'].includes(provider) || (gemini && provider!=='openrouter')) throw new ModelError('ai_provider_invalid',503);
+  const claude=model===CLAUDE_VISION_MODEL;
+  if (!['openrouter','openai'].includes(provider) || ((gemini||claude) && provider!=='openrouter')) throw new ModelError('ai_provider_invalid',503);
   if (gemini && !['low','medium'].includes(reasoning)) throw new ModelError('ai_provider_invalid',503);
-  if (!gemini && !(provider==='openrouter' ? AZURE_OPENAI_MODELS : DIRECT_OPENAI_MODELS).includes(model)) throw new ModelError('ai_provider_invalid',503);
+  if (!gemini && !claude && !(provider==='openrouter' ? AZURE_OPENAI_MODELS : DIRECT_OPENAI_MODELS).includes(model)) throw new ModelError('ai_provider_invalid',503);
   if (!Number.isSafeInteger(maxOutputTokens) || maxOutputTokens<256 || maxOutputTokens>4000) throw new ModelError('ai_provider_invalid',503);
-  const policy={data_collection:'deny',only:[gemini?GEMINI_ROUTE:'azure'],allow_fallbacks:false,zdr:true,...(gemini?{require_parameters:true}:{})};
+  const policy={data_collection:'deny',only:[gemini?GEMINI_ROUTE:claude?CLAUDE_ROUTE:'azure'],allow_fallbacks:false,zdr:true,...(gemini?{require_parameters:true}:{})};
+  // The long instruction text is identical for every photo; marking it lets
+  // the provider cache it, so only the image and the answer are paid in full.
+  if (claude) return {
+    url:'https://openrouter.ai/api/v1/chat/completions',
+    body:{model,max_tokens:Math.max(maxOutputTokens,2500),provider:policy,
+      messages:[{role:'user',content:content.map((part,index)=>part.type==='input_image'
+        ? {type:'image_url',image_url:{url:part.image_url}}
+        : {type:'text',text:part.text,...(index===0?{cache_control:{type:'ephemeral'}}:{})})}],
+      response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}},
+  };
   if (gemini) return {
     url:'https://openrouter.ai/api/v1/chat/completions',
     body:{model,store:false,max_tokens:8192,reasoning:{effort:reasoning,exclude:true},provider:policy,
@@ -143,7 +163,7 @@ export async function requestStructured({apiKey, fetchImpl=fetch, signal, timeou
           headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json','X-Title':'Kandro'},body:JSON.stringify(request.body)});
         if (!response.ok) throw new ModelError(response.status===429?'provider_rate_limited':'provider_error',response.status===429?429:502,response.headers?.get('retry-after'));
         let payload; try { payload=await response.json(); } catch { throw new ModelError('provider_response_invalid'); }
-        try { return validate(parseStructuredResponse(payload,options.model===GEMINI_MODEL)); }
+        try { return validate(parseStructuredResponse(payload,options.model===GEMINI_MODEL||options.model===CLAUDE_VISION_MODEL)); }
         catch (error) { if (error instanceof ModelError) throw error; throw new ModelError('provider_response_invalid'); }
       })(),
       new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new ModelError('provider_timeout',504));},timeoutMs);}),
