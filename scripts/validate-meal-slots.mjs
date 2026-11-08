@@ -24,16 +24,15 @@ const slotPage = readFileSync(new URL('../src/app/meal-slot.tsx', import.meta.ur
 if (!/MEAL_SLOTS = \['Breakfast', 'Lunch', 'Dinner', 'Snack'\] as const/.test(slotUtil) || !/MEAL_SLOTS\.map\(\(type\) =>/.test(today)) {
   problems.push('today.tsx: the four slots are no longer rendered as a fixed set');
 }
-if (!/onPress=\{\(\) => startScan\(slot\.type\)\}/.test(today)) {
+// Row and + both open that slot's page (08.11.2026); the page files every way in into its slot.
+if ((today.match(/onPress=\{\(\) => openSlot\(slot\.type\)\}/g) ?? []).length < 2) {
   problems.push('today.tsx: the per-slot add button does not pass its slot');
 }
-if (!/if \(slot\) setPlannedMealType\(slot\);/.test(today)) {
-  problems.push('today.tsx: startScan does not record the chosen slot');
-}
 // resetScan clears the choice, so setting it first would be setting nothing.
-const startScan = today.slice(today.indexOf('const startScan'), today.indexOf('const slots'));
-if (startScan.indexOf('resetScan()') > startScan.indexOf('setPlannedMealType')) {
-  problems.push('today.tsx: the slot is set before resetScan, which clears it again');
+const slotPageAdd = readFileSync(new URL('../src/app/meal-slot.tsx', import.meta.url), 'utf8');
+const addFn = slotPageAdd.slice(slotPageAdd.indexOf('const add = '), slotPageAdd.indexOf('const setPick'));
+if (addFn.indexOf('resetScan()') < 0 || addFn.indexOf('resetScan()') > addFn.indexOf('setPlannedMealType')) {
+  problems.push('meal-slot.tsx: the slot is set before resetScan, which clears it again');
 }
 for (const [language, source] of Object.entries(dictionaries)) {
   if (!/addTo: \(slot: string\)/.test(source)) {
@@ -52,7 +51,7 @@ for (const [file, source] of [['AppContext.tsx', context], ['mealDay.ts', mealDa
 }
 // Back-dating: a slot tapped while Today shows an earlier day files the meal
 // on that day; the choice is cleared with the slot and spent by the meal.
-if (!/if \(!isToday\) \{ setPlannedMealDate\(viewDay\);/.test(startScan)) {
+if (!/if \(!isToday\) keepDay\.current = true;\s*router\.push\(\{ pathname: '\/meal-slot', params: \{ type: slot, date: viewDay \} \}/.test(today)) {
   problems.push('today.tsx: logging from an earlier day does not carry that day to the meal');
 }
 
@@ -125,11 +124,15 @@ if (!/const dayMeals = useMemo\(\(\) => isToday \? meals : mealHistory\.filter\(
   problems.push('today.tsx: the day switcher does not show the chosen day\'s meals');
 }
 // Heute: every slot row opens its page and has its own +; the page offers all four ways in, filed to that slot and day.
-if (!/onPress=\{\(\) => openSlot\(slot\.type\)\}/.test(today) || !/onPress=\{\(\) => startScan\(slot\.type\)\}/.test(today) || !/pathname: '\/meal-slot', params: \{ type: slot, date: viewDay \}/.test(today)) {
+if (!/onPress=\{\(\) => openSlot\(slot\.type\)\}/.test(today) || !/pathname: '\/meal-slot', params: \{ type: slot, date: viewDay \}/.test(today)) {
   problems.push('today.tsx: a slot row must open its page and keep its own add button');
 }
-for (const mode of ['photo', 'description', 'search', 'barcode']) {
+for (const mode of ['photo', 'description', 'barcode']) {
   if (!slotPage.includes(`{ mode: '${mode}',`)) problems.push(`meal-slot.tsx: the "${mode}" way to add is missing`);
+}
+// Search is the page itself; saving files every pick into this slot and day.
+if (!slotPage.includes('<MealFoodPicker') || !/setPlannedMealType\(type\);\s*setPlannedMealDate\(isToday \? null : date\);[\s\S]{0,120}await logFoodsDirect\(picks\.map/.test(slotPage)) {
+  problems.push('meal-slot.tsx: the page must search itself and save its picks into this slot and day');
 }
 if (!/resetScan\(\);[\s\S]{0,160}setPlannedMealType\(type\);\s*if \(!isToday\) setPlannedMealDate\(date\);/.test(slotPage)) {
   problems.push('meal-slot.tsx: adding from the page must file into that slot and day');

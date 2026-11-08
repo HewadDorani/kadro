@@ -37,7 +37,7 @@ export default function TodayScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { consumed: consumedToday, favoriteMeals, hasLoggedScan, mealHistory, meals, pendingAnalysisCount, profile, refreshCloudState, remaining, repeatMeals, resetScan, resumeLatestAnalysis, setPlannedMealDate, setPlannedMealType, syncMode, targets, userName } = useApp();
+  const { consumed: consumedToday, favoriteMeals, hasLoggedScan, mealHistory, meals, pendingAnalysisCount, profile, refreshCloudState, remaining, repeatMeals, resumeLatestAnalysis, syncMode, targets, userName } = useApp();
   // "Nochmal essen" asks which slot ("Als … eintragen") instead of guessing it from the clock.
   const [choosing, setChoosing] = useState<{ candidate: RepeatCandidate; slot: Meal['type'] } | null>(null);
   const repeating = choosing?.candidate.key ?? null;
@@ -114,15 +114,6 @@ export default function TodayScreen() {
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const startScan = (slot?: Meal['type']) => {
-    resetScan();
-    // resetScan clears any previous choice, so the slot is set after it.
-    if (slot) setPlannedMealType(slot);
-    // Logging while looking at an earlier day files the meal on that day.
-    if (!isToday) { setPlannedMealDate(viewDay); keepDay.current = true; }
-    router.navigate('/(tabs)/scan');
   };
 
   const openSlot = (slot: Meal['type']) => {
@@ -413,7 +404,7 @@ export default function TodayScreen() {
                     accessibilityLabel={t.today.addTo(label)}
                     accessibilityRole="button"
                     hitSlop={8}
-                    onPress={() => startScan(slot.type)}
+                    onPress={() => openSlot(slot.type)}
                     style={styles.slotAdd}
                   >
                     <Ionicons color={colors.text} name="add" size={24} />
