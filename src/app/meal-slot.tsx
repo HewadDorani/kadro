@@ -26,11 +26,15 @@ import { displayClockTime, formatDayLabel, formatNumber, mealTypeIcon, mealTypeL
 import { isMealSlot, slotTarget } from '@/utils/mealSlots';
 import { itemNutritionPer100g } from '@/utils/portions';
 
-/** Photo, barcode and voice open the scan tab filed into this slot; search is this page. */
+/**
+ * Photo, voice and barcode open the scan tab filed into this slot; search is
+ * this page. The photo comes first and filled: it is what people pay for, so
+ * it is never behind the list.
+ */
 const OTHER_WAYS: { mode: CaptureMode; icon: keyof typeof Ionicons.glyphMap; label: 'photo' | 'describe' | 'barcode' }[] = [
   { mode: 'photo', icon: 'camera-outline', label: 'photo' },
-  { mode: 'barcode', icon: 'barcode-outline', label: 'barcode' },
   { mode: 'description', icon: 'mic-outline', label: 'describe' },
+  { mode: 'barcode', icon: 'barcode-outline', label: 'barcode' },
 ];
 
 type Pick = { key: string; food: FoodSearchResult; grams: number };
@@ -202,16 +206,19 @@ export default function MealSlotScreen() {
       </Card>
 
       <View style={styles.ways}>
-        <PressableScale accessibilityRole="button" accessibilityState={{ selected: true }} onPress={() => searchRef.current?.focus()} style={[styles.way, styles.wayOn]}>
+        {OTHER_WAYS.map((way) => {
+          const primary = way.mode === 'photo';
+          return (
+            <PressableScale accessibilityLabel={`${t.mealSlot[way.label]}: ${t.today.addTo(label)}`} accessibilityRole="button" key={way.mode} onPress={() => add(way.mode)} style={[styles.way, primary && styles.wayPrimary]}>
+              <Ionicons color={primary ? colors.onAccent : colors.text} name={way.icon} size={20} />
+              <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={[styles.wayLabel, primary && styles.wayLabelPrimary]}>{t.mealSlot[way.label]}</Text>
+            </PressableScale>
+          );
+        })}
+        <PressableScale accessibilityRole="button" onPress={() => searchRef.current?.focus()} style={styles.way}>
           <Ionicons color={colors.text} name="search" size={20} />
           <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.wayLabel}>{t.mealSlot.search}</Text>
         </PressableScale>
-        {OTHER_WAYS.map((way) => (
-          <PressableScale accessibilityLabel={`${t.mealSlot[way.label]}: ${t.today.addTo(label)}`} accessibilityRole="button" key={way.mode} onPress={() => add(way.mode)} style={styles.way}>
-            <Ionicons color={colors.text} name={way.icon} size={20} />
-            <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={styles.wayLabel}>{t.mealSlot[way.label]}</Text>
-          </PressableScale>
-        ))}
       </View>
 
       <MealFoodPicker
@@ -265,8 +272,10 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   trash: { width: 40, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
   ways: { flexDirection: 'row', gap: 8 },
   way: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 4, borderRadius: radii.card, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  wayOn: { borderColor: colors.accentText, backgroundColor: colors.neutralSoft },
+  // Pistachio fill is the scan action's colour; the photo tile is that action.
+  wayPrimary: { borderColor: colors.accent, backgroundColor: colors.accent },
   wayLabel: { ...typeScale.caption, color: colors.text, fontWeight: '600' },
+  wayLabelPrimary: { color: colors.onAccent },
   footer: { position: 'absolute', left: 20, right: 20, bottom: 0 },
   footerSpace: { height: 72 },
 });
