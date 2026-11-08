@@ -354,6 +354,19 @@ await test('handler: premium photo model only for pilots under the daily cap, ca
   assert.equal(timing.premium, true); assert.equal(timing.fallback_model, true);
 });
 
+await test('quark and Zwieback resolve to their own BLS rows; prompt forbids "X or Y" identities', async () => {
+  const { resolveBlsFacts } = await import('../supabase/functions/_shared/bls-reference.mjs');
+  const facts = (name, searchTermEn) => resolveBlsFacts({ name, searchTermEn, referenceKey: 'other' });
+  assert.equal(facts('Quark', 'quark')?.referenceId, 'M713100', 'plain quark is low-fat Speisequark, never cream cheese');
+  assert.ok(facts('Quark', 'quark').calories < 80);
+  assert.equal(facts('Quark', 'quark 40% fat')?.referenceId, 'M713500', 'a stated fat level keeps its own row even under the name Quark');
+  assert.equal(facts('Zwieback', 'rusk')?.referenceId, 'D036000');
+  assert.equal(facts('Frischkäse', 'cream cheese'), null, 'cream cheese is untouched');
+  const prompt = photoDetectionPrompt('de');
+  assert.match(prompt, /Quark \(Speisequark, Topfen\) is not cream cheese/);
+  assert.match(prompt, /Never name two alternatives/);
+});
+
 await test('client photo: 1024 px long edge, ~0.8 quality, ~600 KB target, crop and retry kept', () => {
   const client = read('src/services/mealAnalysis.ts');
   assert.match(client, /export const PHOTO_LONG_EDGE = 1024;/);

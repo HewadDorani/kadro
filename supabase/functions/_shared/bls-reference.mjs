@@ -268,6 +268,28 @@ for (const [code, aliases] of [
   for (const alias of aliases) ingredientAliases.set(exactFoodKey(alias), row);
 }
 
+// Ingredient terms only (searchTermEn), never the displayed name, so a name
+// like "Quark" cannot override a stated "quark 40% fat".
+for (const [code, aliases] of [
+  // 08.11.2026 owner test: plain quark was priced as cream cheese (317 kcal
+  // for 120 g instead of about 80). Plain quark means the everyday low-fat
+  // Speisequark; stated fat levels keep their own rows.
+  ['M713100', ['quark', 'plain quark', 'quark plain', 'quark low fat', 'low fat quark', 'low-fat quark', 'skimmed milk quark', 'skim milk quark', 'quark cheese', 'fresh quark', 'quark fresh', 'Quark', 'Magerquark', 'Speisequark', 'Speisequark mager', 'Topfen', 'Magertopfen']],
+  ['M713300', ['quark 20% fat', 'quark 20 % fat', 'half fat quark', 'medium fat quark', 'Halbfettquark', 'Quark 20 %', 'Speisequark 20 %']],
+  ['M713500', ['quark 40% fat', 'quark 40 % fat', 'full fat quark', 'creamy quark', 'Sahnequark', 'Quark 40 %', 'Speisequark 40 %']],
+  // Same test: a jar of Zwieback became butter biscuits. Ordinary German
+  // Zwieback is the butter rusk row; wholemeal and sweetened ones stay apart.
+  ['D036000', ['rusk', 'rusks', 'zwieback', 'butter rusk', 'butter rusks', 'Zwieback', 'Butterzwieback']],
+]) {
+  const row = rowsByCode.get(code);
+  if (!row) throw new Error(`Missing reviewed BLS ingredient ${code}`);
+  for (const alias of aliases) {
+    const key = exactFoodKey(alias);
+    if (ingredientAliases.has(key) && ingredientAliases.get(key)[0] !== code) throw new Error(`Conflicting BLS alias: ${alias}`);
+    ingredientAliases.set(key, row);
+  }
+}
+
 // Build 14 feedback: whole food-family names only. These are typical BLS
 // values, not manufacturer labels. Keep light, sugar-free and milk/yogurt
 // preparations separate. Chocolate-with-biscuit is intentionally excluded:
