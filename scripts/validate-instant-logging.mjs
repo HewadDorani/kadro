@@ -166,4 +166,16 @@ await test('an unpriced ingredient is matched on the device at its detected amou
   assert.equal(items[2].source.code, 'unmatched', 'no guess for an unknown food');
 });
 
+await test('a typed search finds what this person already ate, most eaten first (08.11.2026)', () => {
+  const item = (name, ref, provider, kcal) => ({ id: name, name, amountG: 40, calories: kcal, included: true, source: { provider, referenceId: ref, label: provider }, nutritionPer100g: { calories: kcal * 2.5, protein: 5, carbs: 60, fat: 20 } });
+  const history = [
+    { id: 'a', savedAt: '2026-11-01T08:00:00Z', items: [item('Nougat Bits', '4000417025005', 'open-food-facts', 200), item('Nougat Creme', '400', 'open-food-facts', 120)] },
+    { id: 'b', savedAt: '2026-11-02T08:00:00Z', items: [item('Nougat Bits', '4000417025005', 'open-food-facts', 200)] },
+  ];
+  assert.deepEqual(suggest.historyMatches('nougat', history).map(r => r.name), ['Nougat Bits', 'Nougat Creme'], 'twice eaten leads');
+  assert.deepEqual(suggest.historyMatches('nougat bits', history).map(r => r.name), ['Nougat Bits'], 'every word must match');
+  assert.deepEqual(suggest.historyMatches('n', history), [], 'one letter is not a search');
+  assert.deepEqual(suggest.historyMatches('pizza', history), []);
+});
+
 console.log(JSON.stringify({ passed, scope: 'instant suggestions, recents, local descriptions, own foods; real BLS snapshot; zero external HTTP' }));

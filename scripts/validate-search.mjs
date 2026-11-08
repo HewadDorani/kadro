@@ -112,13 +112,19 @@ assert.ok(Number(screen.match(/const LOCAL_SUGGEST_DELAY_MS = (\d+);/)[1]) < 300
 assert.match(screen, /const generic = mergeSuggestions\(local, results\.generic\);\s*setSearchResults\(generic\);/, 'gateway rows are merged without duplicates');
 assert.match(screen, /setProductResults\(mergeSuggestions\(generic, results\.products\)\.slice\(generic\.length\)\)/, 'a product that is also a generic row is shown once');
 assert.match(screen, /foodSourceBadge\(result\)/, 'every row shows where its values come from');
-assert.match(screen, /myProducts\.map\(renderResult\)[\s\S]*frequent\.map\(renderResult\)[\s\S]*recents\.map\(renderResult\)/,
-  'an empty field lists own products, then frequent, then recent foods');
+// Empty field (08.11.2026): tabs Häufig / Zuletzt / Favoriten, one list at a time.
+assert.match(screen, /activeTab === 'frequent' \? <>\s*\{myProducts\.map\(renderResult\)\}\s*\{frequent\.map\(renderResult\)\}[\s\S]*activeTab === 'recent' \? <>\s*\{allRecents\.map\(renderResult\)\}[\s\S]*favorites\.map\(favorite =>[\s\S]*onPress=\{\(\) => addFavoriteMeal\(favorite\.meal\)\}/,
+  'an empty field offers frequent (own products first), recent and favourite meals as tabs');
+// Typed: what this person already ate leads, above foods and products, and is not repeated below.
+assert.match(screen, /productsLead \? <>\{eatenSection\}\{productSection\}\{foodSection\}<\/> : <>\{eatenSection\}\{foodSection\}\{productSection\}<\/>/,
+  'already-eaten matches lead every typed search');
+assert.match(screen, /searchResults\.filter\(notEaten\)/);
+assert.match(screen, /productResults\.filter\(notEaten\)/);
 assert.match(screen, /t\.scan\.quickAddCta/, 'quick add must be offered when nothing fits');
 assert.match(screen, /openLabelScan\(\)/, 'the search must offer the nutrition-label scan');
 for (const file of ['src/i18n/de.ts', 'src/i18n/en.ts']) {
   const dictionary = await read(file);
-  for (const key of ['badgeBls', 'badgeOff', 'badgeCustom', 'frequentTitle', 'myProductsTitle', 'quickAddTitle']) assert.ok(dictionary.includes(`${key}:`), `${file} is missing ${key}`);
+  for (const key of ['badgeBls', 'badgeOff', 'badgeCustom', 'eatenTitle', 'tabFrequent', 'tabRecent', 'tabFavorites', 'quickAddTitle']) assert.ok(dictionary.includes(`${key}:`), `${file} is missing ${key}`);
 }
 assert.match(await read('src/i18n/de.ts'), /badgeOff: 'Open Food Facts', badgeUsda: 'USDA', badgeCustom: 'Mein Produkt'/);
 const suggestSource = await read('src/services/foodSuggest.ts');

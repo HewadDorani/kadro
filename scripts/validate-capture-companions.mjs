@@ -230,7 +230,7 @@ function scanScreenHarness() {
     '@/components/CaptureSearchHelp': { CaptureSearchHelp: 'CaptureSearchHelp' },
     '@/components/ScanFavorites': { ScanFavoritesButton: 'ScanFavoritesButton', ScanFavoritesSheet: 'ScanFavoritesSheet' },
     '@/components/ManualFoodForm': { ManualFoodForm: 'ManualFoodForm' },
-    '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: (a, b) => [...a, ...b], recentFoods: () => [], frequentFoods: () => [], suggestFoods: () => [], foodSourceBadge: () => 'bls' },
+    '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: (a, b) => [...a, ...b], recentFoods: () => [], frequentFoods: () => [], historyMatches: () => [], suggestFoods: () => [], foodSourceBadge: () => 'bls' },
     '@/services/customFoods': { customFoodResult: x => x, deleteCustomFood: async () => {}, isCustomFoodResult: () => false, matchCustomFoods: () => [] },
     '@/hooks/useCustomFoods': { useCustomFoods: () => [] },
     '@/components/QuickAddForm': { QuickAddForm: 'QuickAddForm', isQuickAddResult: () => false },
@@ -263,7 +263,7 @@ function scanScreenHarness() {
     '@/services/region': { getMarketRegion: () => 'de', productIndexRegion: () => 'de' },
     '@/context/SubscriptionContext': { useSubscription: () => ({ status: 'active' }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ locale: 'en-GB', t: { scan: copy, common: copy, errors: copy } }) },
-    '@/services/haptics': { primaryHaptic() {}, successHaptic() {} },
+    '@/services/haptics': { primaryHaptic() {}, selectionHaptic() {}, successHaptic() {} }, '@/services/repeatMeals': { visibleFavorites: (favorites) => favorites ?? [] }, '@/utils/portions': { itemNutritionPer100g: (item) => item.nutritionPer100g },
     '@/utils/format': { formatNumber: String, formatDayLabel: String, mealTypeLabel: String }, '@/hooks/useReducedMotion': { useReducedMotion: () => true },
     '@/utils/mealDay': { mealTypeForTime: () => 'Lunch' }, '@/utils/date': { localDateKey: () => '2026-10-09' },
   }, process.env.SCAN_SCREEN_SOURCE ? fs.readFileSync(process.env.SCAN_SCREEN_SOURCE, 'utf8') : null).default;

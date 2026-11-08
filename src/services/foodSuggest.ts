@@ -339,6 +339,24 @@ export function recentFoods(history: Meal[], limit = 12): FoodSearchResult[] {
 }
 
 /**
+ * Foods from the person's own history whose name contains every typed word
+ * ("nougat bits" → the Nougat Bits eaten last week), most often eaten first,
+ * then most recent. They lead the typed search: what someone has logged
+ * before is almost always what they mean.
+ */
+export function historyMatches(query: string, history: Meal[], limit = 4): FoodSearchResult[] {
+  const tokens = fold(query).split(' ').filter(Boolean);
+  if (!tokens.length || tokens.join('').length < 2) return [];
+  const counts = historyCounts(history);
+  return recentFoods(history, 300)
+    .map((result, recency) => ({ result, recency, words: fold(`${result.name} ${result.officialName ?? ''}`).split(' ') }))
+    .filter(({ words }) => tokens.every(token => words.some(word => word.startsWith(token))))
+    .sort((a, b) => (counts.get(b.result.id)?.count ?? 0) - (counts.get(a.result.id)?.count ?? 0) || a.recency - b.recency)
+    .slice(0, limit)
+    .map(({ result }) => result);
+}
+
+/**
  * Keys that identify the same food across sources: the reference itself, a
  * barcode shared by an own product and Open Food Facts, and the visible
  * name with its energy (the same product listed twice under two codes).
@@ -376,12 +394,8 @@ export function foodSourceBadge(result: Pick<FoodSearchResult, 'source'>): FoodS
   }
 }
 
-/**
- * Foods eaten at least twice, most often first (ties: most recent), for the
- * empty search field. Any source with a stored per-100 g reference counts.
- */
-export function frequentFoods(history: Meal[], limit = 6): FoodSearchResult[] {
-  const recents = recentFoods(history, 200);
+/** How often and how lately each food was eaten, keyed like recentFoods' ids. */
+function historyCounts(history: Meal[]) {
   const counts = new Map<string, { count: number; lastAt: string }>();
   for (const meal of history) {
     for (const item of meal.items ?? []) {
@@ -393,6 +407,16 @@ export function frequentFoods(history: Meal[], limit = 6): FoodSearchResult[] {
       counts.set(key, { count: (previous?.count ?? 0) + 1, lastAt: previous && previous.lastAt > at ? previous.lastAt : at });
     }
   }
+  return counts;
+}
+
+/**
+ * Foods eaten at least twice, most often first (ties: most recent), for the
+ * empty search field. Any source with a stored per-100 g reference counts.
+ */
+export function frequentFoods(history: Meal[], limit = 6): FoodSearchResult[] {
+  const recents = recentFoods(history, 200);
+  const counts = historyCounts(history);
   return recents
     .filter(result => (counts.get(result.id)?.count ?? 0) >= 2)
     .sort((a, b) => (counts.get(b.id)!.count - counts.get(a.id)!.count) || counts.get(b.id)!.lastAt.localeCompare(counts.get(a.id)!.lastAt))

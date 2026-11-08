@@ -206,7 +206,7 @@ function searchScreen({ local, productReply }) {
     '@/components/CaptureSearchHelp': { CaptureSearchHelp: 'CaptureSearchHelp' },
     '@/components/ScanFavorites': { ScanFavoritesButton: 'ScanFavoritesButton', ScanFavoritesSheet: 'ScanFavoritesSheet' },
     '@/components/ManualFoodForm': { ManualFoodForm: 'ManualFoodForm' },
-    '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: suggest.mergeSuggestions, recentFoods: () => [], frequentFoods: () => [], suggestFoods: () => local, foodSourceBadge: suggest.foodSourceBadge },
+    '@/services/foodSuggest': { foodUsage: () => new Map(), mergeSuggestions: suggest.mergeSuggestions, recentFoods: () => [], frequentFoods: () => [], historyMatches: () => [], suggestFoods: () => local, foodSourceBadge: suggest.foodSourceBadge },
     '@/services/productSearch': hints,
     '@/services/region': { getMarketRegion: () => 'de', productIndexRegion: () => 'de' },
     '@/services/customFoods': { customFoodResult: x => x, deleteCustomFood: async () => {}, isCustomFoodResult: () => false, matchCustomFoods: () => [] },
@@ -233,7 +233,7 @@ function searchScreen({ local, productReply }) {
     '@/services/mealAnalysis': { lookupBarcodeFood: async () => null, MealAnalysisError: class extends Error {}, deleteTemporaryPhoto() {}, searchProducts: async (query, options) => { calls.push([query, options]); return productReply(query); } },
     '@/context/SubscriptionContext': { useSubscription: () => ({ status: 'active' }) },
     '@/i18n/LanguageProvider': { useLanguage: () => ({ language: 'de', locale: 'de-DE', t: { scan: copy, common: copy, errors: copy, today: copy } }) },
-    '@/services/haptics': { primaryHaptic() {}, successHaptic() {} },
+    '@/services/haptics': { primaryHaptic() {}, selectionHaptic() {}, successHaptic() {} }, '@/services/repeatMeals': { visibleFavorites: (favorites) => favorites ?? [] }, '@/utils/portions': { itemNutritionPer100g: (item) => item.nutritionPer100g },
     '@/utils/format': { formatNumber: String, formatDayLabel: String, mealTypeLabel: String }, '@/hooks/useReducedMotion': { useReducedMotion: () => true },
     '@/utils/mealDay': { mealTypeForTime: () => 'Lunch' }, '@/utils/date': { localDateKey: () => '2026-10-12' },
   }).default;

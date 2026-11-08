@@ -17,6 +17,7 @@
 - [x] Du in sechs Zeilen mit eigenen Seiten statt zehn Abschnitten; Plan-Karte in zwei Zeilen.
 - [x] Ruhigere Typografie und Yazio-artige Tageskarte (08.11.2026): Protein, Kohlenhydrate und Fett als schmale Balken in der Ring-Karte; Titelstufen kleiner (display 30, title1 25, title2 20), Gewicht 800 entfällt, Karten 18 pt Innenabstand, „Dein nächster Zug“ leiser, Abschnitt „Mahlzeiten“.
 - [x] „Schon ein Konto? Anmelden“ im ersten Onboarding-Schritt öffnet „Vorhandenes Konto laden“ (Apple oder E-Mail); eine leere Gast-Sitzung trägt den Kontowechsel. Der zweite-Gerät-Weg mit echter Apple-ID ist noch nicht auf einem Gerät getestet.
+- [x] Suche (08.11.2026): „Schon gegessen“ steht bei jeder getippten Suche ganz oben (Name enthält alle Wörter, am häufigsten Gegessenes zuerst), ohne Doppelung darunter; die leere Suche zeigt Reiter Häufig / Zuletzt / Favoriten, ein Favorit legt alle Lebensmittel mit Menge in die Auswahl. Hinweiszeile entfällt. Paywall wechselt die Darstellung nicht mehr (Sentry KANDRO-IOS-2).
 - [ ] Nach zwei Wochen vergleichen: Paywall-Sichtungen, „testen“-Tipps und Trials je Version (kurz 1.0.6/1.0.9 gegen lang 1.0.7/1.0.8), dazu Downloads pro Konto aus App Store Connect.
 
 ## 2026-11-02 – Europa-Markt (1.0.9)

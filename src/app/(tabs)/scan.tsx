@@ -28,14 +28,17 @@ import { LogTargetRow } from '@/components/LogTargetPicker';
 import { productSearchHint, productsFirst } from '@/services/productSearch';
 import { getMarketRegion } from '@/services/region';
 import { markUsage } from '@/services/usageSignals';
-import { foodSourceBadge, foodUsage, frequentFoods, mergeSuggestions, recentFoods, suggestFoods, type FoodSourceBadge } from '@/services/foodSuggest';
+import { foodSourceBadge, foodUsage, frequentFoods, historyMatches, mergeSuggestions, recentFoods, suggestFoods, type FoodSourceBadge } from '@/services/foodSuggest';
 import { customFoodResult, deleteCustomFood, isCustomFoodResult, matchCustomFoods } from '@/services/customFoods';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
 import { isQuickAddResult, QuickAddForm } from '@/components/QuickAddForm';
 import { parseLocalDescription } from '@/services/localDescription';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { useLanguage } from '@/i18n/LanguageProvider';
-import { primaryHaptic, successHaptic } from '@/services/haptics';
+import { primaryHaptic, selectionHaptic, successHaptic } from '@/services/haptics';
+import { visibleFavorites } from '@/services/repeatMeals';
+import type { Meal } from '@/types/nutrition';
+import { itemNutritionPer100g } from '@/utils/portions';
 import { formatDayLabel, formatNumber, mealTypeLabel } from '@/utils/format';
 import { mealTypeForTime } from '@/utils/mealDay';
 import { localDateKey } from '@/utils/date';
@@ -68,7 +71,7 @@ export default function ScanScreen() {
     const subscription = AppState.addEventListener('change', (state) => setForeground(state === 'active'));
     return () => subscription.remove();
   }, []);
-  const { applySearchResult, deleteLoggedMeal, logFoodsDirect, plannedMealDate, plannedMealType, setPlannedMealDate, setPlannedMealType, descriptionInput, freeScansLeft, hasEverLoggedScan, isCurrentScanLogged, mealHistory, resetScan, scannedMeal, scanMode, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan } = useApp();
+  const { applySearchResult, deleteLoggedMeal, favoriteMeals, logFoodsDirect, plannedMealDate, plannedMealType, setPlannedMealDate, setPlannedMealType, descriptionInput, freeScansLeft, hasEverLoggedScan, isCurrentScanLogged, mealHistory, resetScan, scannedMeal, scanMode, setCapturedPhoto, startBarcodeScan, startDemoScan, startDescriptionScan } = useApp();
   const { status: subscriptionStatus } = useSubscription();
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraReady, setCameraReady] = useState(false);
@@ -449,13 +452,14 @@ export default function ScanScreen() {
   // Own products ("Mein Produkt") lead every list they match; refreshed from
   // the cloud once while the search sheet is open.
   const customFoods = useCustomFoods(showSearch);
-  // Empty field: own products, then what is eaten often, then the latest.
+  // Empty field, "Häufig": own products, then what is eaten often (up to 12).
   const myProducts = useMemo(() => customFoods.slice(0, 5).map(customFoodResult), [customFoods, language]);
-  const frequent = useMemo(() => frequentFoods(mealHistory), [mealHistory, language]);
-  const recents = useMemo(() => {
-    const shown = new Set([...myProducts, ...frequent].map(result => result.source.referenceId ?? result.id));
-    return recentFoods(mealHistory).filter(result => !shown.has(result.source.referenceId ?? result.id));
-  }, [mealHistory, language, myProducts, frequent]);
+  const frequent = useMemo(() => frequentFoods(mealHistory, 12), [mealHistory, language]);
+  // Empty field, Yazio-style: one list at a time instead of three stacked sections.
+  const [listTab, setListTab] = useState<'frequent' | 'recent' | 'favorites' | null>(null);
+  const allRecents = useMemo(() => recentFoods(mealHistory, 30), [mealHistory, language]);
+  const favorites = useMemo(() => visibleFavorites(favoriteMeals), [favoriteMeals]);
+  const activeTab = listTab ?? (myProducts.length || frequent.length ? 'frequent' : 'recent');
   const badgeLabel = (badge: FoodSourceBadge) => ({
     bls: t.scan.badgeBls, off: t.scan.badgeOff, usda: t.scan.badgeUsda, custom: t.scan.badgeCustom, own: t.scan.badgeOwn, catalog: t.scan.badgeCatalog,
   })[badge];
@@ -650,6 +654,12 @@ export default function ScanScreen() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
   };
   const removePicked = (id: string) => setAdded(list => list.filter(entry => entry.id !== id));
+  // A favourite meal adds all its foods with their saved amounts; the tray saves them into this slot.
+  const addFavoriteMeal = (meal: Meal) => {
+    for (const item of meal.items.filter(entry => entry.included)) {
+      finishFood({ id: `fav-${meal.id}-${item.id}`, name: item.name, per100g: itemNutritionPer100g(item), defaultGrams: item.amountG, portions: item.portions ?? [], source: item.source, lastGrams: item.amountG }, item.amountG);
+    }
+  };
   const savePicked = async () => {
     if (adding || !added.length) return;
     setAdding(true); setAddError(null);
@@ -778,10 +788,21 @@ export default function ScanScreen() {
   const searchRides = manualFor !== null || quickAddFor !== null || added.length > 0;
   const productsLead = productsFirst(typedQuery, searchResults.length, productResults.length, getMarketRegion());
   const showProductEmpty = typedQuery.length >= 2 && !searching && !productError && !searchError && !productResults.length;
-  const foodSection = searchResults.length ? <>
+  // What this person already ate leads every typed search ("nougat bits" → their Nougat Bits),
+  // above foods and products alike, and is not repeated below.
+  const eatenMatches = useMemo(() => historyMatches(typedQuery, mealHistory), [typedQuery, mealHistory, language]);
+  const eatenKeys = new Set(eatenMatches.map(result => result.source.referenceId ?? result.id));
+  const notEaten = (result: FoodSearchResult) => !eatenKeys.has(result.source.referenceId ?? result.id);
+  const eatenSection = typedQuery.length >= 2 && eatenMatches.length ? <>
+    <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.eatenTitle}</Text>
+    {eatenMatches.map(renderResult)}
+  </> : null;
+  const shownFoods = searchResults.filter(notEaten);
+  const shownProducts = productResults.filter(notEaten);
+  const foodSection = shownFoods.length ? <>
     <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionFoods}</Text>
-    {searchResults.slice(0, visibleSearchCount).map(renderResult)}
-    {searchResults.length > visibleSearchCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /></View> : null}
+    {shownFoods.slice(0, visibleSearchCount).map(renderResult)}
+    {shownFoods.length > visibleSearchCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleSearchCount((count) => count + 15)} /></View> : null}
   </> : null;
   const productSection = typedQuery.length >= 2 ? <>
     <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.sectionProducts}</Text>
@@ -795,8 +816,8 @@ export default function ScanScreen() {
         ))}
       </View>
     ) : null}
-    {productResults.slice(0, visibleProductCount).map(renderResult)}
-    {productResults.length > visibleProductCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleProductCount((count) => count + 15)} /></View> : null}
+    {shownProducts.slice(0, visibleProductCount).map(renderResult)}
+    {shownProducts.length > visibleProductCount ? <View style={styles.searchMore}><PrimaryButton label={t.scan.searchMore} variant="secondary" onPress={() => setVisibleProductCount((count) => count + 15)} /></View> : null}
     {!searching && productError && !searchError ? <Text accessibilityLiveRegion="polite" style={styles.searchStatus}>{t.scan.productsUnavailable}</Text> : null}
     {showProductEmpty ? (
       <View style={styles.productEmpty}>
@@ -1031,7 +1052,6 @@ export default function ScanScreen() {
               size="medium"
               title={t.scan.searchTitle}
             />
-            {!searchQuery.trim() && !added.length ? <Text style={styles.describeText}>{t.scan.searchHint}</Text> : null}
             {added.length ? <View accessibilityLiveRegion="polite" style={styles.addedBox}>
               <Pressable accessibilityRole="button" accessibilityState={{ expanded: addedOpen }} onPress={() => setAddedOpen((open) => !open)} style={styles.addedSummary}>
                 <Ionicons color={colors.success} name="checkmark-circle" size={18} />
@@ -1089,13 +1109,33 @@ export default function ScanScreen() {
               ) : null}
               {completedEmptySearch && !searching && !searchError ? <CaptureSearchHelp query={searchQuery.trim()} onConfirm={value=>runSearch(value,true)}/> : null}
               {searchQuery.trim().length < 2 ? <>
-                {myProducts.length ? <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.myProductsTitle}</Text> : null}
-                {myProducts.map(renderResult)}
-                {frequent.length ? <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.frequentTitle}</Text> : null}
-                {frequent.map(renderResult)}
-                {recents.length ? <Text accessibilityRole="header" style={styles.searchSection}>{t.scan.recentTitle}</Text> : null}
-                {recents.map(renderResult)}
-              </> : productsLead ? <>{productSection}{foodSection}</> : <>{foodSection}{productSection}</>}
+                <View accessibilityRole="tablist" style={styles.listTabs}>
+                  {(['frequent', 'recent', 'favorites'] as const).map(tab => (
+                    <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === tab }} key={tab} onPress={() => { void selectionHaptic(); setListTab(tab); }} style={[styles.listTab, activeTab === tab && styles.listTabActive]}>
+                      <Text style={[styles.listTabText, activeTab === tab && styles.listTabTextActive]}>{tab === 'frequent' ? t.scan.tabFrequent : tab === 'recent' ? t.scan.tabRecent : t.scan.tabFavorites}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {activeTab === 'frequent' ? <>
+                  {myProducts.map(renderResult)}
+                  {frequent.map(renderResult)}
+                  {!myProducts.length && !frequent.length ? <Text style={styles.searchStatus}>{t.scan.tabFrequentEmpty}</Text> : null}
+                </> : activeTab === 'recent' ? <>
+                  {allRecents.map(renderResult)}
+                  {!allRecents.length ? <Text style={styles.searchStatus}>{t.scan.tabRecentEmpty}</Text> : null}
+                </> : <>
+                  {favorites.map(favorite => (
+                    <Pressable accessibilityHint={t.today.addTo(mealTypeLabel(saveSlot, t.common))} accessibilityRole="button" key={favorite.key} onPress={() => addFavoriteMeal(favorite.meal)} style={styles.searchRow}>
+                      <View style={styles.searchRowCopy}>
+                        <Text numberOfLines={1} style={styles.searchRowName}>{favorite.meal.title}</Text>
+                        <Text numberOfLines={1} style={styles.searchRowMeta}>{t.scan.favoriteItems(favorite.meal.items.filter(item => item.included).length, formatNumber(favorite.meal.calories, locale))}</Text>
+                      </View>
+                      <Ionicons color={colors.accentText} name="add-circle" size={28} />
+                    </Pressable>
+                  ))}
+                  {!favorites.length ? <Text style={styles.searchStatus}>{t.scan.tabFavoritesEmpty}</Text> : null}
+                </>}
+              </> : productsLead ? <>{eatenSection}{productSection}{foodSection}</> : <>{eatenSection}{foodSection}{productSection}</>}
               {searchQuery.trim().length >= 2 && !searching ? (
                 <Pressable accessibilityRole="button" onPress={() => { Keyboard.dismiss(); setManualFor(searchQuery.trim()); }} style={styles.searchRow}>
                   <View style={styles.searchRowCopy}>
@@ -1299,6 +1339,11 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   addedRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addedText: { ...typeScale.subhead, flex: 1, color: colors.text, fontWeight: '600' },
   addedRemove: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  listTabs: { flexDirection: 'row', gap: 6, padding: 4, borderRadius: radii.pill, backgroundColor: colors.neutralSoft, marginTop: 4, marginBottom: 6 },
+  listTab: { flex: 1, minHeight: 36, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
+  listTabActive: { backgroundColor: colors.surface },
+  listTabText: { ...typeScale.subhead, color: colors.muted, fontWeight: '600' },
+  listTabTextActive: { color: colors.text },
   searchSection: { ...typeScale.footnote, color: colors.muted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 8, marginBottom: 4 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border },
   searchRowCopy: { flex: 1, gap: 3 },
