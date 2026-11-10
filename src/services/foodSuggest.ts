@@ -97,6 +97,19 @@ const RAW_ALIASES: Record<string, readonly string[]> = {
   donut: ['D741600', 'D741000', 'D7A6000'], donuts: ['D741600', 'D741000', 'D7A6000'], doughnut: ['D741600', 'D741000', 'D7A6000'], doughnuts: ['D741600', 'D741000', 'D7A6000'],
   berliner: ['D7A6200', 'D7A6000', 'D7A6500'], krapfen: ['D7A6200', 'D7A6000', 'D7A6500'], kreppel: ['D7A6200', 'D7A6000', 'D7A6500'],
   muffin: ['D400400', 'D400800'], muffins: ['D400400', 'D400800'], croissant: ['D771600', 'D771700'], croissants: ['D771600', 'D771700'], gipfeli: ['D771600'],
+  // Backshop words (owner feedback 10.11.2026: "no bakery like at Lidl, Aldi,
+  // Kaufland, Netto"). Each points at the plain BLS row; values are typical,
+  // never a chain's own recipe, and the piece weight stays editable.
+  brötchen: ['B511000', 'B591000'], weckle: ['B511000'], weck: ['B511000'], rundstück: ['B511000'], weizenbrötchen: ['B511000'],
+  körnerbrötchen: ['B591000', 'B516000'], mehrkornbrötchen: ['B591000'], kürbiskernbrötchen: ['B516700', 'B406700'], kürbisbrötchen: ['B516700'],
+  sonnenblumenbrötchen: ['B516500'], sonnenblumenkernbrötchen: ['B516500'], sesambrötchen: ['B516300'], mohnbrötchen: ['B516400'], vollkornbrötchen: ['B401000', 'B406000'],
+  butterbreze: ['X061410'],
+  laugenstange: ['B723000', 'B723100'], laugenbrötchen: ['B723000', 'X061310'], laugenecke: ['B723000'], laugenzopf: ['B723000'], laugenknoten: ['B723000'], laugengebäck: ['B723000'],
+  käsestange: ['B723500', 'D770200'], käselaugenstange: ['B723500'], käselaugen: ['B723500'], käsebrötchen: ['B723500'], schinkenkäsestange: ['B723600'],
+  schokocroissant: ['D771700'], schokoladencroissant: ['D771700'], nougatcroissant: ['D771700'], buttercroissant: ['D771600'],
+  zimtschnecke: ['D7A5300'], nussschnecke: ['D7A5100'], rosinenschnecke: ['D752100'], streuselschnecke: ['D750200'], mohnschnecke: ['D7A7300'], mohnplunder: ['D7A7300'],
+  nussplunder: ['D780300'], schokoplunder: ['D7A7600'], schokobrötchen: ['D7A5600', 'D7A7600'], rosinenbrötchen: ['D7A5500'], milchbrötchen: ['D7A5400'],
+  apfeltasche: ['D7A7800', 'D7A5000'], quarktasche: ['D471700'], franzbrötchen: ['D7A7200'], streuselkuchen: ['D461500'],
 };
 // Everyday dishes rank first in search, with a realistic serving. They are
 // deliberately not used to resolve free-text descriptions: "Pizza" there
@@ -106,6 +119,9 @@ const RAW_DISH_ALIASES: Record<string, readonly string[]> = {
   pizza: ['X912033'], margherita: ['X912033'], doner: ['Y921162', 'Y921062'], döner: ['Y921162', 'Y921062'], kebab: ['Y921162', 'Y921062'],
   currywurst: ['Y943032', 'Y944062'], chili: ['X469753'], chiliconcarne: ['X469753'], schnitzel: ['Y231322'], wienerschnitzel: ['Y231322'],
   burger: ['Y911060', 'Y911160'], hamburger: ['Y911060'], cheeseburger: ['Y911160'],
+  // Street food: shawarma is grilled poultry like Döner meat; crispy chicken is breaded fried chicken breast.
+  shawarma: ['V422072', 'Y921162'], schawarma: ['V422072', 'Y921162'], shaurma: ['V422072', 'Y921162'], dürüm: ['Y921162'], durum: ['Y921162'], dönerfleisch: ['V422072'],
+  gyros: ['Y384112'], crispychicken: ['Y591112', 'Y5A1000'], chickenstrips: ['Y591112'], hähnchenschnitzel: ['Y591112'], chickenburger: ['Y9A1000'],
 };
 const DISH_ALIASES: Record<string, readonly string[]> = Object.fromEntries(Object.entries(RAW_DISH_ALIASES).map(([key, codes]) => [fold(key).replace(/ /g, ''), codes]));
 // Plain foods that a dish alias also lists (pasta for bolognese) stay matchable.
@@ -120,7 +136,9 @@ function aliasCodes(query: string) {
     // Two letters only match a whole word ("ei" is egg, not Eisbergsalat).
     if (!word.startsWith(query) || (query.length < 3 && word !== query)) continue;
     list.forEach((code, position) => {
-      const strength = 12 - position - (word.length - query.length) * 0.2;
+      // A fully typed everyday word outweighs a BLS name that merely starts with it
+      // ("laugenbrezel" is the plain pretzel, not "Laugenbrezel mit Butter").
+      const strength = 12 - position - (word.length - query.length) * 0.2 + (word === query && position === 0 ? 10 : 0);
       codes.set(code, Math.max(codes.get(code) ?? 0, strength));
     });
   }
@@ -143,6 +161,12 @@ const PORTIONS: Record<string, readonly (readonly [PortionKind, number])[]> = {
   F603600: [['glass', 200]], F110600: [['glass', 200]], N330000: [['can', 330], ['glass', 250]], N331000: [['can', 330], ['glass', 250]], P163000: [['bottle', 330]],
   P2A3000: [['glass', 200]], P210000: [['glass', 200]], P253000: [['glass', 200]], P220000: [['glass', 200]], G543100: [['piece', 160]], G541100: [['piece', 160]], G542100: [['piece', 160]], G520100: [['piece', 400]], X201160: [['portion', 150]], E113100: [['egg', 33]], V486182: [['fillet', 150]],
   Y038213: [['portion', 150]], X730033: [['portion', 350]], X912033: [['piece', 350], ['slice', 90]], Y921162: [['piece', 400]], Y921062: [['piece', 400]], Y943032: [['portion', 250]], Y944062: [['portion', 450]], X469753: [['portion', 350]], Y231322: [['piece', 150]], Y911060: [['piece', 110]], Y911160: [['piece', 120]],
+  B591000: [['piece', 70]], B516000: [['piece', 70]], B516700: [['piece', 70]], B406700: [['piece', 70]], B516500: [['piece', 70]], B516300: [['piece', 60]], B516400: [['piece', 60]],
+  B401000: [['piece', 70]], B406000: [['piece', 70]], B723000: [['piece', 80]], B723100: [['piece', 80]], X061410: [['piece', 100]], X061310: [['piece', 90]],
+  B723500: [['piece', 90]], B723600: [['piece', 100]], D770200: [['piece', 30]], D771700: [['piece', 80]], D7A5300: [['piece', 90]], D7A5100: [['piece', 100]],
+  D752100: [['piece', 100]], D750200: [['piece', 100]], D7A7300: [['piece', 100]], D780300: [['piece', 100]], D7A7600: [['piece', 90]], D7A5600: [['piece', 80]],
+  D7A5500: [['piece', 70]], D7A5400: [['piece', 50]], D7A7800: [['piece', 100]], D7A5000: [['piece', 100]], D471700: [['piece', 110]], D7A7200: [['piece', 90]], D461500: [['slice', 90]],
+  V422072: [['portion', 150]], Y384112: [['portion', 200]], Y591112: [['fillet', 150]], Y5A1000: [['fillet', 150]], Y9A1000: [['piece', 180]],
   D741600: [['piece', 60]], D741000: [['piece', 65]], D7A6000: [['piece', 70]], D7A6200: [['piece', 80]], D7A6500: [['piece', 80]], D400400: [['piece', 90]], D400800: [['piece', 90]],
   Q611000: [['tsp', 5]], H880200: [['tbsp', 15]], S120000: [['tsp', 8]], Q120000: [['tbsp', 10]],
   M402500: [['slice', 25]], M304600: [['slice', 20]], W424000: [['slice', 20]], W140000: [['slice', 10]], M032100: [['ball', 125]],
@@ -238,8 +262,13 @@ export function foodByBlsCode(code: string): FoodSearchResult | null {
   return row ? toResult(row, getLanguage()) : null;
 }
 
+/** Shop names say where, not what: "Lidl Laugenstange" searches the Laugenstange. */
+const STORE_WORDS = new Set(['lidl', 'aldi', 'kaufland', 'netto', 'penny', 'rewe', 'edeka', 'norma', 'globus', 'backshop', 'backstube', 'backerei', 'backer']);
+
 export function suggestFoods(query: string, usage: Map<string, FoodUsage> = new Map(), limit = 25): FoodSearchResult[] {
-  const typed = fold(query).split(' ').filter(Boolean);
+  const words = fold(query).split(' ').filter(Boolean);
+  const food = words.filter(word => !STORE_WORDS.has(word));
+  const typed = food.length ? food : words;
   if (!typed.length || typed.join('').length < 2) return [];
   const language = getLanguage();
   // Everyday spellings become the label's words; aliases of what was actually

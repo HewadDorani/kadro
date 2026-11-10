@@ -24,6 +24,14 @@ let passed = 0;
 const test = async (name, fn) => { await fn(); passed++; console.log('PASS', name); };
 const top = (query, usage) => suggest.suggestFoods(query, usage)[0]?.source.referenceId;
 
+await test('backshop words find the bakery row with a piece weight; shop names only narrow the shop', () => {
+  const cases = { 'brötchen': 'B511000', semmel: 'B511000', laugenstange: 'B723000', laugenbrezel: 'B723000', brezel: 'B723000', butterbrezel: 'X061410', 'käsestange': 'B723500',
+    'kürbiskernbrötchen': 'B516700', 'körnerbrötchen': 'B591000', schokocroissant: 'D771700', zimtschnecke: 'D7A5300', 'franzbrötchen': 'D7A7200', berliner: 'D7A6200',
+    'lidl laugenstange': 'B723000', 'aldi croissant': 'D771600', 'kaufland brötchen': 'B511000', 'netto zimtschnecke': 'D7A5300', shawarma: 'V422072', 'crispy chicken': 'Y591112', gyros: 'Y384112' };
+  for (const [query, code] of Object.entries(cases)) assert.equal(top(query), code, query);
+  assert.equal(suggest.suggestFoods('laugenstange')[0].portions?.[0]?.grams, 80, 'a Laugenstange has a piece weight');
+});
+
 await test('typing a prefix suggests the everyday food first, offline and fast', () => {
   const cases = { ha: 'C133000', haf: 'C133000', bana: 'F503100', ap: 'F110100', mil: 'M111200', ei: 'E111132', bro: 'B101000', nud: 'E401032', reis: 'C352032', kaf: 'N410100', tee: 'N630000', was: 'N110000', jog: 'M141300', sk: 'M710100', toa: 'B314000', 'häh': 'V416172', cola: 'N330000' };
   for (const [query, code] of Object.entries(cases)) assert.equal(top(query), code, query);
