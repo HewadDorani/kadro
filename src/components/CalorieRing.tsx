@@ -1,6 +1,5 @@
 import { useTheme, useThemedStyles } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/theme';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -77,7 +76,7 @@ export function CalorieRing({
     <View
       accessibilityLabel={over > 0
         ? `${over} ${t.ring.over}`
-        : `${remaining} ${t.ring.left}`}
+        : `${remaining} ${t.ring.left}${celebrating ? `, ${t.ring.proteinDone}` : ''}`}
       style={styles.outer}
     >
       {showSides ? side(consumed, t.ring.eaten) : null}
@@ -116,14 +115,9 @@ export function CalorieRing({
             {formatNumber(over > 0 ? over : remaining, locale)}
           </Text>
           <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={styles.label}>{over > 0 ? t.ring.over : t.ring.left}</Text>
-          {/* Only the protein win sits in the ring; "im Plan" and "drüber" are the card's heading, so the
-              centre stays the number alone (08.11.2026). */}
-          {celebrating ? (
-            <View style={styles.statusRow}>
-              <Ionicons color={colors.success} name="checkmark-circle" size={13} />
-              <Text maxFontSizeMultiplier={HERO_MAX_FONT_SCALE} style={[styles.status, { color: colors.success }]}>{t.ring.proteinDone}</Text>
-            </View>
-          ) : null}
+          {/* 10.11.2026 (owner TestFlight report): a chip here made the content taller
+              than the ring, so iOS shrank the number to a dot. The protein win is the
+              check mark on the Protein bar below; the ring keeps the number alone. */}
         </View>
       </View>
       {showSides ? side(total, t.ring.goal) : null}
@@ -176,20 +170,5 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.muted,
     fontWeight: '600',
     marginTop: 0,
-  },
-  // A quiet chip, so the status reads as a label rather than loose text.
-  statusRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    backgroundColor: colors.neutralSoft,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  status: {
-    ...typeScale.caption,
-    fontWeight: '700',
   },
 });
